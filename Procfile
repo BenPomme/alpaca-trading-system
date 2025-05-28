@@ -1,1 +1,1 @@
-web: python start_phase1.py
+web: python start_phase2.py
