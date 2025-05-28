@@ -1,1 +1,1 @@
-worker: python start_ultra_simple.py
+web: python start_with_dashboard.py
