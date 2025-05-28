@@ -4,148 +4,209 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an ultra-minimal adaptive algorithmic trading system designed for Railway cloud deployment. The system monitors market conditions every 2 minutes, adapts trading strategies based on market regime detection, and runs continuously with maximum reliability. Built specifically for paper trading with Alpaca Markets API, targeting 10% monthly returns through systematic market analysis.
+This is a sophisticated multi-phase algorithmic trading system designed for Railway cloud deployment. The system has evolved from simple market monitoring into a comprehensive trading execution engine with actual paper trade execution, advanced risk management, and real-time position monitoring. Built for paper trading with Alpaca Markets API, featuring expanded market universe (50+ symbols), automated stop-loss/take-profit, and SQLite persistence.
 
 ## Key Commands
 
 ### Environment Setup
 ```bash
-# Install single dependency
-pip install alpaca-trade-api
+# Install dependencies
+pip install alpaca-trade-api flask==2.3.3
 
 # Set environment variables for Alpaca paper trading
 export ALPACA_PAPER_API_KEY="your_key_here"
 export ALPACA_PAPER_SECRET_KEY="your_secret_here"
+export EXECUTION_ENABLED="true"
+export MARKET_TIER="2"
+export MIN_CONFIDENCE="0.7"
+```
 
-# Test system locally
+### Development & Testing
+```bash
+# Test Phase 3 intelligence layer (complete system)
+python test_phase3_standalone.py
+
+# Test Phase 1 functionality (database, analysis)
+python test_phase1_complete.py
+
+# Run system locally with specific configuration  
+MARKET_TIER=1 EXECUTION_ENABLED=true python start_phase3.py
+
+# Test database functionality
+python database_manager.py
+
+# Run original monitoring-only system
 python start_ultra_simple.py
 ```
 
 ### Railway Deployment
 ```bash
 # Deploy to Railway (automated GitHub integration)
-# Railway will automatically build from Procfile and requirements.txt
-# Add environment variables in Railway dashboard:
-# ALPACA_PAPER_API_KEY and ALPACA_PAPER_SECRET_KEY
+# Railway builds from Procfile: web: python start_phase3.py
+# Set environment variables in Railway dashboard:
+# ALPACA_PAPER_API_KEY, ALPACA_PAPER_SECRET_KEY
+# EXECUTION_ENABLED=true, MARKET_TIER=2, MIN_CONFIDENCE=0.7, MIN_TECHNICAL_CONFIDENCE=0.6
 ```
 
-### GitHub Deployment (Automated)
-```bash
-# Use deployment scripts (Claude handles this automatically)
-bash deploy_with_token.sh
-# Or follow FINAL_DEPLOY_COMMANDS.md for manual deployment
+## Multi-Phase Architecture
+
+The system evolved through systematic phases while maintaining Railway deployment simplicity:
+
+### Phase Evolution
+- **Phase 0** (`start_ultra_simple.py`): Original monitoring-only system (212 lines)
+- **Phase 1** (`enhanced_trader.py`): Added database persistence and virtual trading
+- **Phase 1.5** (`enhanced_trader_v2.py`): Expanded to 50+ symbol universe with sector analysis
+- **Phase 2** (`start_phase2.py`): Trade execution system with risk management
+- **Phase 3** (`start_phase3.py`): Current production system with intelligence layer
+
+### Core Components (Phase 3)
+
+#### **Entry Point & Intelligence Engine**
+- **`start_phase3.py`**: Current production entry point with intelligence layer
+- **`phase3_trader.py`**: Advanced trading engine with multi-factor analysis
+  - Integrates technical indicators, regime detection, and pattern recognition
+  - Intelligent trade decisions using combined confidence scoring
+- **`technical_indicators.py`**: RSI, MACD, Bollinger Bands, Moving Averages
+- **`market_regime_detector.py`**: Bull/Bear/Sideways detection with VIX analysis
+- **`pattern_recognition.py`**: Breakouts, support/resistance, mean reversion patterns
+
+#### **Execution System**
+- **`order_manager.py`**: Handles actual paper trade execution via Alpaca API
+  - Position sizing based on strategy confidence (1-3% of portfolio)
+  - Market order placement with risk-adjusted share calculations
+  - Automatic stop-loss (3%) and take-profit (8%) order placement
+- **`risk_manager.py`**: Advanced portfolio-level risk controls
+  - Maximum 5 concurrent positions, 40% sector exposure limits
+  - 5% daily portfolio loss limit, 15% maximum position size
+  - Pre-trade risk validation with detailed rejection reasons
+
+#### **Data & Analytics**
+- **`database_manager.py`**: SQLite integration for persistent data storage
+  - Market quotes, trading cycles, actual trades, performance metrics
+  - Comprehensive trade history and strategy performance tracking
+- **`market_universe.py`**: Multi-tier symbol management (50+ symbols)
+  - **Tier 1**: Core ETFs (SPY, QQQ, IWM) - always monitored
+  - **Tier 2**: 15 most liquid stocks + sector ETFs
+  - **Tier 3**: Top 25 NASDAQ components
+  - **Tier 4**: Extended stock universe for broader opportunities
+
+#### **Supporting Infrastructure**
+- **`performance_tracker.py`**: Strategy analytics and performance monitoring
+- **`dashboard_web.py`**: Real-time web dashboard for position monitoring
+- **Test suites**: Comprehensive testing for all phases and components
+
+### Current Deployment Configuration
+
+#### **Procfile**
+```
+web: python start_phase3.py
 ```
 
-## Ultra-Minimal Architecture
+#### **Requirements**
+```
+alpaca-trade-api
+flask==2.3.3
+```
 
-This system prioritizes reliability over complexity with a single-file architecture:
-
-### Core Component
-- **`start_ultra_simple.py`**: Complete trading system (212 lines)
-  - `UltraSimpleTrader` class: Main trading logic
-  - Market regime detection via SPY/QQQ/IWM analysis
-  - Strategy selection (momentum vs conservative)
-  - Continuous monitoring loop with error recovery
-  - JSON logging for complete transparency
-
-### Deployment Files
-- **`Procfile`**: Railway worker configuration (`worker: python start_ultra_simple.py`)
-- **`requirements.txt`**: Single dependency (`alpaca-trade-api`)
-- **`runtime.txt`**: Python version specification (`python-3.11`)
-
-### Supporting Documentation
-- **`README.md`**: System overview and features
-- **`FINAL_DEPLOY_COMMANDS.md`**: Complete deployment instructions
-- **Deployment scripts**: Automated GitHub repository creation and pushing
+#### **Environment Variables (Railway)**
+- `ALPACA_PAPER_API_KEY` / `ALPACA_PAPER_SECRET_KEY`: Alpaca credentials
+- `EXECUTION_ENABLED`: true/false toggle for actual trading
+- `MARKET_TIER`: 1-4 controls symbol universe size
+- `MIN_CONFIDENCE`: 0.7 default, minimum confidence threshold for trades
+- `MIN_TECHNICAL_CONFIDENCE`: 0.6 default, minimum technical analysis confidence
 
 ## Trading System Logic
 
-### Market Regime Detection
-1. **Data Collection**: Real-time quotes from SPY, QQQ, IWM every 2 minutes
-2. **Regime Classification**: 
-   - `active` (≥2 successful quote retrievals) → momentum strategy
-   - `uncertain` (<2 quotes) → conservative strategy
-3. **Confidence Scoring**: Based on data availability and market responsiveness
+### Intelligence-Driven Strategy Engine (Phase 3)
+1. **Multi-Factor Analysis**: Technical indicators + Market regime + Pattern recognition
+2. **Confidence Scoring**: Combined intelligence from multiple analysis modules
+   - **Technical Weight**: 40% (RSI, MACD, Bollinger Bands signals)
+   - **Regime Weight**: 40% (Bull/Bear/Sideways trend detection)
+   - **Pattern Weight**: 20% (Breakouts, support/resistance patterns)
+3. **Strategy Selection**: Intelligence-enhanced strategy variants
+   - **Aggressive Momentum**: High combined confidence (80%+), technical support
+   - **Momentum**: Moderate confidence (60-80%), regime alignment
+   - **Cautious Momentum**: Lower confidence (50-60%), pattern confirmation
+   - **Conservative**: Conflicting signals, preserve capital
 
-### Strategy Implementation
-- **Momentum Strategy**: Used during active market conditions
-- **Conservative Strategy**: Used during uncertain/low-data conditions
-- **Adaptive Switching**: Automatic strategy selection based on real-time market regime
+### Execution & Risk Management
+1. **Pre-Trade Risk Assessment**: 
+   - Portfolio exposure limits, position count, sector concentration
+   - Daily loss limits, position sizing validation
+2. **Order Execution**:
+   - Market orders with confidence-based position sizing
+   - Automatic stop-loss and take-profit order placement
+3. **Position Monitoring**:
+   - Real-time P&L tracking, automated exit conditions
+   - Portfolio rebalancing based on strategy changes
 
 ### Error Recovery & Reliability
+- **Execution Disabled Mode**: Safe testing without actual trades
 - **Connection Failures**: Automatic retry with graceful degradation
 - **API Errors**: Comprehensive error logging without system crash
-- **Data Gaps**: Fallback to conservative strategy when market data unavailable
-- **System Restart**: Automatic recovery from unexpected errors with 60-second delay
-
-## Important Configuration
-
-### Railway Cloud Deployment
-- **Resource Requirements**: Minimal (single dependency, low CPU/memory)
-- **Service Type**: Worker (continuous background process)
-- **Restart Policy**: Automatic restart on failure
-- **Environment Variables**: ALPACA_PAPER_API_KEY, ALPACA_PAPER_SECRET_KEY
-- **Always do GitHub deployments automatically and handle Railway integration**
-
-### Trading Parameters
-- **Cycle Frequency**: 120 seconds (2 minutes) between market scans
-- **Market Universe**: SPY, QQQ, IWM (broad market representation)
-- **Paper Trading**: $100,000 virtual account for safe testing
-- **Risk Management**: Built into strategy selection logic
+- **Database Failures**: Fallback to JSON logging for continuity
+- **Risk Limit Breaches**: Automatic position protection and trade rejection
 
 ## Data Persistence
 
-### Local Logging
-- **Log File**: `data/trading_log.json` (created automatically)
-- **Log Retention**: Last 100 trading cycles only
-- **Log Content**: Timestamp, market regime, strategy selection, quote count per cycle
+### SQLite Database (`data/trading_system.db`)
+- **Market Quotes**: Real-time price data across all tiers
+- **Trading Cycles**: Regime detection, strategy selection, confidence scores
+- **Actual Trades**: Complete execution records with P&L tracking
+- **Performance Metrics**: Strategy analytics and portfolio performance
 
-### Railway Cloud Logging
-- **System Logs**: Available through Railway dashboard
-- **Error Tracking**: All exceptions logged with full stack traces
-- **Performance Monitoring**: Cycle completion times and success rates
+### JSON Logging (`data/trading_log.json`)
+- **Backward Compatibility**: Maintained for legacy monitoring
+- **Real-time Summaries**: Cycle-by-cycle trading decisions and outcomes
+- **Error Tracking**: Comprehensive failure logging and recovery actions
 
-## Development Notes
+## Development Architecture
 
-### Minimal Dependencies
-- **Single Requirement**: `alpaca-trade-api` only (eliminates complex dependency conflicts)
-- **Fallback Imports**: Optional `python-dotenv` with environment variable fallback
-- **No Complex Libraries**: No pandas, numpy, or technical analysis libraries for maximum reliability
+### Component Interaction Flow
+1. **`start_phase2.py`** → Initializes `Phase2Trader` with environment configuration
+2. **`Phase2Trader`** → Inherits enhanced analysis from `EnhancedTraderV2`
+3. **Trading Cycle**:
+   - Market data collection across selected tier
+   - Regime detection and confidence scoring
+   - Strategy selection and position size calculation
+   - Risk management validation (`RiskManager`)
+   - Trade execution or rejection (`OrderManager`)
+   - Database persistence (`TradingDatabase`)
+   - Position monitoring and exit management
 
-### Railway Optimization
-- **Build Speed**: Ultra-fast deployment due to minimal dependencies
-- **Resource Efficiency**: Low memory footprint, minimal CPU usage
-- **Error Resilience**: Extensive error handling prevents deployment failures
-- **Automatic Scaling**: Designed for Railway's automatic restart capabilities
-
-### GitHub Integration
-- **Automated Deployment**: Claude handles all git commands and repository management
-- **Token Authentication**: Uses provided GitHub personal access token
-- **Repository Structure**: Minimal file count for clean deployment
-- **Commit Strategy**: Descriptive commits with full system documentation
+### Testing Strategy
+- **`test_phase3_intelligence.py`**: Complete intelligence layer testing with trade execution
+- **`test_phase3_standalone.py`**: Core intelligence modules testing (87.5% accuracy)
+- **`test_phase2_execution.py`**: Execution engine validation
+- **Component Tests**: Individual module testing (technical indicators, pattern recognition)
 
 ## Expected System Behavior
 
-### Successful Operation Logs
+### Successful Phase 3 Operation
 ```
-✅ Alpaca API ready
-✅ Connected to Alpaca Paper Trading
+🧠 Phase 3 Intelligence Layer initialized (Execution: ENABLED)
+✅ Database connected: data/trading_system.db
+🧠 Technical Indicators: ✅ Enabled
+🎯 Market Regime Detection: Enhanced
+🔍 Pattern Recognition: Active
 📊 Portfolio Value: $100,000.00
-🔄 Starting continuous monitoring...
-📊 Cycle #1
-🔄 TRADING CYCLE - HH:MM:SS
-📈 Getting market data...
-   SPY: $XXX.XX
-   QQQ: $XXX.XX
-   IWM: $XXX.XX
-🎯 Market Regime: active (80%)
+🔄 Starting continuous intelligent trading...
+
+🧠 PHASE 3 INTELLIGENCE CYCLE - 14:30:15
+📈 Collecting market data... (15 symbols)
+🧠 Analyzing market intelligence...
+🎯 Market Regime: bullish (75% confidence)
 🎯 Strategy: momentum
-✅ Cycle completed
+🧠 INTELLIGENCE TRADE: QQQ
+   💰 3 shares @ $520.85
+   🎯 Final Confidence: 82.3%
+   📊 Intelligence: Technical supports: buy (78%)
+✅ Phase 3 cycle completed in 8.2s
 ⏳ Next cycle in 120 seconds...
 ```
 
-### Error Recovery Examples
-- Missing credentials → Clean error message and system exit
-- API connection failure → Error logging and automatic retry
-- Market data unavailable → Conservative strategy activation
-- Unexpected system error → 60-second delay and restart attempt
+### Risk Management Examples
+- Trade rejection due to position limits
+- Sector exposure limit protection
+- Daily loss limit enforcement
+- Automatic stop-loss execution
