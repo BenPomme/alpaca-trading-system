@@ -21,6 +21,7 @@ class EnhancedTraderV2(EnhancedTrader):
         # Set market tier (1=core, 2=liquid, 3=nasdaq, 4=all)
         self.market_tier = market_tier
         self.symbols = get_symbols_by_tier(market_tier)
+        self.market_universe = self.symbols  # Alias for compatibility
         
         print(f"📊 Market Tier: {market_tier} ({len(self.symbols)} symbols)")
         print(f"📊 Symbols: {self.symbols[:10]}{'...' if len(self.symbols) > 10 else ''}")
