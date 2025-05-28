@@ -13,8 +13,12 @@ from dashboard import app
 def run_trading_system():
     """Run the trading system in a separate thread"""
     print("🤖 Starting trading system...")
-    trader = UltraSimpleTrader()
-    trader.run_continuous()
+    try:
+        trader = UltraSimpleTrader()
+        trader.run_continuous()
+    except Exception as e:
+        print(f"❌ Trading system error: {e}")
+        # Don't crash the whole app if trading fails
 
 def run_dashboard():
     """Run the web dashboard"""
