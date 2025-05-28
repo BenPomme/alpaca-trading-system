@@ -1,1 +1,1 @@
-web: python dashboard_web.py
+web: python start_phase1.py
