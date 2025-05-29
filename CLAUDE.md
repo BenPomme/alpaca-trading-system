@@ -2,6 +2,15 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Important Guidelines
+
+**BEFORE making any changes to this codebase:**
+1. **Read QA.md thoroughly** - Contains critical bug prevention rules and deployment lessons
+2. **Verify inheritance chains** - Check attribute/method availability before accessing
+3. **Validate data structures** - Ensure consistent data formats between modules
+4. **Test with minimal data** - Verify startup behavior when market data is limited
+5. **Follow defensive programming** - Use .get() methods and provide defaults
+
 ## Project Overview
 
 This is a sophisticated multi-phase algorithmic trading system designed for Railway cloud deployment. The system has evolved from simple market monitoring into a comprehensive trading execution engine with actual paper trade execution, advanced risk management, and real-time position monitoring. Built for paper trading with Alpaca Markets API, featuring expanded market universe (50+ symbols), automated stop-loss/take-profit, and SQLite persistence.
@@ -179,6 +188,12 @@ flask==2.3.3
 - **`test_phase3_standalone.py`**: Core intelligence modules testing (87.5% accuracy)
 - **`test_phase2_execution.py`**: Execution engine validation
 - **Component Tests**: Individual module testing (technical indicators, pattern recognition)
+
+### Quality Assurance
+- **`QA.md`**: Bug history, fixes, and prevention rules
+  - Documents all deployment issues and their solutions
+  - Establishes coding standards to prevent recurring bugs
+  - Required reading before making changes to inheritance chains or data structures
 
 ## Expected System Behavior
 
