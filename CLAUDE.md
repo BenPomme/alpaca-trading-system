@@ -28,7 +28,7 @@ export ALPACA_PAPER_SECRET_KEY="your_secret_here"
 export EXECUTION_ENABLED="true"
 export GLOBAL_TRADING="true"
 export MARKET_TIER="5"
-export MIN_CONFIDENCE="0.7"
+export MIN_CONFIDENCE="0.6"
 ```
 
 ### Development & Testing
@@ -62,7 +62,7 @@ python start_ultra_simple.py
 # Set environment variables in Railway dashboard (Phase 4.1):
 # ALPACA_PAPER_API_KEY, ALPACA_PAPER_SECRET_KEY
 # EXECUTION_ENABLED=true, GLOBAL_TRADING=true, MARKET_TIER=5
-# MIN_CONFIDENCE=0.7, MIN_TECHNICAL_CONFIDENCE=0.6
+# MIN_CONFIDENCE=0.6, MIN_TECHNICAL_CONFIDENCE=0.6
 ```
 
 ## Multi-Phase Architecture

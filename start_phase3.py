@@ -22,7 +22,7 @@ def main():
     # Configuration from environment variables
     execution_enabled = os.getenv('EXECUTION_ENABLED', 'true').lower() == 'true'  # Default to enabled for Phase 3
     market_tier = int(os.getenv('MARKET_TIER', '2'))
-    min_confidence = float(os.getenv('MIN_CONFIDENCE', '0.7'))
+    min_confidence = float(os.getenv('MIN_CONFIDENCE', '0.6'))  # Lowered from 0.7 to enable trading
     min_technical_confidence = float(os.getenv('MIN_TECHNICAL_CONFIDENCE', '0.6'))
     global_trading = os.getenv('GLOBAL_TRADING', 'true').lower() == 'true'  # Phase 4.1: Global markets - ENABLED by default
     

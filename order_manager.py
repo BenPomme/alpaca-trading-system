@@ -120,23 +120,60 @@ class OrderManager:
         return True
     
     def is_market_open(self) -> bool:
-        """Check if market is currently open for trading"""
+        """Check if ANY global market is currently open for trading"""
         try:
-            # Get market clock from Alpaca
+            # Get US market clock from Alpaca
             clock = self.api.get_clock()
-            is_open = clock.is_open
+            us_market_open = clock.is_open
             
-            print(f"   🕐 Market Status: {'OPEN' if is_open else 'CLOSED'}")
+            print(f"   🕐 US Market Status: {'OPEN' if us_market_open else 'CLOSED'}")
             print(f"   🕐 Current Time: {clock.timestamp}")
-            print(f"   🕐 Next Open: {clock.next_open}")
-            print(f"   🕐 Next Close: {clock.next_close}")
             
-            return is_open
+            # For global trading, we check if ANY major market is open
+            import datetime
+            import pytz
+            
+            current_utc = datetime.datetime.now(pytz.UTC)
+            
+            # Check major global market hours
+            global_markets_open = []
+            
+            # US Market (already checked)
+            if us_market_open:
+                global_markets_open.append("US")
+            
+            # Asian Markets (simplified - assume open during Asian business hours)
+            # Tokyo: 9:00-15:30 JST (00:00-06:30 UTC)
+            # Hong Kong: 9:30-16:00 HKT (01:30-08:00 UTC) 
+            tokyo_tz = pytz.timezone('Asia/Tokyo')
+            tokyo_time = current_utc.astimezone(tokyo_tz)
+            tokyo_hour = tokyo_time.hour
+            
+            # Simplified Asian market check (9:00-15:30 JST weekdays)
+            if tokyo_time.weekday() < 5 and 9 <= tokyo_hour <= 15:
+                global_markets_open.append("Asia")
+            
+            # European Markets (8:00-16:30 GMT weekdays)
+            london_tz = pytz.timezone('Europe/London') 
+            london_time = current_utc.astimezone(london_tz)
+            london_hour = london_time.hour
+            
+            if london_time.weekday() < 5 and 8 <= london_hour <= 16:
+                global_markets_open.append("Europe")
+            
+            any_market_open = len(global_markets_open) > 0
+            
+            if global_markets_open:
+                print(f"   🌍 Global Markets Open: {', '.join(global_markets_open)}")
+            else:
+                print(f"   🌙 All Global Markets Closed")
+            
+            return any_market_open
             
         except Exception as e:
-            print(f"   ⚠️ Error checking market hours: {e}")
-            # If we can't check market hours, assume closed for safety
-            return False
+            print(f"   ⚠️ Error checking global market hours: {e}")
+            # If we can't check, be permissive for global trading
+            return True
     
     def cancel_duplicate_orders(self):
         """Cancel duplicate pending orders to prevent over-exposure"""
