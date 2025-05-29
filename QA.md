@@ -1,6 +1,6 @@
 # QA.md - Quality Assurance & Bug Prevention Guide
 
-This file documents bugs encountered during Phase 3 development and establishes rules to prevent similar issues in future development.
+This file documents 7 major bugs encountered during Phase 3 development and establishes rules to prevent similar issues in future development.
 
 ## Bug History & Fixes
 
@@ -154,6 +154,51 @@ if self.use_database and self.db:
 > - Document common attribute names used across inheritance hierarchies
 > - Never assume attribute names - always verify in parent classes
 
+### 7. Method Signature Mismatch: `store_trading_cycle()`
+
+**Bug**: `TradingDatabase.store_trading_cycle() got an unexpected keyword argument 'timestamp'`
+
+**Root Cause**:
+- Phase 3 called method with individual keyword arguments
+- Actual method signature expects `store_trading_cycle(cycle_data: Dict, cycle_number: int)`
+- Method interface assumption without verification
+
+**Wrong Implementation**:
+```python
+# Phase 3 WRONG approach:
+self.db.store_trading_cycle(
+    timestamp=cycle_start,
+    market_regime=market_regime,
+    strategy=strategy,
+    confidence=regime_confidence,
+    quotes_retrieved=len(quotes),
+    cycle_id=cycle_id
+)
+```
+
+**Correct Implementation**:
+```python
+# CORRECT approach (following other classes):
+cycle_data = {
+    'regime': market_regime,
+    'confidence': regime_confidence,
+    'strategy': strategy,
+    'quotes_count': len(quotes),
+    'intelligence_enabled': self.intelligence_enabled,
+    'phase': 'phase3_intelligence'
+}
+db_cycle_id = self.db.store_trading_cycle(cycle_data, cycle_id)
+```
+
+**Prevention Rule**:
+> **RULE 7: Method Signature Verification**
+> - Always check method signatures before calling methods from parent/external classes
+> - Look at existing successful calls to understand expected parameters
+> - Use "Go to Definition" to see exact method signature and documentation
+> - Don't assume method interfaces - verify parameter names, types, and order
+> - Follow existing patterns used by other classes calling the same method
+> - Add try/catch blocks around method calls that could have interface issues
+
 ## Development Best Practices
 
 ### Code Quality Rules
@@ -233,11 +278,13 @@ if insufficient_data:
 
 #### Before Deployment Checklist:
 - [ ] Test all inheritance chain attributes and methods
+- [ ] Verify method signatures match expected parameters
 - [ ] Verify data structure compatibility between modules  
 - [ ] Test startup behavior with minimal/no market data
 - [ ] Validate all expected dictionary keys exist
 - [ ] Test error handling and graceful degradation
 - [ ] Run standalone module tests before integration
+- [ ] Check existing successful method calls for patterns
 
 #### Integration Testing:
 - [ ] Test Phase 3 with actual quote data format

@@ -453,14 +453,20 @@ class Phase3Trader(Phase2Trader):
             
             # Store cycle data
             if self.use_database and self.db:
-                self.db.store_trading_cycle(
-                    timestamp=cycle_start,
-                    market_regime=market_regime,
-                    strategy=strategy,
-                    confidence=regime_confidence,
-                    quotes_retrieved=len(quotes),
-                    cycle_id=cycle_id
-                )
+                try:
+                    cycle_data = {
+                        'regime': market_regime,
+                        'confidence': regime_confidence,
+                        'strategy': strategy,
+                        'quotes_count': len(quotes),
+                        'intelligence_enabled': self.intelligence_enabled,
+                        'phase': 'phase3_intelligence',
+                        'cycle_id': cycle_id
+                    }
+                    db_cycle_id = self.db.store_trading_cycle(cycle_data, cycle_id)
+                    print(f"💾 Phase 3 cycle data stored (DB ID: {db_cycle_id})")
+                except Exception as e:
+                    print(f"⚠️ Cycle storage error: {e}")
             
             print(f"✅ Phase 3 cycle completed in {(datetime.now() - cycle_start).total_seconds():.1f}s")
             
