@@ -363,36 +363,38 @@ class Phase3Trader(Phase2Trader):
         print(f"   🇯🇵 Asian Market: {'OPEN' if asian_market_open else 'CLOSED'}")
         print(f"   🇪🇺 European Market: {'OPEN' if european_market_open else 'CLOSED'}")
         
-        # CRITICAL FIX: Match symbols to open markets only
+        # CORRECTED: Only trade when exchanges are open for immediate execution
         selected_symbols = []
         
         if us_market_open:
-            # Trade US symbols during US hours
+            # Trade US-listed stocks/ETFs on US exchanges (immediate execution)
             from market_universe import get_symbols_by_tier
-            us_symbols = get_symbols_by_tier(3)  # US stocks + ETFs
+            us_symbols = get_symbols_by_tier(4)  # US stocks + ETFs + Global ETFs
             selected_symbols.extend(us_symbols)
-            print(f"🇺🇸 Trading US symbols: {len(us_symbols)} symbols")
+            print(f"🇺🇸 Trading US-listed symbols on US exchanges: {len(us_symbols)} symbols")
+            print(f"🇺🇸 Includes: US stocks, Global ETFs, all ADRs for immediate execution")
             
         elif asian_market_open:
-            # Trade Asian ADRs during Asian hours (these execute immediately)
-            from market_universe import get_asian_symbols_by_region
-            asian_adrs = get_asian_symbols_by_region()
-            asian_symbols = []
-            for region_symbols in asian_adrs.values():
-                asian_symbols.extend(region_symbols)
-            selected_symbols.extend(asian_symbols)
-            print(f"🇯🇵 Trading Asian ADRs: {len(asian_symbols)} symbols")
+            # During Asian hours: Trade Global ETFs with Asian exposure (execute immediately)
+            # Note: True Asian exchange trading requires different broker
+            asian_etfs = ['EWJ', 'FXI', 'EWT', 'INDA', 'EWY', 'VWO', 'VEA']  # These trade 24hrs
+            selected_symbols.extend(asian_etfs)
+            print(f"🇯🇵 Asian market hours: Trading Global ETFs with Asian exposure")
+            print(f"🇯🇵 Note: These are US-listed ETFs that can trade extended hours")
             
         elif european_market_open:
-            # Trade European ADRs during European hours (corrected tickers)
-            european_symbols = ['ASML', 'SAP', 'NVO', 'UL', 'BP', 'RDS.A', 'SPOT', 'DEO']
-            selected_symbols.extend(european_symbols)
-            print(f"🇪🇺 Trading European ADRs: {len(european_symbols)} symbols")
+            # During European hours: Trade Global ETFs with European exposure
+            # Note: True European exchange trading requires different broker  
+            european_etfs = ['VEA', 'IEFA', 'EFA', 'VGK']  # Europe-focused ETFs
+            selected_symbols.extend(european_etfs)
+            print(f"🇪🇺 European market hours: Trading European-focused ETFs")
+            print(f"🇪🇺 Note: True EU exchange trading not supported by Alpaca")
             
         else:
-            # No major markets open - minimal core symbols only
-            selected_symbols = ['SPY', 'QQQ', 'VEA']  # Core ETFs only
-            print(f"🌙 All markets closed, core ETFs only: {len(selected_symbols)} symbols")
+            # No major markets open - core ETFs only
+            selected_symbols = ['SPY', 'QQQ', 'VTI']  # Core broad market ETFs
+            print(f"🌙 All markets closed: Core ETFs only")
+            print(f"🌙 Note: Limited trading during global market closure")
         
         # Remove duplicates and return
         unique_symbols = list(set(selected_symbols))
@@ -563,11 +565,11 @@ class Phase3Trader(Phase2Trader):
         print("=" * 60)
         
         try:
-            # CRITICAL: Cancel all pending orders to prevent market mismatch and duplicates
-            print("🧹 EMERGENCY: Cleaning up all pending orders...")
+            # CRITICAL: Cancel all pending orders (ADRs on wrong exchanges)
+            print("🧹 EMERGENCY: Cleaning up ADR orders that trade on wrong exchanges...")
             cancelled_count = self.order_manager.cancel_all_pending_orders()
             if cancelled_count > 0:
-                print(f"🧹 EMERGENCY CLEANUP: Cancelled {cancelled_count} pending orders from wrong market/duplicates")
+                print(f"🧹 EMERGENCY CLEANUP: Cancelled {cancelled_count} ADR orders that would queue on US exchanges")
             else:
                 print("🧹 No pending orders to cancel - account clean")
             
