@@ -57,16 +57,17 @@ class Phase3Trader(Phase2Trader):
         self.regime_detector.add_market_data(symbol, price, volume, timestamp)
         self.pattern_recognition.add_price_data(symbol, price, volume, timestamp)
         
-        # Track data accumulation progress
-        price_data_count = len(self.technical_indicators.price_history.get(symbol, []))
-        analysis['data_points'] = price_data_count
-        
+        # Initialize analysis dictionary first
         analysis = {
             'symbol': symbol,
             'current_price': price,
             'timestamp': timestamp.isoformat(),
             'intelligence_scores': {}
         }
+        
+        # Track data accumulation progress
+        price_data_count = len(self.technical_indicators.price_history.get(symbol, []))
+        analysis['data_points'] = price_data_count
         
         # Technical Indicators Analysis
         if symbol in self.technical_indicators.initialized_symbols:
