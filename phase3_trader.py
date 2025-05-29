@@ -452,8 +452,8 @@ class Phase3Trader(Phase2Trader):
                 print("⚠️ Execution disabled - analysis only")
             
             # Store cycle data
-            if self.use_database:
-                self.database.store_trading_cycle(
+            if self.use_database and self.db:
+                self.db.store_trading_cycle(
                     timestamp=cycle_start,
                     market_regime=market_regime,
                     strategy=strategy,

@@ -127,6 +127,33 @@ intel = self.analyze_symbol_intelligence(symbol, quote_data['ask'], quote_data.g
 > - Use `.get()` method with defaults for optional fields
 > - Create data format documentation showing exact structure and field names
 
+### 6. Database Attribute Name Mismatch: `'database'` vs `'db'`
+
+**Bug**: `AttributeError: 'Phase3Trader' object has no attribute 'database'`
+
+**Root Cause**:
+- Parent classes use `self.db` for database instance
+- Phase 3 incorrectly used `self.database` 
+- Attribute naming inconsistency in inheritance chain
+
+**Fix Applied**:
+```python
+# In phase3_trader.py - WRONG:
+self.database.store_trading_cycle(...)
+
+# CORRECT:
+if self.use_database and self.db:
+    self.db.store_trading_cycle(...)
+```
+
+**Prevention Rule**:
+> **RULE 6: Verify Parent Class Attribute Names**
+> - Check parent class attribute names before using in child classes
+> - Use IDE/editor "Go to Definition" to verify attribute existence
+> - Add null checks (`and self.db`) for optional attributes
+> - Document common attribute names used across inheritance hierarchies
+> - Never assume attribute names - always verify in parent classes
+
 ## Development Best Practices
 
 ### Code Quality Rules
