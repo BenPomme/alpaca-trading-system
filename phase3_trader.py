@@ -413,20 +413,41 @@ class Phase3Trader(Phase2Trader):
             self.regime_detector.add_vix_data(simulated_vix)
             
             # Get comprehensive market regime analysis
-            regime_analysis = self.regime_detector.get_comprehensive_regime_analysis()
-            
-            market_regime = "active"  # Default
-            regime_confidence = 0.7
-            
-            if 'overall_assessment' in regime_analysis:
-                overall = regime_analysis['overall_assessment']
-                if overall['regime'] == 'bullish':
-                    market_regime = "active"
-                elif overall['regime'] == 'bearish':
-                    market_regime = "uncertain"
+            try:
+                regime_analysis = self.regime_detector.get_comprehensive_regime_analysis()
+                
+                market_regime = "active"  # Default
+                regime_confidence = 0.7
+                
+                if 'overall_assessment' in regime_analysis:
+                    overall = regime_analysis['overall_assessment']
+                    regime_type = overall.get('regime', 'neutral')
+                    if regime_type == 'bullish':
+                        market_regime = "active"
+                    elif regime_type == 'bearish':
+                        market_regime = "uncertain"
+                    else:
+                        market_regime = "neutral"
+                    regime_confidence = overall.get('confidence', 0.7)
                 else:
-                    market_regime = "neutral"
-                regime_confidence = overall.get('confidence', 0.7)
+                    print("⚠️ No overall assessment available - using basic regime detection")
+                    # Fallback to basic regime detection using quote count
+                    if len(quotes) >= 2:
+                        market_regime = "active"
+                        regime_confidence = 0.8
+                    else:
+                        market_regime = "uncertain"
+                        regime_confidence = 0.4
+                        
+            except Exception as e:
+                print(f"⚠️ Regime analysis error: {str(e)} - using fallback")
+                # Fallback to basic regime detection
+                if len(quotes) >= 2:
+                    market_regime = "active"
+                    regime_confidence = 0.8
+                else:
+                    market_regime = "uncertain"
+                    regime_confidence = 0.4
             
             print(f"🎯 Market Regime: {market_regime} ({regime_confidence:.1%} confidence)")
             
