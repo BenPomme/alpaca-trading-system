@@ -175,26 +175,40 @@ class OrderManager:
             print(f"   ⚠️ Error checking/cancelling duplicate orders: {e}")
     
     def cancel_all_pending_orders(self):
-        """Cancel ALL pending orders to clean slate"""
+        """Cancel ALL pending orders to clean slate - AGGRESSIVE VERSION"""
         try:
-            print(f"🧹 CANCELLING ALL PENDING ORDERS...")
-            pending_orders = self.api.list_orders(status='new')
+            print(f"🧹 EMERGENCY: CANCELLING ALL PENDING ORDERS...")
             
-            if not pending_orders:
-                print(f"   ✅ No pending orders to cancel")
-                return 0
+            # Try multiple times to catch all orders
+            total_cancelled = 0
+            for attempt in range(3):  # Try 3 times to catch everything
+                pending_orders = self.api.list_orders(status='new')
+                
+                if not pending_orders:
+                    if attempt == 0:
+                        print(f"   ✅ No pending orders to cancel")
+                    break
+                
+                print(f"   🔍 Attempt {attempt + 1}: Found {len(pending_orders)} pending orders")
+                
+                cancelled_count = 0
+                for i, order in enumerate(pending_orders, 1):
+                    try:
+                        self.api.cancel_order(order.id)
+                        print(f"   ❌ [{i:3d}/{len(pending_orders)}] Cancelled: {order.symbol} {order.side} {order.qty} shares")
+                        cancelled_count += 1
+                    except Exception as e:
+                        print(f"   ⚠️ [{i:3d}/{len(pending_orders)}] Failed {order.symbol}: {str(e)[:50]}")
+                
+                total_cancelled += cancelled_count
+                print(f"   🧹 Attempt {attempt + 1}: Cancelled {cancelled_count} orders")
+                
+                # Brief pause between attempts
+                import time
+                time.sleep(1)
             
-            cancelled_count = 0
-            for order in pending_orders:
-                try:
-                    self.api.cancel_order(order.id)
-                    print(f"   ❌ Cancelled: {order.symbol} {order.side} {order.qty} shares (ID: {order.id})")
-                    cancelled_count += 1
-                except Exception as e:
-                    print(f"   ⚠️ Failed to cancel order {order.id}: {e}")
-            
-            print(f"   🧹 Successfully cancelled {cancelled_count} pending orders")
-            return cancelled_count
+            print(f"   🎉 TOTAL CANCELLED: {total_cancelled} pending orders across all attempts")
+            return total_cancelled
             
         except Exception as e:
             print(f"   ⚠️ Error cancelling all pending orders: {e}")
