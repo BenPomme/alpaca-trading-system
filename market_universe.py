@@ -42,7 +42,6 @@ CORE_ETFS = [
 
 # High-volume, liquid stocks for reliable data
 HIGH_VOLUME_STOCKS = [
-    'SPY', 'QQQ', 'IWM',  # ETFs
     'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA',  # Mega-cap
     'NFLX', 'ADBE', 'CRM', 'ORCL', 'INTC', 'AMD', 'QCOM',    # Large-cap tech
     'JPM', 'BAC', 'WFC', 'C',                                  # Banks
