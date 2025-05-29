@@ -125,26 +125,26 @@ class RiskManager:
             if position_pct > self.max_position_size_pct:
                 return False, f"Position too large ({position_pct:.1%} > {self.max_position_size_pct:.1%})"
             
-            # Check buying power (with fallbacks for paper trading)
-            buying_power = float(account.buying_power)
+            # Check buying power (FIXED: Use RegT buying power, not day trading)
+            # Try RegT buying power first (this is what we want!)
+            regt_bp = float(getattr(account, 'regt_buying_power', 0))
+            buying_power = float(account.buying_power)  # Default (day trading)
             
-            # BUGFIX: If buying power is 0, try alternative values
-            if buying_power <= 0:
-                # Try daytrading buying power
-                daytrading_bp = float(getattr(account, 'daytrading_buying_power', 0))
-                if daytrading_bp > 0:
-                    buying_power = daytrading_bp
-                    print(f"   🔄 Using daytrading buying power: ${buying_power:,.2f}")
+            if regt_bp > 0:
+                buying_power = regt_bp
+                print(f"   ✅ Using RegT buying power: ${buying_power:,.2f}")
+            elif buying_power > 0:
+                print(f"   ✅ Using standard buying power: ${buying_power:,.2f}")
+            else:
+                # Fallback to cash if both are 0
+                cash = float(account.cash)
+                if cash > 0:
+                    buying_power = cash
+                    print(f"   🔄 Using cash balance: ${buying_power:,.2f}")
                 else:
-                    # Try cash balance
-                    cash = float(account.cash)
-                    if cash > 0:
-                        buying_power = cash
-                        print(f"   🔄 Using cash balance: ${buying_power:,.2f}")
-                    else:
-                        # Last resort: use portfolio value
-                        buying_power = portfolio_value
-                        print(f"   🔄 Using portfolio value as buying power: ${buying_power:,.2f}")
+                    # Last resort: use portfolio value
+                    buying_power = portfolio_value
+                    print(f"   🔄 Using portfolio value as buying power: ${buying_power:,.2f}")
             
             print(f"   💰 Final buying power used: ${buying_power:,.2f}")
             

@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import json
+import random
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 
@@ -18,6 +19,12 @@ from pattern_recognition import PatternRecognition
 # Import Phase 4.1 global market capability
 from global_market_manager import GlobalMarketManager
 
+# Import Phase 4.3 options trading capability 
+from options_manager import OptionsManager
+
+# Import Phase 4.4 crypto trading capability
+from crypto_trader import CryptoTrader
+
 class Phase3Trader(Phase2Trader):
     """
     Phase 3: Intelligence Layer
@@ -29,7 +36,7 @@ class Phase3Trader(Phase2Trader):
     - Sophisticated market analysis and decision making
     """
     
-    def __init__(self, use_database=True, market_tier=2, global_trading=False):
+    def __init__(self, use_database=True, market_tier=2, global_trading=False, options_trading=False, crypto_trading=False):
         super().__init__(use_database, market_tier)
         
         # Initialize intelligence modules
@@ -45,6 +52,24 @@ class Phase3Trader(Phase2Trader):
         else:
             self.global_market_manager = None
             print("🌍 Global Market Trading: ❌ Disabled")
+        
+        # Phase 4.3: Initialize options trading
+        self.options_trading = options_trading
+        if self.options_trading:
+            self.options_manager = OptionsManager(self.api, self.risk_manager)
+            print("📊 Options Trading: ✅ Enabled")
+        else:
+            self.options_manager = None
+            print("📊 Options Trading: ❌ Disabled")
+        
+        # Phase 4.4: Initialize 24/7 crypto trading
+        self.crypto_trading = crypto_trading
+        if self.crypto_trading:
+            self.crypto_trader = CryptoTrader(self.api, self.risk_manager)
+            print("₿ 24/7 Crypto Trading: ✅ Enabled")
+        else:
+            self.crypto_trader = None
+            print("₿ 24/7 Crypto Trading: ❌ Disabled")
         
         # Phase 3 specific settings
         self.intelligence_enabled = True
@@ -623,6 +648,92 @@ class Phase3Trader(Phase2Trader):
             # Enhanced strategy selection
             strategy = self.enhanced_strategy_selection(quotes, market_regime, regime_confidence)
             print(f"🎯 Strategy: {strategy}")
+            
+            # Phase 4.4: Execute 24/7 crypto trading if enabled
+            crypto_results = {}
+            if self.crypto_trading and self.crypto_trader:
+                print("\n₿ CRYPTO TRADING CYCLE")
+                print("-" * 30)
+                
+                # Get active crypto symbols for current session
+                crypto_symbols = self.crypto_trader.get_active_crypto_symbols()
+                print(f"₿ Active crypto symbols: {crypto_symbols}")
+                
+                # Analyze and trade crypto opportunities
+                for symbol in crypto_symbols:
+                    try:
+                        # Get crypto market data (simulated for now)
+                        crypto_data = {
+                            'price': random.uniform(30000, 70000) if 'BTC' in symbol else random.uniform(2000, 4000),
+                            'high_24h': random.uniform(35000, 75000) if 'BTC' in symbol else random.uniform(2100, 4200),
+                            'low_24h': random.uniform(28000, 65000) if 'BTC' in symbol else random.uniform(1900, 3800),
+                            'price_24h_ago': random.uniform(29000, 69000) if 'BTC' in symbol else random.uniform(1950, 3950),
+                            'volume_24h': random.uniform(500000, 2000000),
+                            'avg_volume_30d': random.uniform(400000, 1500000)
+                        }
+                        
+                        # Analyze crypto opportunity
+                        crypto_analysis = self.crypto_trader.analyze_crypto_opportunity(symbol, crypto_data)
+                        
+                        if crypto_analysis.get('tradeable', False):
+                            # Calculate crypto position size (smaller allocation)
+                            position_size = 2000  # $2K base position for crypto
+                            
+                            # Execute crypto trade
+                            crypto_result = self.crypto_trader.execute_crypto_trade(crypto_analysis, position_size)
+                            crypto_results[symbol] = crypto_result
+                            
+                            if crypto_result['status'] == 'success':
+                                print(f"₿ CRYPTO TRADE: {symbol}")
+                                print(f"   📊 {crypto_result['side'].upper()}: {crypto_result['quantity']:.6f} @ ${crypto_analysis['volatility_score']:.0f}")
+                                print(f"   🎯 Confidence: {crypto_result['confidence']:.1%}")
+                                print(f"   🌍 Session: {crypto_result['session']}")
+                        
+                    except Exception as e:
+                        print(f"⚠️ Crypto trading error for {symbol}: {e}")
+            
+            # Phase 4.3: Execute options trading if enabled
+            options_results = {}
+            if self.options_trading and self.options_manager:
+                print("\n📊 OPTIONS TRADING CYCLE")
+                print("-" * 30)
+                
+                # Monitor current options exposure
+                options_monitoring = self.options_manager.monitor_options_positions()
+                print(f"📊 Options exposure: {options_monitoring['exposure'].get('options_allocation', 0):.1%}")
+                
+                # Show alerts if any
+                if options_monitoring['alerts']:
+                    for alert in options_monitoring['alerts']:
+                        print(f"⚠️ {alert['type']}: {alert['message']}")
+                
+                # Analyze options opportunities for top stocks
+                top_stocks = ['SPY', 'QQQ', 'AAPL', 'MSFT', 'NVDA']
+                for symbol in top_stocks:
+                    try:
+                        # Analyze options opportunity
+                        options_analysis = self.options_manager.analyze_options_opportunity(
+                            symbol, regime_type, regime_confidence
+                        )
+                        
+                        if options_analysis.get('recommended_strategy', {}).get('strategy') != 'none':
+                            # Calculate options position size
+                            position_size = 3000  # $3K base position for options
+                            
+                            # Execute options strategy
+                            options_result = self.options_manager.execute_options_strategy(
+                                options_analysis, position_size
+                            )
+                            options_results[symbol] = options_result
+                            
+                            if options_result['status'] == 'success':
+                                print(f"📊 OPTIONS TRADE: {symbol}")
+                                print(f"   🎯 Strategy: {options_result['strategy']}")
+                                print(f"   💰 Contracts: {options_result.get('contracts', 0)}")
+                                print(f"   🎯 Confidence: {regime_confidence:.1%}")
+                        
+                    except Exception as e:
+                        print(f"⚠️ Options trading error for {symbol}: {e}")
             
             # Execute trades with intelligence
             if self.execution_enabled:
