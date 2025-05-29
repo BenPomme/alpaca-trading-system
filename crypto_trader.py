@@ -25,7 +25,7 @@ class CryptoTrader:
         self.risk_manager = risk_manager
         
         # Crypto trading parameters for aggressive 5-10% monthly returns
-        self.max_crypto_allocation = 0.20  # 20% of portfolio in crypto
+        self.max_crypto_allocation = 0.30  # 30% of portfolio in crypto (increased for aggressive target)
         self.leverage_multiplier = 1.5     # 1.5x effective leverage through position sizing
         self.volatility_threshold = 0.05   # 5% hourly volatility threshold
         

@@ -956,8 +956,8 @@ class Phase3Trader(Phase2Trader):
                         print(f"₿ {symbol}: confidence={crypto_analysis.get('confidence', 0):.1%}, min={crypto_analysis.get('min_confidence', 0):.1%}, tradeable={crypto_analysis.get('tradeable', False)}")
                         
                         if crypto_analysis.get('tradeable', False):
-                            # Calculate crypto position size (smaller allocation)
-                            position_size = 2000  # $2K base position for crypto
+                            # Calculate crypto position size (aggressive allocation) 
+                            position_size = 3000  # $3K base position for crypto (increased for aggressive target)
                             
                             # Execute crypto trade
                             crypto_result = self.crypto_trader.execute_crypto_trade(crypto_analysis, position_size)
@@ -1009,8 +1009,8 @@ class Phase3Trader(Phase2Trader):
                             print(f"   🎯 Regime: {regime_type} ({regime_confidence:.1%})")
                             print(f"   📈 Strategy: {options_analysis['strategy_recommendation']}")
                             
-                            # Execute options trade if conditions are favorable
-                            if regime_confidence > 0.60:  # Minimum confidence for options
+                            # Execute options trade if conditions are favorable  
+                            if regime_confidence > 0.45:  # Lowered for aggressive trading (was 0.60)
                                 options_result = self.options_manager.execute_options_strategy(
                                     symbol=symbol,
                                     strategy=options_analysis['strategy_recommendation'],
@@ -1031,7 +1031,7 @@ class Phase3Trader(Phase2Trader):
                                 else:
                                     print(f"📊 OPTIONS SKIP: {symbol} - {options_result.get('reason', 'Unknown')}")
                             else:
-                                print(f"📊 OPTIONS SKIP: {symbol} - confidence too low ({regime_confidence:.1%})")
+                                print(f"📊 OPTIONS SKIP: {symbol} - confidence too low ({regime_confidence:.1%}, need >45%)")
                                 
                         except Exception as e:
                             print(f"⚠️ Options analysis error for {symbol}: {e}")
@@ -1178,7 +1178,7 @@ class Phase3Trader(Phase2Trader):
                 'short_vol': 'SVXY'  # Short volatility
             }
             
-            if regime_confidence > 0.60:
+            if regime_confidence > 0.45:  # Lowered from 0.60 for aggressive trading
                 if regime_type == 'uncertain':
                     # High uncertainty - long volatility
                     vol_symbol = volatility_symbols['low_vol']
