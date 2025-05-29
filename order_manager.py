@@ -19,8 +19,8 @@ class OrderManager:
         self.active_positions = {}
         self.pending_orders = {}
         
-        # Risk management parameters
-        self.max_positions = 5
+        # Risk management parameters (Phase 4.1: Unlimited positions)
+        self.max_positions = None  # No limit on positions
         self.max_position_value = 10000  # $10,000 per position
         self.max_portfolio_risk = 0.05   # 5% daily portfolio risk
         self.position_size_pct = 0.02    # 2% risk per trade
@@ -112,8 +112,8 @@ class OrderManager:
             print(f"⚠️ Already have position in {symbol}")
             return False
         
-        # Check maximum positions limit
-        if len(self.active_positions) >= self.max_positions:
+        # Check maximum positions limit (Phase 4.1: Unlimited positions)
+        if self.max_positions is not None and len(self.active_positions) >= self.max_positions:
             print(f"⚠️ Maximum positions reached ({self.max_positions})")
             return False
         
