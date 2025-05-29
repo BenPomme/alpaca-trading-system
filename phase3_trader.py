@@ -318,6 +318,17 @@ class Phase3Trader(Phase2Trader):
         # Final decision based on intelligence-adjusted confidence
         should_trade_final = final_confidence >= self.min_confidence_to_trade
         
+        # DEBUG: Add detailed logging to find why trades aren't executing
+        print(f"🔍 INTELLIGENCE DECISION DEBUG: {symbol}")
+        print(f"   Strategy: {strategy}")
+        print(f"   Base confidence: {base_confidence:.1%}")
+        print(f"   Intel signal: {intel_signal}")
+        print(f"   Intel confidence: {intel_confidence:.1%}")
+        print(f"   Intelligence supports: {intelligence_supports}")
+        print(f"   Final confidence: {final_confidence:.1%}")
+        print(f"   Min threshold: {self.min_confidence_to_trade:.1%}")
+        print(f"   Should trade: {should_trade_final}")
+        
         return should_trade_final, final_confidence, intelligence_summary
     
     def get_active_trading_symbols(self) -> List[str]:

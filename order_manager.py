@@ -121,24 +121,38 @@ class OrderManager:
     
     def execute_buy_order(self, symbol: str, strategy: str, confidence: float, cycle_id: int = None) -> Dict:
         """Execute a buy order with proper risk management"""
+        print(f"🚀 EXECUTE_BUY_ORDER CALLED: {symbol}")
+        print(f"   Strategy: {strategy}, Confidence: {confidence:.1%}")
+        
         try:
             # Check position limits
+            print(f"   📊 Checking position limits...")
             if not self.check_position_limits(symbol):
+                print(f"   ❌ Position limits exceeded")
                 return {'status': 'failed', 'message': 'Position limits exceeded'}
+            print(f"   ✅ Position limits OK")
             
             # Get current quote
+            print(f"   📈 Getting market quote...")
             quote = self.api.get_latest_quote(symbol)
             if not quote or not quote.ask_price:
+                print(f"   ❌ No market data available")
                 return {'status': 'failed', 'message': 'No market data available'}
             
             entry_price = float(quote.ask_price)
+            print(f"   ✅ Quote: ${entry_price:.2f}")
             
             # Calculate position size
+            print(f"   💰 Calculating position size...")
             shares = self.calculate_position_size(symbol, entry_price, strategy)
+            print(f"   📊 Position size: {shares} shares")
             if shares <= 0:
+                print(f"   ❌ Insufficient buying power")
                 return {'status': 'failed', 'message': 'Insufficient buying power'}
             
             # Create buy order
+            print(f"   🔥 Submitting buy order to Alpaca API...")
+            print(f"      Symbol: {symbol}, Qty: {shares}, Side: buy, Type: market")
             order = self.api.submit_order(
                 symbol=symbol,
                 qty=shares,
@@ -146,6 +160,7 @@ class OrderManager:
                 type='market',
                 time_in_force='day'
             )
+            print(f"   ✅ Order submitted successfully! Order ID: {order.id}")
             
             # Log the order
             order_info = {
@@ -179,7 +194,7 @@ class OrderManager:
             print(f"   Strategy: {strategy}")
             print(f"   Order ID: {order.id}")
             
-            return {
+            result = {
                 'status': 'success',  # Fixed: match expected key name
                 'order_id': order.id,
                 'symbol': symbol,
@@ -189,10 +204,17 @@ class OrderManager:
                 'strategy': strategy
             }
             
+            print(f"   🎯 Returning success result: {result}")
+            return result
+            
         except Exception as e:
             error_msg = f"Buy order failed for {symbol}: {e}"
-            print(f"❌ {error_msg}")
-            return {'status': 'failed', 'message': error_msg}
+            print(f"❌ EXCEPTION in execute_buy_order: {error_msg}")
+            print(f"   Exception type: {type(e).__name__}")
+            print(f"   Exception details: {str(e)}")
+            result = {'status': 'failed', 'message': error_msg}
+            print(f"   🎯 Returning error result: {result}")
+            return result
     
     def execute_sell_order(self, symbol: str, reason: str = 'strategy', cycle_id: int = None) -> Dict:
         """Execute a sell order for existing position"""
