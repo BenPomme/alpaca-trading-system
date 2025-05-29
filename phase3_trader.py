@@ -259,8 +259,8 @@ class Phase3Trader(Phase2Trader):
             else:
                 return "conservative"
         
-        # Fallback to original strategy selection
-        return super().enhanced_strategy_selection(quotes, market_regime, confidence)
+        # Fallback to original strategy selection (fix parameter order)
+        return super().enhanced_strategy_selection(market_regime, confidence, {}, quotes)
     
     def should_execute_trade_with_intelligence(self, symbol: str, strategy: str, base_confidence: float, price: float) -> tuple:
         """
@@ -384,8 +384,8 @@ class Phase3Trader(Phase2Trader):
             print(f"🇯🇵 Trading Asian ADRs: {len(asian_symbols)} symbols")
             
         elif european_market_open:
-            # Trade European ADRs during European hours
-            european_symbols = ['ASML', 'SAP', 'NVO', 'UL', 'BP', 'SHELL', 'NESN', 'MC']
+            # Trade European ADRs during European hours (corrected tickers)
+            european_symbols = ['ASML', 'SAP', 'NVO', 'UL', 'BP', 'RDS.A', 'SPOT', 'DEO']
             selected_symbols.extend(european_symbols)
             print(f"🇪🇺 Trading European ADRs: {len(european_symbols)} symbols")
             
