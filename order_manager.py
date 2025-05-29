@@ -119,12 +119,109 @@ class OrderManager:
         
         return True
     
+    def is_market_open(self) -> bool:
+        """Check if market is currently open for trading"""
+        try:
+            # Get market clock from Alpaca
+            clock = self.api.get_clock()
+            is_open = clock.is_open
+            
+            print(f"   🕐 Market Status: {'OPEN' if is_open else 'CLOSED'}")
+            print(f"   🕐 Current Time: {clock.timestamp}")
+            print(f"   🕐 Next Open: {clock.next_open}")
+            print(f"   🕐 Next Close: {clock.next_close}")
+            
+            return is_open
+            
+        except Exception as e:
+            print(f"   ⚠️ Error checking market hours: {e}")
+            # If we can't check market hours, assume closed for safety
+            return False
+    
+    def cancel_duplicate_orders(self):
+        """Cancel duplicate pending orders to prevent over-exposure"""
+        try:
+            print(f"🧹 Checking for duplicate pending orders...")
+            pending_orders = self.api.list_orders(status='new')
+            
+            if not pending_orders:
+                print(f"   ✅ No pending orders found")
+                return
+            
+            # Group orders by symbol
+            symbol_orders = {}
+            for order in pending_orders:
+                symbol = order.symbol
+                if symbol not in symbol_orders:
+                    symbol_orders[symbol] = []
+                symbol_orders[symbol].append(order)
+            
+            cancelled_count = 0
+            for symbol, orders in symbol_orders.items():
+                if len(orders) > 1:
+                    # Keep the first order, cancel the rest
+                    print(f"   🔍 Found {len(orders)} duplicate orders for {symbol}")
+                    for i, order in enumerate(orders[1:], 1):  # Skip first order
+                        try:
+                            self.api.cancel_order(order.id)
+                            print(f"   ❌ Cancelled duplicate order {i}: {symbol} {order.qty} shares")
+                            cancelled_count += 1
+                        except Exception as e:
+                            print(f"   ⚠️ Failed to cancel order {order.id}: {e}")
+            
+            print(f"   🧹 Cancelled {cancelled_count} duplicate orders")
+            
+        except Exception as e:
+            print(f"   ⚠️ Error checking/cancelling duplicate orders: {e}")
+    
+    def cancel_all_pending_orders(self):
+        """Cancel ALL pending orders to clean slate"""
+        try:
+            print(f"🧹 CANCELLING ALL PENDING ORDERS...")
+            pending_orders = self.api.list_orders(status='new')
+            
+            if not pending_orders:
+                print(f"   ✅ No pending orders to cancel")
+                return 0
+            
+            cancelled_count = 0
+            for order in pending_orders:
+                try:
+                    self.api.cancel_order(order.id)
+                    print(f"   ❌ Cancelled: {order.symbol} {order.side} {order.qty} shares (ID: {order.id})")
+                    cancelled_count += 1
+                except Exception as e:
+                    print(f"   ⚠️ Failed to cancel order {order.id}: {e}")
+            
+            print(f"   🧹 Successfully cancelled {cancelled_count} pending orders")
+            return cancelled_count
+            
+        except Exception as e:
+            print(f"   ⚠️ Error cancelling all pending orders: {e}")
+            return 0
+    
     def execute_buy_order(self, symbol: str, strategy: str, confidence: float, cycle_id: int = None) -> Dict:
         """Execute a buy order with proper risk management"""
         print(f"🚀 EXECUTE_BUY_ORDER CALLED: {symbol}")
         print(f"   Strategy: {strategy}, Confidence: {confidence:.1%}")
         
         try:
+            # CRITICAL CHECK 1: Market Hours (prevent closed market trading)
+            print(f"   🕐 Checking market hours...")
+            if not self.is_market_open():
+                print(f"   ❌ Market is closed - order rejected")
+                return {'status': 'failed', 'message': 'Market is closed'}
+            print(f"   ✅ Market is open")
+            
+            # CRITICAL CHECK 2: Pending Orders (prevent duplicates)
+            print(f"   📋 Checking for pending orders...")
+            pending_orders = self.api.list_orders(status='new')
+            for order in pending_orders:
+                if order.symbol == symbol and order.side == 'buy':
+                    print(f"   ❌ Pending buy order already exists for {symbol}")
+                    return {'status': 'failed', 'message': f'Pending order already exists for {symbol}'}
+            print(f"   ✅ No pending orders for {symbol}")
+            
             # Check position limits
             print(f"   📊 Checking position limits...")
             if not self.check_position_limits(symbol):

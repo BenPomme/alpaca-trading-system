@@ -529,6 +529,12 @@ class Phase3Trader(Phase2Trader):
         print("=" * 60)
         
         try:
+            # CRITICAL: Cancel all pending orders to prevent closed-market duplicates
+            print("🧹 Cleaning up pending orders...")
+            cancelled_count = self.order_manager.cancel_all_pending_orders()
+            if cancelled_count > 0:
+                print(f"🧹 Cancelled {cancelled_count} pending orders from closed market")
+            
             # Get market data
             print("📈 Collecting market data...")
             quotes = self.get_market_quotes()
