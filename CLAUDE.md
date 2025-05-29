@@ -5,11 +5,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Important Guidelines
 
 **BEFORE making any changes to this codebase:**
-1. **Read QA.md thoroughly** - Contains critical bug prevention rules and deployment lessons
-2. **Verify inheritance chains** - Check attribute/method availability before accessing
-3. **Validate data structures** - Ensure consistent data formats between modules
-4. **Test with minimal data** - Verify startup behavior when market data is limited
-5. **Follow defensive programming** - Use .get() methods and provide defaults
+1. **Read QA.md thoroughly** - Contains critical bug prevention rules and deployment lessons learned from 7+ major bugs
+2. **Apply QA.md Rules** - All 7 QA rules must be followed to prevent recurring bugs (inheritance, data contracts, defensive programming)
+3. **Verify inheritance chains** - Check attribute/method availability before accessing (QA Rule 1 & 6)
+4. **Validate data structures** - Ensure consistent data formats between modules (QA Rule 5)
+5. **Test with minimal data** - Verify startup behavior when market data is limited (QA Rule 4)
+6. **Follow defensive programming** - Use .get() methods and provide defaults (QA Rule 5)
+7. **Update QA.md with new lessons** - Document any new bugs/fixes for future prevention
 
 ## Project Overview
 
@@ -99,6 +101,12 @@ The system evolved through systematic phases while maintaining Railway deploymen
 - **`pattern_recognition.py`**: Breakouts, support/resistance, mean reversion patterns
 
 #### **Phase 4 Advanced Trading Modules**
+- **`intelligent_exit_manager.py`**: **BREAKTHROUGH** Intelligent exit system leveraging all ML capabilities
+  - **5 Analysis Components**: Market regime, technical indicators, ML confidence, pattern recognition, time-based
+  - **Partial Profit Taking**: 25% at +4%, 35% at +6%, 40% at +10% (no more all-or-nothing)
+  - **Market Adaptive Targets**: Bull markets 1.5x targets, Bear markets 0.6x targets, Neutral 1.0x
+  - **ML Integration Ready**: Confidence decay detection, reversal signals, entry vs current confidence
+  - **Vote-Based Decisions**: Multiple intelligence sources vote on exit timing
 - **`options_manager.py`**: **REAL** options trading system (not mock data)
   - **Direct API Integration**: Uses Alpaca `/v2/options/contracts` endpoint with authentication
   - **5 Options Strategies**: Long calls, bull call spreads, protective puts, covered calls, long straddles
@@ -189,11 +197,13 @@ The system is configured for aggressive algorithmic trading with:
    - **Volatility Trading**: VXX/SVXY based on market uncertainty
 
 ### Multi-Asset Execution Flow
-1. **Stock Analysis**: Technical intelligence on equity positions with enhanced strategies
-2. **Real Options Trading**: Authentic options chains and multi-leg strategies
-3. **Crypto Trading**: 24/7 momentum strategies with lowered confidence thresholds
-4. **Enhanced Strategies**: 3x ETFs, sector rotation, momentum amplification, volatility plays
-5. **Risk Management**: Real-time monitoring across all asset classes
+1. **Position Monitoring**: Intelligent exit analysis on all 35+ open positions every 2 minutes
+2. **Stock Analysis**: Technical intelligence on equity positions with enhanced strategies
+3. **Real Options Trading**: Authentic options chains and multi-leg strategies
+4. **Crypto Trading**: 24/7 momentum strategies with lowered confidence thresholds
+5. **Enhanced Strategies**: 3x ETFs, sector rotation, momentum amplification, volatility plays
+6. **Intelligent Exits**: 5-component analysis with partial profit taking and adaptive targets
+7. **Risk Management**: Real-time monitoring across all asset classes
 
 ### Real Options Trading Implementation
 - **API Integration**: Direct calls to `https://paper-api.alpaca.markets/v2/options/contracts`
