@@ -630,6 +630,7 @@ class Phase3Trader(Phase2Trader):
             # CRITICAL FIX: Position monitoring and exit management
             print("\n💼 POSITION MONITORING & EXIT MANAGEMENT")
             print("-" * 50)
+            print(f"🔍 DEBUG: Intelligent exit manager status: {'✅ ACTIVE' if self.intelligent_exit_manager else '❌ INACTIVE'}")
             
             # Get current positions for monitoring
             try:
