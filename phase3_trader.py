@@ -656,13 +656,34 @@ class Phase3Trader(Phase2Trader):
                             try:
                                 symbol = position.symbol
                                 
+                                # Skip crypto symbols for now (different quote structure)
+                                if symbol.endswith('USD') and symbol.startswith(('BTC', 'ETH', 'ADA', 'SOL', 'MANA', 'SAND', 'AAVE')):
+                                    print(f"   ⏭️ Skipping crypto analysis for {symbol} (different quote structure)")
+                                    continue
+                                
                                 # Get current market data for the position
                                 quote = self.api.get_latest_quote(symbol)
                                 if not quote or not quote.bid_price:
+                                    print(f"   ⚠️ No quote available for {symbol}")
                                     continue
                                 
                                 current_price = float(quote.bid_price)
-                                entry_price = float(position.avg_cost)
+                                # QA.md Rule 5: Fix data contract - use correct Alpaca Position attribute
+                                # Try common Alpaca Position attributes for entry price
+                                try:
+                                    if hasattr(position, 'avg_entry_price'):
+                                        entry_price = float(position.avg_entry_price)
+                                    elif hasattr(position, 'cost_basis'):
+                                        entry_price = float(position.cost_basis)
+                                    elif hasattr(position, 'avg_cost'):
+                                        entry_price = float(position.avg_cost)
+                                    else:
+                                        # Calculate from market_value and qty as fallback
+                                        entry_price = float(position.market_value) / float(position.qty) if float(position.qty) != 0 else current_price
+                                        print(f"   🔧 Using calculated entry price for {symbol}: ${entry_price:.2f}")
+                                except Exception as attr_error:
+                                    print(f"   ⚠️ Could not get entry price for {symbol}: {attr_error}")
+                                    continue
                                 
                                 # Prepare market data for analysis
                                 market_data = {
