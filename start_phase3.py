@@ -25,7 +25,7 @@ def main():
     min_confidence = float(os.getenv('MIN_CONFIDENCE', '0.6'))  # Lowered from 0.7 to enable trading
     min_technical_confidence = float(os.getenv('MIN_TECHNICAL_CONFIDENCE', '0.6'))
     global_trading = os.getenv('GLOBAL_TRADING', 'true').lower() == 'true'  # Phase 4.1: Global markets - ENABLED by default
-    options_trading = os.getenv('OPTIONS_TRADING', 'true').lower() == 'true'  # Phase 4.3: Options trading - ENABLED by default
+    options_trading = os.getenv('OPTIONS_TRADING', 'true').lower() == 'true'  # Phase 4.3: Options trading - ENABLED with real API
     crypto_trading = os.getenv('CRYPTO_TRADING', 'true').lower() == 'true'  # Phase 4.4: 24/7 crypto trading - ENABLED by default
     
     print(f"⚡ Execution: {'ENABLED' if execution_enabled else 'DISABLED'}")
@@ -73,8 +73,9 @@ def main():
         print(f"   🔍 Pattern Recognition: Breakouts, Support/Resistance, Mean Reversion")
         print(f"   🧠 Intelligence Integration: Multi-factor decision making")
         print(f"   💼 Risk Management: Advanced portfolio-level controls")
+        print(f"   📊 Enhanced Stock Strategies: 3x Leveraged ETFs, Sector Rotation, Momentum 2x, Volatility Trading")
         if options_trading:
-            print(f"   📊 Options Trading: Long calls, spreads, protective puts, covered calls, straddles")
+            print(f"   📊 Real Options Trading: Long calls, bull spreads, protective puts, covered calls, straddles")
         if crypto_trading:
             print(f"   ₿ 24/7 Crypto Trading: BTC, ETH, ADA, SOL + momentum strategies")
         if global_trading:

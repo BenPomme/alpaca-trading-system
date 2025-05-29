@@ -42,41 +42,82 @@ class OptionsManager:
             if not expiration_date:
                 expiration_date = self._get_next_monthly_expiration()
             
-            # Get options contracts from Alpaca API
-            # Note: Alpaca doesn't have a direct options chain method, use contracts endpoint
-            from alpaca_trade_api.rest import REST
-            
-            # For now, create mock options data since Alpaca's options API is limited
-            # In production, would use: contracts = self.api.get_options_contracts(underlying_symbol=symbol)
-            
-            # Mock options chain for testing (replace with real API when available)
-            underlying_price = self._get_underlying_price(symbol)
-            if underlying_price > 0:
-                # Generate mock call and put options around current price
-                strikes = [underlying_price * (0.95 + i * 0.025) for i in range(8)]  # 8 strikes from 95% to 112.5%
+            # Get real options contracts from Alpaca API
+            try:
+                # Use the correct Alpaca API endpoint for options contracts
+                # Format: GET /v2/options/contracts?underlying_symbols=SYMBOL
+                import requests
                 
-                calls = []
-                puts = []
-                for i, strike in enumerate(strikes):
-                    calls.append({
-                        'symbol': f"{symbol}_{expiration_date}C{strike:.0f}",
-                        'contract_id': f"{symbol}_{expiration_date}C{strike:.0f}",
-                        'underlying_symbol': symbol,
-                        'strike': strike,
-                        'ask': max(0.50, underlying_price - strike + 2.0) if strike < underlying_price else max(0.10, 2.0),
-                        'bid': max(0.10, underlying_price - strike + 1.5) if strike < underlying_price else max(0.05, 1.5)
-                    })
-                    puts.append({
-                        'symbol': f"{symbol}_{expiration_date}P{strike:.0f}",
-                        'contract_id': f"{symbol}_{expiration_date}P{strike:.0f}",
-                        'underlying_symbol': symbol,
-                        'strike': strike,
-                        'ask': max(0.10, strike - underlying_price + 2.0) if strike > underlying_price else max(0.10, 2.0),
-                        'bid': max(0.05, strike - underlying_price + 1.5) if strike > underlying_price else max(0.05, 1.5)
-                    })
+                # Get paper trading API key from environment  
+                import os
+                api_key = os.getenv('ALPACA_PAPER_API_KEY')
+                secret_key = os.getenv('ALPACA_PAPER_SECRET_KEY')
                 
-                options_chain = {'calls': calls, 'puts': puts}
-            else:
+                if api_key and secret_key:
+                    # Call Alpaca options contracts endpoint directly
+                    headers = {
+                        'APCA-API-KEY-ID': api_key,
+                        'APCA-API-SECRET-KEY': secret_key
+                    }
+                    
+                    url = f"https://paper-api.alpaca.markets/v2/options/contracts"
+                    params = {
+                        'underlying_symbols': symbol,
+                        'expiration_date': expiration_date
+                    }
+                    
+                    response = requests.get(url, headers=headers, params=params)
+                    
+                    if response.status_code == 200:
+                        contracts_data = response.json()
+                        option_contracts = contracts_data.get('option_contracts', [])
+                        
+                        # Organize contracts into calls and puts
+                        calls = []
+                        puts = []
+                        
+                        for contract in option_contracts:
+                            contract_info = {
+                                'symbol': contract['symbol'],
+                                'contract_id': contract['id'],
+                                'underlying_symbol': contract['underlying_symbol'],
+                                'strike': float(contract['strike_price']),
+                                'expiration': contract['expiration_date'],
+                                'type': contract['type']
+                            }
+                            
+                            # Get current market data for this contract if available
+                            try:
+                                quote = self.api.get_latest_quote(contract['symbol'])
+                                if quote:
+                                    contract_info['ask'] = float(quote.ask_price) if quote.ask_price else 1.0
+                                    contract_info['bid'] = float(quote.bid_price) if quote.bid_price else 0.5
+                                else:
+                                    # Fallback pricing
+                                    contract_info['ask'] = 1.0
+                                    contract_info['bid'] = 0.5
+                            except:
+                                # Fallback pricing
+                                contract_info['ask'] = 1.0  
+                                contract_info['bid'] = 0.5
+                            
+                            if contract['type'] == 'call':
+                                calls.append(contract_info)
+                            else:
+                                puts.append(contract_info)
+                        
+                        options_chain = {'calls': calls, 'puts': puts}
+                        print(f"✅ Retrieved {len(calls)} calls, {len(puts)} puts for {symbol}")
+                        
+                    else:
+                        print(f"⚠️ Options API error {response.status_code}: {response.text}")
+                        options_chain = {'calls': [], 'puts': []}
+                else:
+                    print("⚠️ Missing Alpaca API credentials for options")
+                    options_chain = {'calls': [], 'puts': []}
+                    
+            except Exception as api_error:
+                print(f"⚠️ Options API call failed: {api_error}")
                 options_chain = {'calls': [], 'puts': []}
             
             return {
@@ -335,15 +376,14 @@ class OptionsManager:
             return {'status': 'skipped', 'reason': 'Position size too small for options'}
         
         try:
-            # Place options order
+            # Place options order using Alpaca format
+            # Options orders use the standard submit_order with option symbol
             order = self.api.submit_order(
-                symbol=contract['symbol'],
+                symbol=contract['symbol'],  # Option symbol like "AAPL240119C00190000"
                 qty=max_contracts,
                 side='buy',
                 type='market',
-                time_in_force='day',
-                order_class='option',
-                option_contract=contract['contract_id']
+                time_in_force='day'  # Required for options
             )
             
             return {
@@ -371,29 +411,28 @@ class OptionsManager:
             return {'status': 'skipped', 'reason': 'Position size too small for spreads'}
         
         try:
-            # Submit spread order as a combo order
-            buy_leg = {
-                'symbol': buy_contract['symbol'],
-                'qty': max_spreads,
-                'side': 'buy',
-                'option_contract': buy_contract['contract_id']
-            }
-            sell_leg = {
-                'symbol': sell_contract['symbol'],
-                'qty': max_spreads,
-                'side': 'sell',
-                'option_contract': sell_contract['contract_id']
-            }
+            # Submit multi-leg spread order using Alpaca format
+            legs = [
+                {
+                    'symbol': buy_contract['symbol'],
+                    'side': 'buy',
+                    'ratio_quantity': max_spreads,
+                    'position_intent': 'open'
+                },
+                {
+                    'symbol': sell_contract['symbol'], 
+                    'side': 'sell',
+                    'ratio_quantity': max_spreads,
+                    'position_intent': 'open'
+                }
+            ]
             
-            # Submit as bracket order if API supports, otherwise individual orders
+            # Submit multi-leg order
             order = self.api.submit_order(
-                symbol=buy_contract['symbol'],
-                qty=max_spreads,
-                side='buy',
+                order_class='mleg',  # Multi-leg order class
+                legs=legs,
                 type='market',
-                time_in_force='day',
-                order_class='spread',
-                legs=[buy_leg, sell_leg]
+                time_in_force='day'
             )
             
             return {
