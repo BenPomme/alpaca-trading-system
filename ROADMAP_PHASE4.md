@@ -140,9 +140,10 @@ class OptionsManager:
 
 #### Success Metrics:
 - 70%+ win rate on hedging strategies
-- 15%+ annual income from covered calls
+- 2-3% monthly income from covered calls (24-36% annual)
 - Delta-neutral portfolio maintenance within ±0.1
-- Options allocation never exceeds 30% of portfolio
+- Options allocation: 30-50% of portfolio for aggressive monthly targets
+- Leverage utilization: 2-3x via options strategies
 
 ---
 
@@ -253,10 +254,11 @@ CREATE TABLE portfolio_correlations (
 ## Success Metrics for Phase 4
 
 ### **Performance Targets:**
-- **Returns**: 15-25% annual returns (vs. 10% Phase 3 target)
-- **Sharpe Ratio**: >1.5 (risk-adjusted returns)
-- **Maximum Drawdown**: <10% at any time
+- **Returns**: 5-10% MONTHLY returns (60-120% annual)
+- **Sharpe Ratio**: >2.0 (exceptional risk-adjusted returns required for monthly targets)
+- **Maximum Drawdown**: <20% at any time
 - **Global Diversification**: <50% allocation to any single market
+- **Win Rate**: 65%+ monthly performance consistency
 
 ### **Operational Excellence:**
 - **Uptime**: 99.5% during global market hours
