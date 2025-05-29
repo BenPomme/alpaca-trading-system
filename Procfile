@@ -1,1 +1,1 @@
-web: python start_phase3.py
+web: python railway_deploy.py
