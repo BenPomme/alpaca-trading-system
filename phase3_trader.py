@@ -57,6 +57,10 @@ class Phase3Trader(Phase2Trader):
         self.regime_detector.add_market_data(symbol, price, volume, timestamp)
         self.pattern_recognition.add_price_data(symbol, price, volume, timestamp)
         
+        # Track data accumulation progress
+        price_data_count = len(self.technical_indicators.price_history.get(symbol, []))
+        analysis['data_points'] = price_data_count
+        
         analysis = {
             'symbol': symbol,
             'current_price': price,
@@ -431,6 +435,13 @@ class Phase3Trader(Phase2Trader):
             # Display additional info if available
             if 'note' in overall:
                 print(f"ℹ️ Regime Analysis: {overall['note']}")
+                
+                # Show data accumulation progress
+                indices_analyzed = overall.get('indices_analyzed', 0)
+                if indices_analyzed == 0:
+                    print(f"📊 Intelligence Building: Accumulating market data...")
+                    print(f"   💡 Technical indicators need 20-50 cycles for full analysis")
+                    print(f"   🎯 Regime detection will improve as data accumulates")
             
             print(f"🎯 Market Regime: {market_regime} ({regime_confidence:.1%} confidence)")
             

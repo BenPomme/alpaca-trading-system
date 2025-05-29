@@ -20,7 +20,7 @@ def main():
     print(f"⏰ Start Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     
     # Configuration from environment variables
-    execution_enabled = os.getenv('EXECUTION_ENABLED', 'false').lower() == 'true'
+    execution_enabled = os.getenv('EXECUTION_ENABLED', 'true').lower() == 'true'  # Default to enabled for Phase 3
     market_tier = int(os.getenv('MARKET_TIER', '2'))
     min_confidence = float(os.getenv('MIN_CONFIDENCE', '0.7'))
     min_technical_confidence = float(os.getenv('MIN_TECHNICAL_CONFIDENCE', '0.6'))
