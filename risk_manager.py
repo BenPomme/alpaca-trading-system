@@ -20,7 +20,7 @@ class RiskManager:
         self.max_positions = None                 # No limit on concurrent positions
         self.max_daily_trades = 20                # Maximum trades per day
         self.max_position_size_pct = 0.15         # 15% of portfolio per position
-        self.max_sector_exposure = 0.40           # 40% exposure to any sector
+        self.max_sector_exposure = 0.60           # 60% exposure to any sector (aggressive target)
         self.max_daily_loss_pct = 0.05            # 5% daily portfolio loss limit
         self.position_risk_pct = 0.02             # 2% risk per trade
         
