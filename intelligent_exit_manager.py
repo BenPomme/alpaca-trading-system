@@ -23,10 +23,13 @@ class IntelligentExitManager:
         self.pattern_recognition = pattern_recognition
         self.ml_models = ml_models
         
-        # Base exit parameters (enhanced dynamically) - Aggressive for 5-10% monthly target
-        self.base_stop_loss = 0.05  # 5% (was 3% - more tolerant of volatility)
-        self.base_take_profit = 0.12  # 12% (was 8% - higher profit targets)
-        self.base_quick_profit = 0.04  # 4% (was 3% - let small wins develop)
+        # Base exit parameters - MUCH MORE CONSERVATIVE after 13.2% win rate analysis
+        self.base_stop_loss = 0.08  # 8% stop loss (was 5% - too tight!)
+        self.base_take_profit = 0.15  # 15% take profit (was 12% - let winners run)
+        self.base_quick_profit = 0.06  # 6% quick profit (was 4% - give trades time)
+        
+        # CRITICAL: Minimum hold time before intelligence exits (prevent immediate closures)
+        self.min_hold_hours = 2  # Don't exit based on intelligence for first 2 hours
         
         # Intelligent exit parameters
         self.regime_multipliers = {
@@ -43,11 +46,11 @@ class IntelligentExitManager:
             'bollinger_upper': True    # Exit near upper Bollinger Band
         }
         
-        # ML confidence thresholds
+        # ML confidence thresholds - MUCH MORE CONSERVATIVE
         self.ml_confidence_exits = {
             'high_confidence_hold': 0.80,    # Hold longer for high-confidence trades
-            'low_confidence_exit': 0.40,     # Exit quickly for low-confidence trades
-            'reversal_signal': 0.70          # Exit on ML reversal prediction
+            'low_confidence_exit': 0.25,     # Only exit on VERY low confidence (was 0.40)
+            'reversal_signal': 0.85          # Only exit on VERY strong reversal (was 0.70)
         }
         
         # Partial exit strategy - More aggressive thresholds
@@ -75,18 +78,31 @@ class IntelligentExitManager:
             if not entry_price or not current_price:
                 return {'action': 'hold', 'reason': 'insufficient_data'}
             
-            # Calculate current P&L
+            # Calculate current P&L and hold time
             pl_pct = ((current_price - entry_price) / entry_price)
             hold_days = (datetime.now() - entry_time).days if isinstance(entry_time, datetime) else 0
+            hold_hours = (datetime.now() - entry_time).total_seconds() / 3600 if isinstance(entry_time, datetime) else 24
             
             analysis = {
                 'symbol': symbol,
                 'pl_pct': pl_pct,
                 'hold_days': hold_days,
+                'hold_hours': hold_hours,
                 'entry_price': entry_price,
                 'current_price': current_price,
                 'analysis_components': {}
             }
+            
+            # CRITICAL FIX: Prevent premature exits (main cause of 13.2% win rate)
+            if hold_hours < self.min_hold_hours and pl_pct > -self.base_stop_loss:
+                return {
+                    'action': 'hold',
+                    'reason': f'min_hold_period_{hold_hours:.1f}h_of_{self.min_hold_hours}h',
+                    'confidence': 0.0,
+                    'exit_signals': [],
+                    'pl_pct': pl_pct,
+                    'hold_hours': hold_hours
+                }
             
             # 1. Market Regime Analysis
             regime_analysis = self._analyze_regime_exit(symbol, pl_pct, market_data)
@@ -435,25 +451,25 @@ class IntelligentExitManager:
                 final_reason = 'major_profit_protection'
                 exit_portion = 0.7  # Partial exit
             
-            # Intelligent exits based on multiple signals
-            elif sell_confidence >= 0.6:  # 60%+ of components say sell
+            # MUCH MORE CONSERVATIVE: Require profit OR very strong signals
+            elif sell_confidence >= 0.8 and pl_pct > 0.02:  # 80%+ confidence AND +2% profit
                 # Check for partial exit opportunities
                 for level in self.partial_exit_levels:
                     if pl_pct >= level['profit_pct']:
                         final_action = 'sell'
-                        final_reason = f"intelligent_exit_{len(exit_signals)}_signals"
+                        final_reason = f"profitable_intelligent_exit_{len(exit_signals)}_signals"
                         exit_portion = level['exit_portion']
                         break
                 
-                if final_action == 'hold':  # No partial level matched
+                if final_action == 'hold':  # No partial level matched but profitable
                     final_action = 'sell'
-                    final_reason = f"high_confidence_exit_{sell_confidence:.1%}"
-                    exit_portion = 1.0
+                    final_reason = f"profitable_high_confidence_exit_{sell_confidence:.1%}"
+                    exit_portion = 0.5  # Only partial exit on intelligence
             
-            elif len(exit_signals) >= 3:  # Multiple signals from different sources
+            elif len(exit_signals) >= 5 and pl_pct > -0.02:  # Need 5+ signals AND not losing much
                 final_action = 'sell'
                 final_reason = f"multiple_signals_{len(exit_signals)}"
-                exit_portion = 0.5  # Conservative partial exit
+                exit_portion = 0.3  # Very conservative partial exit
             
             # Calculate final confidence
             final_confidence = (
