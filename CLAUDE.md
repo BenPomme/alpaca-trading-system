@@ -19,27 +19,34 @@ This is a sophisticated multi-phase algorithmic trading system designed for Rail
 
 ### Environment Setup
 ```bash
-# Install dependencies
-pip install alpaca-trade-api flask==2.3.3
+# Install dependencies (Phase 4.1)
+pip install alpaca-trade-api flask==2.3.3 pytz
 
-# Set environment variables for Alpaca paper trading
+# Set environment variables for Alpaca paper trading (Phase 4.1: Global Trading)
 export ALPACA_PAPER_API_KEY="your_key_here"
 export ALPACA_PAPER_SECRET_KEY="your_secret_here"
 export EXECUTION_ENABLED="true"
-export MARKET_TIER="2"
+export GLOBAL_TRADING="true"
+export MARKET_TIER="5"
 export MIN_CONFIDENCE="0.7"
 ```
 
 ### Development & Testing
 ```bash
+# Test Phase 4.1 global trading functionality  
+python test_global_trading.py
+
+# Test Phase 4.1 deployment verification
+python test_phase4_deployment.py
+
 # Test Phase 3 intelligence layer (complete system)
 python test_phase3_standalone.py
 
 # Test Phase 1 functionality (database, analysis)
 python test_phase1_complete.py
 
-# Run system locally with specific configuration  
-MARKET_TIER=1 EXECUTION_ENABLED=true python start_phase3.py
+# Run system locally with global trading enabled (Phase 4.1)
+GLOBAL_TRADING=true MARKET_TIER=5 EXECUTION_ENABLED=true python start_phase3.py
 
 # Test database functionality
 python database_manager.py
@@ -52,9 +59,10 @@ python start_ultra_simple.py
 ```bash
 # Deploy to Railway (automated GitHub integration)
 # Railway builds from Procfile: web: python start_phase3.py
-# Set environment variables in Railway dashboard:
+# Set environment variables in Railway dashboard (Phase 4.1):
 # ALPACA_PAPER_API_KEY, ALPACA_PAPER_SECRET_KEY
-# EXECUTION_ENABLED=true, MARKET_TIER=2, MIN_CONFIDENCE=0.7, MIN_TECHNICAL_CONFIDENCE=0.6
+# EXECUTION_ENABLED=true, GLOBAL_TRADING=true, MARKET_TIER=5
+# MIN_CONFIDENCE=0.7, MIN_TECHNICAL_CONFIDENCE=0.6
 ```
 
 ## Multi-Phase Architecture

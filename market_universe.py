@@ -50,16 +50,48 @@ HIGH_VOLUME_STOCKS = [
     'DIS', 'KO', 'PEP', 'WMT', 'HD'                          # Consumer
 ]
 
-# Complete trading universe (prioritized list)
+# Asian ADR symbols for global trading (Phase 4.1)
+ASIAN_ADRS = {
+    # Japanese Companies (ADRs trading on NYSE/NASDAQ)
+    'japan': ['TM', 'SONY', 'NTDOY', 'MUFG', 'SMFG', 'NMR', 'HMC', 'NTT'],
+    # South Korean Companies  
+    'korea': ['LPL', 'SKM', 'KB'],
+    # Chinese Companies (Hong Kong listed, US ADRs)
+    'china': ['BABA', 'JD', 'BIDU', 'NTES', 'TCEHY', 'NIO', 'XPEV', 'LI'],
+    # Taiwan
+    'taiwan': ['TSM', 'UMC'],
+    # India
+    'india': ['INFY', 'WIT', 'HDB', 'IBN']
+}
+
+# Global ETFs for international exposure
+GLOBAL_ETFS = [
+    'EWJ',   # Japan ETF
+    'FXI',   # China ETF  
+    'EWT',   # Taiwan ETF
+    'INDA',  # India ETF
+    'EWY',   # South Korea ETF
+    'VEA',   # Developed Markets
+    'VWO',   # Emerging Markets
+    'IEFA'   # Core MSCI EAFE
+]
+
+# Flatten Asian ADRs for easy access
+ALL_ASIAN_ADRS = []
+for region_symbols in ASIAN_ADRS.values():
+    ALL_ASIAN_ADRS.extend(region_symbols)
+
+# Complete trading universe (prioritized list) - Phase 4.1 Enhanced
 TRADING_UNIVERSE = {
     'tier_1_core': CORE_ETFS[:3],                    # SPY, QQQ, IWM - always monitor
     'tier_2_liquid': HIGH_VOLUME_STOCKS[:15],        # Most liquid stocks
     'tier_3_nasdaq': NASDAQ_TOP_50[:25],             # Top NASDAQ stocks
-    'tier_4_extended': NASDAQ_TOP_50[25:] + ['VTI', 'DIA', 'XLK', 'XLF']  # Extended universe
+    'tier_4_extended': NASDAQ_TOP_50[25:] + ['VTI', 'DIA', 'XLK', 'XLF'],  # Extended universe
+    'tier_5_global': ALL_ASIAN_ADRS + GLOBAL_ETFS    # Global markets (Phase 4.1)
 }
 
 def get_symbols_by_tier(tier_level=1):
-    """Get symbols by tier level (1=most important, 4=extended)"""
+    """Get symbols by tier level (1=most important, 5=global)"""
     if tier_level == 1:
         return TRADING_UNIVERSE['tier_1_core']
     elif tier_level == 2:
@@ -69,7 +101,12 @@ def get_symbols_by_tier(tier_level=1):
                 TRADING_UNIVERSE['tier_2_liquid'] + 
                 TRADING_UNIVERSE['tier_3_nasdaq'])
     elif tier_level == 4:
-        # All symbols combined (remove duplicates)
+        return (TRADING_UNIVERSE['tier_1_core'] + 
+                TRADING_UNIVERSE['tier_2_liquid'] + 
+                TRADING_UNIVERSE['tier_3_nasdaq'] + 
+                TRADING_UNIVERSE['tier_4_extended'])
+    elif tier_level == 5:
+        # All symbols including global markets (remove duplicates)
         all_symbols = []
         for tier in TRADING_UNIVERSE.values():
             all_symbols.extend(tier)
@@ -85,8 +122,42 @@ def get_sector_symbols():
         'healthcare': ['JNJ', 'PFE', 'UNH', 'XLV'],
         'energy': ['CVX', 'XOM', 'XLE'],
         'consumer': ['DIS', 'KO', 'PEP', 'WMT', 'HD', 'XLP'],
-        'etfs': ['SPY', 'QQQ', 'IWM', 'DIA', 'VTI']
+        'etfs': ['SPY', 'QQQ', 'IWM', 'DIA', 'VTI'],
+        'asian_tech': ['TSM', 'SONY', 'BABA', 'JD', 'BIDU', 'NTES'],
+        'asian_auto': ['TM', 'HMC', 'NIO', 'XPEV', 'LI'],
+        'asian_finance': ['MUFG', 'SMFG', 'NMR', 'HDB', 'IBN', 'KB'],
+        'global_etfs': GLOBAL_ETFS
     }
+
+def get_asian_symbols_by_region():
+    """Get Asian ADR symbols organized by region"""
+    return ASIAN_ADRS
+
+def get_global_symbols():
+    """Get all global symbols (Asian ADRs + Global ETFs)"""
+    return ALL_ASIAN_ADRS + GLOBAL_ETFS
+
+def get_momentum_symbols():
+    """Get symbols suitable for momentum trading (high volatility, good volume)"""
+    return [
+        # US momentum favorites
+        'SPY', 'QQQ', 'TSLA', 'AAPL', 'NVDA', 'AMD', 'META',
+        # Asian momentum ADRs
+        'TSM', 'BABA', 'NIO', 'XPEV', 'SONY', 'NTES',
+        # Global ETFs with momentum potential
+        'EWJ', 'FXI', 'EWT', 'VWO'
+    ]
+
+def get_defensive_symbols():
+    """Get defensive symbols for risk-off periods"""
+    return [
+        # Defensive US stocks
+        'JNJ', 'PFE', 'KO', 'PEP', 'WMT', 'HD',
+        # Stable Asian ADRs
+        'TM', 'HMC', 'INFY', 'HDB',
+        # Defensive ETFs
+        'VEA', 'IEFA'
+    ]
 
 def validate_symbol_availability(api_client, symbols, max_test=10):
     """Test symbol availability and data quality"""
@@ -103,7 +174,7 @@ def validate_symbol_availability(api_client, symbols, max_test=10):
                 available_symbols.append(symbol)
             else:
                 failed_symbols.append(symbol)
-        except Exception as e:
+        except Exception:
             failed_symbols.append(symbol)
     
     success_rate = len(available_symbols) / len(test_symbols) if test_symbols else 0

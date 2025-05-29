@@ -16,8 +16,8 @@ class RiskManager:
         self.api = api_client
         self.db = db
         
-        # Risk Parameters (Conservative for paper trading)
-        self.max_positions = 5                    # Maximum concurrent positions
+        # Risk Parameters (Phase 4.1: Unlimited positions for aggressive strategy)
+        self.max_positions = None                 # No limit on concurrent positions
         self.max_daily_trades = 20                # Maximum trades per day
         self.max_position_size_pct = 0.15         # 15% of portfolio per position
         self.max_sector_exposure = 0.40           # 40% exposure to any sector
@@ -44,7 +44,7 @@ class RiskManager:
     def print_risk_parameters(self):
         """Display current risk parameters"""
         print("📊 Risk Management Parameters:")
-        print(f"   Max Positions: {self.max_positions}")
+        print(f"   Max Positions: {'Unlimited' if self.max_positions is None else self.max_positions}")
         print(f"   Max Position Size: {self.max_position_size_pct:.1%}")
         print(f"   Position Risk: {self.position_risk_pct:.1%}")
         print(f"   Stop Loss: {self.stop_loss_pct:.1%}")
@@ -106,8 +106,8 @@ class RiskManager:
             if existing_position:
                 return False, f"Already have position in {symbol}"
             
-            # Check maximum positions
-            if len(positions) >= self.max_positions:
+            # Check maximum positions (Phase 4.1: Unlimited positions enabled)
+            if self.max_positions is not None and len(positions) >= self.max_positions:
                 return False, f"Maximum positions reached ({self.max_positions})"
             
             # Check position size limit
@@ -309,7 +309,7 @@ class RiskManager:
                 'total_unrealized_pl': total_unrealized_pl,
                 'unrealized_pl_pct': (total_unrealized_pl / portfolio_value) * 100,
                 'risk_limit_usage': {
-                    'max_positions': f"{len(positions)}/{self.max_positions}",
+                    'max_positions': f"{len(positions)}/{'Unlimited' if self.max_positions is None else self.max_positions}",
                     'daily_loss_usage': f"{abs(min(0, daily_pl_pct)):.1f}%/{self.max_daily_loss_pct*100:.1f}%"
                 }
             }

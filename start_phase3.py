@@ -24,11 +24,13 @@ def main():
     market_tier = int(os.getenv('MARKET_TIER', '2'))
     min_confidence = float(os.getenv('MIN_CONFIDENCE', '0.7'))
     min_technical_confidence = float(os.getenv('MIN_TECHNICAL_CONFIDENCE', '0.6'))
+    global_trading = os.getenv('GLOBAL_TRADING', 'true').lower() == 'true'  # Phase 4.1: Global markets - ENABLED by default
     
     print(f"⚡ Execution: {'ENABLED' if execution_enabled else 'DISABLED'}")
     print(f"🎯 Market Tier: {market_tier}")
     print(f"📊 Min Confidence: {min_confidence:.1%}")
     print(f"🧠 Min Technical Confidence: {min_technical_confidence:.1%}")
+    print(f"🌍 Global Trading: {'ENABLED' if global_trading else 'DISABLED'}")
     
     # Check for required credentials
     alpaca_key = os.getenv('ALPACA_PAPER_API_KEY')
@@ -47,7 +49,7 @@ def main():
         
         print("\n🧠 Initializing Phase 3 Intelligence Trader...")
         
-        trader = Phase3Trader(use_database=True, market_tier=market_tier)
+        trader = Phase3Trader(use_database=True, market_tier=market_tier, global_trading=global_trading)
         trader.execution_enabled = execution_enabled
         trader.min_confidence_to_trade = min_confidence
         trader.min_technical_confidence = min_technical_confidence

@@ -15,6 +15,9 @@ from technical_indicators import TechnicalIndicators
 from market_regime_detector import MarketRegimeDetector
 from pattern_recognition import PatternRecognition
 
+# Import Phase 4.1 global market capability
+from global_market_manager import GlobalMarketManager
+
 class Phase3Trader(Phase2Trader):
     """
     Phase 3: Intelligence Layer
@@ -26,13 +29,22 @@ class Phase3Trader(Phase2Trader):
     - Sophisticated market analysis and decision making
     """
     
-    def __init__(self, use_database=True, market_tier=2):
+    def __init__(self, use_database=True, market_tier=2, global_trading=False):
         super().__init__(use_database, market_tier)
         
         # Initialize intelligence modules
         self.technical_indicators = TechnicalIndicators()
         self.regime_detector = MarketRegimeDetector()
         self.pattern_recognition = PatternRecognition()
+        
+        # Phase 4.1: Initialize global market manager
+        self.global_trading = global_trading
+        if self.global_trading:
+            self.global_market_manager = GlobalMarketManager()
+            print("🌍 Global Market Trading: ✅ Enabled")
+        else:
+            self.global_market_manager = None
+            print("🌍 Global Market Trading: ❌ Disabled")
         
         # Phase 3 specific settings
         self.intelligence_enabled = True
@@ -307,6 +319,113 @@ class Phase3Trader(Phase2Trader):
         should_trade_final = final_confidence >= self.min_confidence_to_trade
         
         return should_trade_final, final_confidence, intelligence_summary
+    
+    def get_active_trading_symbols(self) -> List[str]:
+        """
+        Get symbols to trade based on current market sessions and global trading settings
+        Phase 4.1: Global Market Integration
+        """
+        if not self.global_trading or not self.global_market_manager:
+            # Use traditional tier-based approach
+            from market_universe import get_symbols_by_tier
+            return get_symbols_by_tier(self.market_tier)
+        
+        # Global trading enabled - get symbols based on active sessions
+        active_sessions = self.global_market_manager.get_current_active_sessions()
+        
+        if not active_sessions:
+            # No active sessions, wait or use core symbols
+            from market_universe import get_symbols_by_tier
+            core_symbols = get_symbols_by_tier(1)  # Core symbols only
+            print(f"🌍 No active global sessions, using core symbols: {len(core_symbols)}")
+            return core_symbols
+        
+        # Get symbols for active sessions
+        all_active_symbols = []
+        for session in active_sessions:
+            session_symbols = self.global_market_manager.get_tradeable_symbols_by_session(session)
+            all_active_symbols.extend(session_symbols)
+            print(f"🌍 Active Session {session}: {len(session_symbols)} symbols")
+        
+        # Remove duplicates and limit total symbols
+        unique_symbols = list(set(all_active_symbols))
+        
+        # Prioritize symbols based on current market regime
+        prioritized_symbols = self.prioritize_global_symbols(unique_symbols)
+        
+        # Limit to reasonable number for performance
+        max_symbols = min(len(prioritized_symbols), 30)  # Limit to 30 symbols max
+        final_symbols = prioritized_symbols[:max_symbols]
+        
+        print(f"🌍 Global Trading: {len(final_symbols)} active symbols from {len(active_sessions)} sessions")
+        return final_symbols
+    
+    def prioritize_global_symbols(self, symbols: List[str]) -> List[str]:
+        """
+        Prioritize symbols based on volatility, volume, and momentum potential
+        """
+        from market_universe import get_momentum_symbols, get_defensive_symbols
+        
+        momentum_symbols = get_momentum_symbols()
+        defensive_symbols = get_defensive_symbols()
+        
+        # Prioritize momentum symbols first, then defensive, then others
+        prioritized = []
+        
+        # Add momentum symbols that are in our list
+        for symbol in momentum_symbols:
+            if symbol in symbols and symbol not in prioritized:
+                prioritized.append(symbol)
+        
+        # Add defensive symbols
+        for symbol in defensive_symbols:
+            if symbol in symbols and symbol not in prioritized:
+                prioritized.append(symbol)
+        
+        # Add remaining symbols
+        for symbol in symbols:
+            if symbol not in prioritized:
+                prioritized.append(symbol)
+        
+        return prioritized
+    
+    def get_market_quotes(self):
+        """
+        Override to use global trading symbols when enabled
+        Phase 4.1: Global Market Integration
+        """
+        if self.global_trading and self.global_market_manager:
+            # Get global trading symbols based on active sessions
+            symbols = self.get_active_trading_symbols()
+        else:
+            # Use parent class method (tier-based symbols)
+            from market_universe import get_symbols_by_tier
+            symbols = get_symbols_by_tier(self.market_tier)
+        
+        # Collect quotes for selected symbols
+        quotes = []
+        failed_count = 0
+        
+        for symbol in symbols:
+            try:
+                quote = self.api.get_latest_quote(symbol)
+                if quote and quote.ask_price and quote.ask_price > 0:
+                    quotes.append({
+                        'symbol': symbol,
+                        'ask': float(quote.ask_price),
+                        'bid': float(quote.bid_price),
+                        'volume': getattr(quote, 'ask_size', 0) or 0,
+                        'timestamp': datetime.now().isoformat()
+                    })
+            except Exception as e:
+                failed_count += 1
+                if failed_count <= 3:  # Only show first few errors
+                    print(f"⚠️ Failed to get quote for {symbol}: {str(e)[:50]}")
+        
+        if self.global_trading:
+            print(f"🌍 Global Trading: Retrieved {len(quotes)} quotes, {failed_count} failed")
+        
+        return quotes
     
     def execute_trading_decisions_with_intelligence(self, quotes: list, strategy: str, confidence: float, cycle_id: int = None) -> Dict:
         """
