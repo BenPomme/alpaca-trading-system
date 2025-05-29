@@ -474,6 +474,7 @@ class Phase3Trader(Phase2Trader):
             print(f"❌ Phase 3 cycle error: {str(e)}")
             import traceback
             traceback.print_exc()
+            print("🔄 Continuing to next cycle despite error...")
     
     def run_continuous_intelligence_trading(self):
         """
@@ -506,6 +507,14 @@ class Phase3Trader(Phase2Trader):
             print(f"\n❌ Phase 3 system error: {str(e)}")
             import traceback
             traceback.print_exc()
+            print("🔄 Restarting in 60 seconds...")
+            time.sleep(60)
+            # Try to restart the trading loop
+            try:
+                self.run_continuous_intelligence_trading()
+            except Exception as restart_error:
+                print(f"❌ Restart failed: {restart_error}")
+                raise
 
 if __name__ == "__main__":
     # Initialize Phase 3 Trader
