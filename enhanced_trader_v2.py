@@ -22,6 +22,7 @@ class EnhancedTraderV2(EnhancedTrader):
         self.market_tier = market_tier
         self.symbols = get_symbols_by_tier(market_tier)
         self.market_universe = self.symbols  # Alias for compatibility
+        self.cycle_delay = 120  # 2 minutes between cycles
         
         print(f"📊 Market Tier: {market_tier} ({len(self.symbols)} symbols)")
         print(f"📊 Symbols: {self.symbols[:10]}{'...' if len(self.symbols) > 10 else ''}")
@@ -100,6 +101,11 @@ class EnhancedTraderV2(EnhancedTrader):
         print(f"📊 Market data success: {successful_quotes} symbols ({success_rate:.1%})")
         
         return quotes, core_quotes, success_rate
+    
+    def get_market_quotes(self):
+        """Alias for get_expanded_market_data for Phase 3 compatibility"""
+        quotes, core_quotes, success_rate = self.get_expanded_market_data()
+        return quotes
     
     def enhanced_market_regime_detection(self, quotes, core_quotes):
         """Enhanced market regime detection using expanded data"""
