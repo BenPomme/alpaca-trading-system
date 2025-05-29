@@ -413,41 +413,24 @@ class Phase3Trader(Phase2Trader):
             self.regime_detector.add_vix_data(simulated_vix)
             
             # Get comprehensive market regime analysis
-            try:
-                regime_analysis = self.regime_detector.get_comprehensive_regime_analysis()
-                
-                market_regime = "active"  # Default
-                regime_confidence = 0.7
-                
-                if 'overall_assessment' in regime_analysis:
-                    overall = regime_analysis['overall_assessment']
-                    regime_type = overall.get('regime', 'neutral')
-                    if regime_type == 'bullish':
-                        market_regime = "active"
-                    elif regime_type == 'bearish':
-                        market_regime = "uncertain"
-                    else:
-                        market_regime = "neutral"
-                    regime_confidence = overall.get('confidence', 0.7)
-                else:
-                    print("⚠️ No overall assessment available - using basic regime detection")
-                    # Fallback to basic regime detection using quote count
-                    if len(quotes) >= 2:
-                        market_regime = "active"
-                        regime_confidence = 0.8
-                    else:
-                        market_regime = "uncertain"
-                        regime_confidence = 0.4
-                        
-            except Exception as e:
-                print(f"⚠️ Regime analysis error: {str(e)} - using fallback")
-                # Fallback to basic regime detection
-                if len(quotes) >= 2:
-                    market_regime = "active"
-                    regime_confidence = 0.8
-                else:
-                    market_regime = "uncertain"
-                    regime_confidence = 0.4
+            regime_analysis = self.regime_detector.get_comprehensive_regime_analysis()
+            
+            # Extract regime information (now guaranteed to exist)
+            overall = regime_analysis['overall_assessment']
+            regime_type = overall['regime']
+            
+            if regime_type == 'bullish':
+                market_regime = "active"
+            elif regime_type == 'bearish':
+                market_regime = "uncertain"
+            else:
+                market_regime = "neutral"
+            
+            regime_confidence = overall['confidence']
+            
+            # Display additional info if available
+            if 'note' in overall:
+                print(f"ℹ️ Regime Analysis: {overall['note']}")
             
             print(f"🎯 Market Regime: {market_regime} ({regime_confidence:.1%} confidence)")
             

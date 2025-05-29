@@ -240,6 +240,15 @@ class MarketRegimeDetector:
                 'regime_score': round(avg_regime_score, 2),
                 'indices_analyzed': len(regime_scores)
             }
+        else:
+            # No regime data available - provide default assessment
+            analysis['overall_assessment'] = {
+                'regime': 'neutral',
+                'confidence': 0.5,
+                'regime_score': 0.0,
+                'indices_analyzed': 0,
+                'note': 'Insufficient data for regime analysis'
+            }
         
         # Trading recommendations
         analysis['trading_recommendations'] = self._generate_trading_recommendations(analysis)
