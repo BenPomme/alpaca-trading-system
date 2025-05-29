@@ -217,7 +217,7 @@ class Phase3Trader(Phase2Trader):
         for symbol in ['SPY', 'QQQ', 'IWM']:
             quote_data = next((q for q in quotes if q['symbol'] == symbol), None)
             if quote_data:
-                intel = self.analyze_symbol_intelligence(symbol, quote_data['price'], quote_data.get('volume', 0))
+                intel = self.analyze_symbol_intelligence(symbol, quote_data['ask'], quote_data.get('volume', 0))
                 if 'combined_intelligence' in intel:
                     market_intelligence[symbol] = intel['combined_intelligence']
         
@@ -328,7 +328,7 @@ class Phase3Trader(Phase2Trader):
         # Analyze and potentially trade each symbol
         for quote in quotes:
             symbol = quote['symbol']
-            price = quote['price']
+            price = quote['ask']  # Use ask price for buying
             
             # Skip if we already hold this symbol
             if symbol in held_symbols:
