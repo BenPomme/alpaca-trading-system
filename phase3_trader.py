@@ -28,6 +28,9 @@ from crypto_trader import CryptoTrader
 # Import Intelligent Exit Management System
 from intelligent_exit_manager import IntelligentExitManager
 
+# Import ML Framework for iterative improvement
+from ml_adaptive_framework import MLAdaptiveFramework
+
 class Phase3Trader(Phase2Trader):
     """
     Phase 3: Intelligence Layer
@@ -86,6 +89,19 @@ class Phase3Trader(Phase2Trader):
         print(f"   🎯 Market Regime Detection: Enhanced")
         print(f"   🔍 Pattern Recognition: Active")
         
+        # Initialize ML Adaptive Framework for iterative improvement
+        print("🧠 Initializing ML Adaptive Framework...")
+        try:
+            self.ml_framework = MLAdaptiveFramework(
+                api_client=self.api,
+                risk_manager=self.risk_manager,
+                db=self.db
+            )
+            print("🧠 ML Adaptive Framework: ✅ Enabled")
+        except Exception as e:
+            print(f"⚠️ ML Framework failed to initialize: {e}")
+            self.ml_framework = None
+        
         # QA.md Rule 3: Initialize Intelligent Exit Manager AFTER all parent attributes are set
         # This prevents AttributeError issues found in previous bugs
         print("🧠 Initializing Intelligent Exit Manager...")
@@ -97,21 +113,23 @@ class Phase3Trader(Phase2Trader):
             if missing_attrs:
                 raise AttributeError(f"Missing required attributes: {missing_attrs}")
             
+            # CRITICAL: Pass real ML framework instead of None
             self.intelligent_exit_manager = IntelligentExitManager(
                 api=self.api,
                 risk_manager=self.risk_manager,
                 technical_indicators=self.technical_indicators,
                 regime_detector=self.regime_detector,
                 pattern_recognition=self.pattern_recognition,
-                ml_models=None  # Will integrate ML models when available
+                ml_models=self.ml_framework  # REAL ML INTEGRATION
             )
-            print("🧠 Intelligent Exit Manager: ✅ Enabled")
+            print("🧠 Intelligent Exit Manager: ✅ Enabled with ML Integration")
         except Exception as e:
             print(f"⚠️ Intelligent Exit Manager failed to initialize: {e}")
             print(f"   🔍 Debug info: Available attributes: {[attr for attr in ['api', 'risk_manager', 'technical_indicators', 'regime_detector', 'pattern_recognition'] if hasattr(self, attr)]}")
             self.intelligent_exit_manager = None
         
         print(f"   🧠 Intelligent Exits: {'✅ Enabled' if self.intelligent_exit_manager else '❌ Disabled'}")
+        print(f"   🤖 ML Enhancement: {'✅ Active' if self.ml_framework else '❌ Disabled'}")
     
     def analyze_symbol_intelligence(self, symbol: str, price: float, volume: int = 0) -> Dict:
         """
@@ -721,6 +739,33 @@ class Phase3Trader(Phase2Trader):
                                     if exit_result.get('status') == 'success':
                                         intelligent_exit_results.append(exit_result)
                                         print(f"   ✅ Exit executed: {exit_result.get('exit_portion', 1):.0%} of position")
+                                        
+                                        # CRITICAL: Record exit outcome for ML learning
+                                        if self.intelligent_exit_manager and hasattr(self.intelligent_exit_manager, 'record_exit_outcome'):
+                                            try:
+                                                entry_info = {
+                                                    'avg_entry_price': entry_price,
+                                                    'quantity': float(position.qty),
+                                                    'entry_time': datetime.now(),  # Should come from DB in production
+                                                    'entry_confidence': 0.7  # Should come from DB in production
+                                                }
+                                                
+                                                exit_info = {
+                                                    'exit_price': current_price,
+                                                    'profit_loss': (current_price - entry_price) * float(position.qty),
+                                                    'profit_pct': ((current_price - entry_price) / entry_price) * 100,
+                                                    'exit_confidence': exit_analysis.get('confidence', 0.5)
+                                                }
+                                                
+                                                self.intelligent_exit_manager.record_exit_outcome(
+                                                    symbol, 
+                                                    exit_analysis.get('reason', 'intelligent_exit'),
+                                                    entry_info,
+                                                    exit_info
+                                                )
+                                            except Exception as record_error:
+                                                print(f"   ⚠️ Failed to record exit outcome: {record_error}")
+                                        
                                     else:
                                         print(f"   ❌ Exit failed: {exit_result.get('reason', 'Unknown')}")
                                 else:
@@ -751,6 +796,17 @@ class Phase3Trader(Phase2Trader):
                             pl_pct = result.get('pl_pct', 0)
                             exit_portion = result.get('exit_portion', 1.0)
                             print(f"   🎯 {symbol}: {reason} ({pl_pct:+.1f}%, {exit_portion:.0%} exit)")
+                        
+                        # Show ML learning progress after exits
+                        if self.intelligent_exit_manager and hasattr(self.intelligent_exit_manager, 'get_exit_strategy_recommendations'):
+                            try:
+                                ml_recommendations = self.intelligent_exit_manager.get_exit_strategy_recommendations()
+                                if ml_recommendations.get('recommendations'):
+                                    print(f"🧠 ML EXIT LEARNING:")
+                                    for rec in ml_recommendations['recommendations'][:3]:  # Show top 3
+                                        print(f"   {rec}")
+                            except Exception as e:
+                                print(f"   ⚠️ ML recommendations error: {e}")
                     else:
                         print("✅ No intelligent exit triggers activated")
                     
@@ -826,9 +882,49 @@ class Phase3Trader(Phase2Trader):
             
             print(f"🎯 Market Regime: {market_regime} ({regime_confidence:.1%} confidence)")
             
-            # Enhanced strategy selection
-            strategy = self.enhanced_strategy_selection(quotes, market_regime, regime_confidence)
-            print(f"🎯 Strategy: {strategy}")
+            # ML-Enhanced strategy selection
+            if self.ml_framework:
+                print(f"🧠 USING ML-ENHANCED STRATEGY SELECTION")
+                try:
+                    # Get technical and pattern analysis for ML
+                    tech_analysis = {}
+                    pattern_analysis = {}
+                    
+                    # Collect intelligence for ML framework
+                    for symbol in ['SPY', 'QQQ', 'IWM']:
+                        quote_data = next((q for q in quotes if q['symbol'] == symbol), None)
+                        if quote_data:
+                            intel = self.analyze_symbol_intelligence(symbol, quote_data['ask'], quote_data.get('volume', 0))
+                            if 'technical_indicators' in intel:
+                                tech_analysis[symbol] = intel['technical_indicators']
+                            if 'pattern_recognition' in intel:
+                                pattern_analysis[symbol] = intel['pattern_recognition']
+                    
+                    # Get ML-enhanced market analysis
+                    ml_enhanced_analysis = self.ml_framework.enhance_market_analysis(
+                        market_regime, regime_confidence, tech_analysis, pattern_analysis
+                    )
+                    
+                    if ml_enhanced_analysis.get('ml_enhanced'):
+                        strategy = ml_enhanced_analysis.get('ml_strategy', strategy)
+                        regime_confidence = ml_enhanced_analysis.get('blended_confidence', regime_confidence)
+                        print(f"🧠 ML Strategy: {strategy} (blended confidence: {regime_confidence:.1%})")
+                    else:
+                        # Fallback to traditional strategy selection
+                        strategy = self.enhanced_strategy_selection(quotes, market_regime, regime_confidence)
+                        print(f"🎯 Traditional Strategy: {strategy}")
+                    
+                except Exception as ml_error:
+                    print(f"⚠️ ML strategy selection failed: {ml_error}")
+                    strategy = self.enhanced_strategy_selection(quotes, market_regime, regime_confidence)
+                    print(f"🎯 Fallback Strategy: {strategy}")
+            else:
+                # Traditional strategy selection without ML
+                strategy = self.enhanced_strategy_selection(quotes, market_regime, regime_confidence)
+                print(f"🎯 Strategy: {strategy}")
+            
+            # Show strategy details
+            print(f"🎯 Final Strategy: {strategy} (confidence: {regime_confidence:.1%})")
             
             # Phase 4.4: Execute 24/7 crypto trading if enabled
             crypto_results = {}

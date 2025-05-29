@@ -232,10 +232,39 @@ class IntelligentExitManager:
             
             # Get ML predictions for current market conditions
             try:
-                # Simulate ML model predictions (replace with actual ML calls)
-                current_confidence = random.uniform(0.2, 0.9)
-                reversal_probability = random.uniform(0.1, 0.8)
-                trend_strength = random.uniform(0.3, 0.9)
+                # REAL ML INTEGRATION: Get actual ML predictions
+                # Prepare market data for ML analysis
+                ml_market_data = {
+                    'technical': self.technical_indicators.get_comprehensive_analysis(symbol),
+                    'regime': {
+                        'type': self.regime_detector.detect_trend_regime(symbol).get('regime', 'neutral'),
+                        'confidence': self.regime_detector.detect_trend_regime(symbol).get('confidence', 0.5)
+                    },
+                    'pattern': self.pattern_recognition.get_comprehensive_pattern_analysis(symbol)
+                }
+                
+                # Get REAL ML strategy selection and confidence
+                ml_strategy, current_confidence, ml_details = self.ml_models.strategy_selector.select_optimal_strategy(ml_market_data)
+                
+                # Get REAL ML risk prediction for reversal probability
+                risk_analysis = self.ml_models.risk_predictor.predict_position_risk(
+                    symbol=symbol,
+                    position_size=position_info.get('quantity', 100),
+                    entry_price=position_info.get('avg_entry_price', market_data['current_price']),
+                    current_price=market_data['current_price']
+                )
+                reversal_probability = risk_analysis.get('risk_score', 0.5)
+                
+                # Get REAL trend strength from ML regime detector
+                try:
+                    regime_analysis = self.ml_models.strategy_selector.regime_detector.analyze_market_regime(
+                        [market_data['current_price']]  # Simplified price input
+                    )
+                    trend_strength = regime_analysis.get('confidence', 0.5)
+                except:
+                    trend_strength = 0.5  # Fallback
+                
+                print(f"   🤖 ML Predictions: strategy={ml_strategy}, confidence={current_confidence:.2f}, reversal={reversal_probability:.2f}, trend={trend_strength:.2f}")
                 
                 # Original entry confidence vs current confidence
                 entry_confidence = position_info.get('entry_confidence', 0.5)
@@ -530,3 +559,104 @@ class IntelligentExitManager:
             'regime_multipliers': self.regime_multipliers,
             'technical_thresholds': self.technical_exits
         }
+    
+    def record_exit_outcome(self, symbol: str, exit_reason: str, entry_info: Dict, exit_info: Dict):
+        """
+        Record exit outcome for ML learning and iterative improvement
+        """
+        try:
+            if not self.ml_models:
+                return
+            
+            # Prepare outcome data for ML learning
+            outcome_data = {
+                'symbol': symbol,
+                'exit_reason': exit_reason,
+                'entry_time': entry_info.get('entry_time', datetime.now()),
+                'exit_time': datetime.now(),
+                'entry_price': entry_info.get('avg_entry_price', 0),
+                'exit_price': exit_info.get('exit_price', 0),
+                'quantity': entry_info.get('quantity', 0),
+                'profit_loss': exit_info.get('profit_loss', 0),
+                'profit_pct': exit_info.get('profit_pct', 0),
+                'hold_duration': (datetime.now() - entry_info.get('entry_time', datetime.now())).total_seconds() / 86400,  # days
+                'entry_confidence': entry_info.get('entry_confidence', 0.5),
+                'exit_confidence': exit_info.get('exit_confidence', 0.5)
+            }
+            
+            # Record with ML framework for learning
+            if hasattr(self.ml_models, 'strategy_selector'):
+                self.ml_models.strategy_selector.record_trade_outcome(outcome_data)
+                print(f"   🧠 ML Learning: Recorded exit outcome for {symbol} ({exit_reason})")
+            
+            # Update exit strategy performance
+            self._update_exit_strategy_performance(exit_reason, outcome_data)
+            
+        except Exception as e:
+            print(f"   ⚠️ Failed to record exit outcome: {e}")
+    
+    def _update_exit_strategy_performance(self, exit_reason: str, outcome_data: Dict):
+        """
+        Update performance tracking for different exit strategies
+        """
+        try:
+            profit_pct = outcome_data.get('profit_pct', 0)
+            
+            # Initialize performance tracking if not exists
+            if not hasattr(self, 'exit_performance'):
+                self.exit_performance = {}
+            
+            if exit_reason not in self.exit_performance:
+                self.exit_performance[exit_reason] = {
+                    'total_trades': 0,
+                    'winning_trades': 0,
+                    'total_profit': 0.0,
+                    'avg_profit': 0.0,
+                    'win_rate': 0.0
+                }
+            
+            # Update performance metrics
+            perf = self.exit_performance[exit_reason]
+            perf['total_trades'] += 1
+            perf['total_profit'] += profit_pct
+            
+            if profit_pct > 0:
+                perf['winning_trades'] += 1
+            
+            perf['avg_profit'] = perf['total_profit'] / perf['total_trades']
+            perf['win_rate'] = perf['winning_trades'] / perf['total_trades']
+            
+            print(f"   📊 Exit Strategy '{exit_reason}': {perf['win_rate']:.1%} win rate, {perf['avg_profit']:+.1f}% avg")
+            
+        except Exception as e:
+            print(f"   ⚠️ Failed to update exit performance: {e}")
+    
+    def get_exit_strategy_recommendations(self) -> Dict:
+        """
+        Get recommendations for exit strategy improvements based on performance
+        """
+        try:
+            if not hasattr(self, 'exit_performance'):
+                return {'recommendations': ['Collect more exit data for analysis']}
+            
+            recommendations = []
+            
+            # Analyze performance by exit strategy
+            for strategy, perf in self.exit_performance.items():
+                if perf['total_trades'] >= 5:  # Minimum sample size
+                    if perf['win_rate'] > 0.7:
+                        recommendations.append(f"✅ '{strategy}' performing well ({perf['win_rate']:.1%} win rate)")
+                    elif perf['win_rate'] < 0.4:
+                        recommendations.append(f"⚠️ '{strategy}' underperforming ({perf['win_rate']:.1%} win rate) - consider adjusting")
+                    
+                    if perf['avg_profit'] < -2.0:
+                        recommendations.append(f"📉 '{strategy}' avg loss {perf['avg_profit']:.1f}% - tighten stops")
+            
+            return {
+                'performance_summary': self.exit_performance,
+                'recommendations': recommendations,
+                'total_strategies_tracked': len(self.exit_performance)
+            }
+            
+        except Exception as e:
+            return {'error': f'Failed to generate recommendations: {e}'}

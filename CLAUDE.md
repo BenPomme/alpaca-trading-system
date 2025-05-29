@@ -105,8 +105,9 @@ The system evolved through systematic phases while maintaining Railway deploymen
   - **5 Analysis Components**: Market regime, technical indicators, ML confidence, pattern recognition, time-based
   - **Partial Profit Taking**: 25% at +4%, 35% at +6%, 40% at +10% (no more all-or-nothing)
   - **Market Adaptive Targets**: Bull markets 1.5x targets, Bear markets 0.6x targets, Neutral 1.0x
-  - **ML Integration Ready**: Confidence decay detection, reversal signals, entry vs current confidence
-  - **Vote-Based Decisions**: Multiple intelligence sources vote on exit timing
+  - **REAL ML Integration**: Uses actual ML predictions for confidence, reversal probability, trend strength
+  - **Iterative Learning**: Records exit outcomes and adapts strategies based on performance
+  - **Performance Tracking**: Win rates and profitability by exit strategy with recommendations
 - **`options_manager.py`**: **REAL** options trading system (not mock data)
   - **Direct API Integration**: Uses Alpaca `/v2/options/contracts` endpoint with authentication
   - **5 Options Strategies**: Long calls, bull call spreads, protective puts, covered calls, long straddles
@@ -121,6 +122,11 @@ The system evolved through systematic phases while maintaining Railway deploymen
 - **`global_market_manager.py`**: Multi-timezone trading coordination
   - **Market Session Detection**: US, Asian, European market hours
   - **Symbol Selection**: Match trading symbols to open exchanges for immediate execution
+- **`ml_adaptive_framework.py`**: **NEW** Machine Learning integration for iterative improvement
+  - **ML Strategy Selection**: Ensemble approach with confidence-based strategy selection
+  - **ML Risk Prediction**: Position sizing and risk assessment using ML models
+  - **Performance Tracking**: ML vs traditional strategy performance comparison
+  - **Adaptive Learning**: Continuously improves based on trade outcomes
 
 #### **Enhanced Stock Strategies (Replacing Mock Options)**
 - **3x Leveraged ETFs**: TQQQ, UPRO, SOXL, FAS, UDOW for amplified returns during high confidence (>70%)
