@@ -675,6 +675,9 @@ class Phase3Trader(Phase2Trader):
                         # Analyze crypto opportunity
                         crypto_analysis = self.crypto_trader.analyze_crypto_opportunity(symbol, crypto_data)
                         
+                        # Debug output for crypto analysis
+                        print(f"₿ {symbol}: confidence={crypto_analysis.get('confidence', 0):.1%}, min={crypto_analysis.get('min_confidence', 0):.1%}, tradeable={crypto_analysis.get('tradeable', False)}")
+                        
                         if crypto_analysis.get('tradeable', False):
                             # Calculate crypto position size (smaller allocation)
                             position_size = 2000  # $2K base position for crypto
@@ -685,9 +688,13 @@ class Phase3Trader(Phase2Trader):
                             
                             if crypto_result['status'] == 'success':
                                 print(f"₿ CRYPTO TRADE: {symbol}")
-                                print(f"   📊 {crypto_result['side'].upper()}: {crypto_result['quantity']:.6f} @ ${crypto_analysis['volatility_score']:.0f}")
+                                print(f"   📊 {crypto_result['side'].upper()}: {crypto_result['quantity']:.6f} @ ${crypto_data['price']:.0f}")
                                 print(f"   🎯 Confidence: {crypto_result['confidence']:.1%}")
                                 print(f"   🌍 Session: {crypto_result['session']}")
+                            else:
+                                print(f"₿ CRYPTO FAILED: {symbol} - {crypto_result.get('reason', 'Unknown error')}")
+                        else:
+                            print(f"₿ CRYPTO SKIP: {symbol} - confidence too low or not tradeable")
                         
                     except Exception as e:
                         print(f"⚠️ Crypto trading error for {symbol}: {e}")
