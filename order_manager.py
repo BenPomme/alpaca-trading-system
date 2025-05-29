@@ -367,12 +367,19 @@ class OrderManager:
     def execute_sell_order(self, symbol: str, reason: str = 'strategy', cycle_id: int = None) -> Dict:
         """Execute a sell order for existing position"""
         try:
-            # Check if we have the position
-            if symbol not in self.active_positions:
+            # CRITICAL FIX: Use live Alpaca positions instead of internal tracking
+            # Get actual positions from Alpaca
+            positions = self.api.list_positions()
+            position = None
+            for pos in positions:
+                if pos.symbol == symbol:
+                    position = pos
+                    break
+            
+            if not position:
                 return {'success': False, 'reason': f'No position in {symbol}'}
             
-            position = self.active_positions[symbol]
-            shares = abs(int(position['qty']))  # Ensure positive quantity
+            shares = abs(int(float(position.qty)))  # Ensure positive quantity from Alpaca position
             
             if shares <= 0:
                 return {'success': False, 'reason': 'No shares to sell'}
@@ -384,7 +391,29 @@ class OrderManager:
             
             sell_price = float(quote.bid_price)
             
+            # Calculate P&L using correct Alpaca position attributes FIRST
+            # Get entry price from Alpaca position (same logic as intelligent exit manager)
+            try:
+                if hasattr(position, 'avg_entry_price'):
+                    entry_price = float(position.avg_entry_price)
+                elif hasattr(position, 'cost_basis'):
+                    entry_price = float(position.cost_basis)
+                elif hasattr(position, 'avg_cost'):
+                    entry_price = float(position.avg_cost)
+                else:
+                    # Calculate from market_value and qty as fallback
+                    entry_price = float(position.market_value) / float(position.qty) if float(position.qty) != 0 else sell_price
+            except:
+                entry_price = sell_price  # Fallback to break-even
+            
+            profit_loss = (sell_price - entry_price) * shares
+            profit_pct = (profit_loss / (entry_price * shares)) * 100 if entry_price > 0 else 0
+            
             # Create sell order
+            print(f"🔥 Submitting SELL order to Alpaca API...")
+            print(f"   Symbol: {symbol}, Qty: {shares}, Side: sell, Type: market")
+            print(f"   Entry: ${entry_price:.2f}, Current: ${sell_price:.2f}, P&L: {profit_pct:+.1f}%")
+            
             order = self.api.submit_order(
                 symbol=symbol,
                 qty=shares,
@@ -393,10 +422,13 @@ class OrderManager:
                 time_in_force='day'
             )
             
-            # Calculate P&L
-            entry_price = position['avg_entry_price']
-            profit_loss = (sell_price - entry_price) * shares
-            profit_pct = (profit_loss / (entry_price * shares)) * 100
+            print(f"✅ SELL Order submitted successfully! Order ID: {order.id}")
+            print(f"✅ SELL ORDER EXECUTED: {symbol}")
+            print(f"   Shares: {shares}")
+            print(f"   Price: ${sell_price:.2f}")
+            print(f"   P&L: {profit_pct:+.1f}%")
+            print(f"   Reason: {reason}")
+            print(f"   Order ID: {order.id}")
             
             # Store in database
             if self.db:
