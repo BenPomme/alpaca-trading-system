@@ -124,19 +124,19 @@ class OrderManager:
         try:
             # Check position limits
             if not self.check_position_limits(symbol):
-                return {'success': False, 'reason': 'Position limits exceeded'}
+                return {'status': 'failed', 'message': 'Position limits exceeded'}
             
             # Get current quote
             quote = self.api.get_latest_quote(symbol)
             if not quote or not quote.ask_price:
-                return {'success': False, 'reason': 'No market data available'}
+                return {'status': 'failed', 'message': 'No market data available'}
             
             entry_price = float(quote.ask_price)
             
             # Calculate position size
             shares = self.calculate_position_size(symbol, entry_price, strategy)
             if shares <= 0:
-                return {'success': False, 'reason': 'Insufficient buying power'}
+                return {'status': 'failed', 'message': 'Insufficient buying power'}
             
             # Create buy order
             order = self.api.submit_order(
@@ -180,7 +180,7 @@ class OrderManager:
             print(f"   Order ID: {order.id}")
             
             return {
-                'success': True,
+                'status': 'success',  # Fixed: match expected key name
                 'order_id': order.id,
                 'symbol': symbol,
                 'shares': shares,
@@ -192,7 +192,7 @@ class OrderManager:
         except Exception as e:
             error_msg = f"Buy order failed for {symbol}: {e}"
             print(f"❌ {error_msg}")
-            return {'success': False, 'reason': error_msg}
+            return {'status': 'failed', 'message': error_msg}
     
     def execute_sell_order(self, symbol: str, reason: str = 'strategy', cycle_id: int = None) -> Dict:
         """Execute a sell order for existing position"""
