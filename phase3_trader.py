@@ -81,8 +81,22 @@ class Phase3Trader(Phase2Trader):
         self.technical_weight = 0.4  # Weight of technical indicators
         self.pattern_weight = 0.2  # Weight of pattern recognition
         
-        # Initialize Intelligent Exit Manager
+        print("🧠 Phase 3 Intelligence Layer Initialized")
+        print(f"   📊 Technical Indicators: {'✅ Enabled' if self.intelligence_enabled else '❌ Disabled'}")
+        print(f"   🎯 Market Regime Detection: Enhanced")
+        print(f"   🔍 Pattern Recognition: Active")
+        
+        # QA.md Rule 3: Initialize Intelligent Exit Manager AFTER all parent attributes are set
+        # This prevents AttributeError issues found in previous bugs
+        print("🧠 Initializing Intelligent Exit Manager...")
         try:
+            # Verify all required attributes exist (QA.md Rule 1)
+            required_attrs = ['api', 'risk_manager', 'technical_indicators', 'regime_detector', 'pattern_recognition']
+            missing_attrs = [attr for attr in required_attrs if not hasattr(self, attr)]
+            
+            if missing_attrs:
+                raise AttributeError(f"Missing required attributes: {missing_attrs}")
+            
             self.intelligent_exit_manager = IntelligentExitManager(
                 api=self.api,
                 risk_manager=self.risk_manager,
@@ -94,12 +108,9 @@ class Phase3Trader(Phase2Trader):
             print("🧠 Intelligent Exit Manager: ✅ Enabled")
         except Exception as e:
             print(f"⚠️ Intelligent Exit Manager failed to initialize: {e}")
+            print(f"   🔍 Debug info: Available attributes: {[attr for attr in ['api', 'risk_manager', 'technical_indicators', 'regime_detector', 'pattern_recognition'] if hasattr(self, attr)]}")
             self.intelligent_exit_manager = None
         
-        print("🧠 Phase 3 Intelligence Layer Initialized")
-        print(f"   📊 Technical Indicators: {'✅ Enabled' if self.intelligence_enabled else '❌ Disabled'}")
-        print(f"   🎯 Market Regime Detection: Enhanced")
-        print(f"   🔍 Pattern Recognition: Active")
         print(f"   🧠 Intelligent Exits: {'✅ Enabled' if self.intelligent_exit_manager else '❌ Disabled'}")
     
     def analyze_symbol_intelligence(self, symbol: str, price: float, volume: int = 0) -> Dict:
