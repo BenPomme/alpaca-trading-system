@@ -76,7 +76,17 @@ class OptionsManager:
                         calls = []
                         puts = []
                         
-                        for contract in option_contracts:
+                        # Rate limiting: Process max 20 contracts to avoid API limits
+                        max_contracts = 20
+                        skip_quotes = len(option_contracts) > 50  # Skip quotes if too many contracts
+                        limited_contracts = option_contracts[:max_contracts] if len(option_contracts) > max_contracts else option_contracts
+                        
+                        if len(option_contracts) > max_contracts:
+                            print(f"⚡ Rate limiting: Processing {max_contracts} of {len(option_contracts)} contracts")
+                        if skip_quotes:
+                            print(f"⚡ Skip quotes: Too many contracts ({len(option_contracts)}), using pricing estimates")
+                        
+                        for contract in limited_contracts:
                             contract_info = {
                                 'symbol': contract['symbol'],
                                 'contract_id': contract['id'],
@@ -87,19 +97,59 @@ class OptionsManager:
                             }
                             
                             # Get current market data for this contract if available
-                            try:
-                                quote = self.api.get_latest_quote(contract['symbol'])
-                                if quote:
-                                    contract_info['ask'] = float(quote.ask_price) if quote.ask_price else 1.0
-                                    contract_info['bid'] = float(quote.bid_price) if quote.bid_price else 0.5
+                            if not skip_quotes:
+                                try:
+                                    # Add delay to avoid rate limiting (250ms between calls)
+                                    import time
+                                    time.sleep(0.25)
+                                    
+                                    quote = self.api.get_latest_quote(contract['symbol'])
+                                    if quote and hasattr(quote, 'ask_price') and quote.ask_price:
+                                        contract_info['ask'] = float(quote.ask_price)
+                                        contract_info['bid'] = float(quote.bid_price) if quote.bid_price else 0.5
+                                    else:
+                                        # Improved fallback pricing based on strike and underlying
+                                        underlying_price = self._get_underlying_price(contract['underlying_symbol'])
+                                        strike = float(contract['strike_price'])
+                                        
+                                        if contract['type'] == 'call':
+                                            # Call option pricing estimate
+                                            intrinsic = max(0, underlying_price - strike)
+                                            contract_info['ask'] = max(intrinsic + 0.50, 0.25)  # Add time value
+                                            contract_info['bid'] = max(intrinsic, 0.10)
+                                        else:
+                                            # Put option pricing estimate  
+                                            intrinsic = max(0, strike - underlying_price)
+                                            contract_info['ask'] = max(intrinsic + 0.50, 0.25)
+                                            contract_info['bid'] = max(intrinsic, 0.10)
+                                            
+                                except Exception as e:
+                                    print(f"⚠️ Quote fetch failed for {contract['symbol']}: {str(e)[:50]}")
+                                    # Enhanced fallback pricing
+                                    underlying_price = self._get_underlying_price(contract['underlying_symbol'])
+                                    strike = float(contract['strike_price'])
+                                    
+                                    if contract['type'] == 'call':
+                                        intrinsic = max(0, underlying_price - strike)
+                                        contract_info['ask'] = max(intrinsic + 0.50, 0.25)
+                                        contract_info['bid'] = max(intrinsic, 0.10)
+                                    else:
+                                        intrinsic = max(0, strike - underlying_price)
+                                        contract_info['ask'] = max(intrinsic + 0.50, 0.25)
+                                        contract_info['bid'] = max(intrinsic, 0.10)
+                            else:
+                                # Skip quotes mode: Use intelligent pricing estimates only
+                                underlying_price = self._get_underlying_price(contract['underlying_symbol'])
+                                strike = float(contract['strike_price'])
+                                
+                                if contract['type'] == 'call':
+                                    intrinsic = max(0, underlying_price - strike)
+                                    contract_info['ask'] = max(intrinsic + 0.50, 0.25)
+                                    contract_info['bid'] = max(intrinsic, 0.10)
                                 else:
-                                    # Fallback pricing
-                                    contract_info['ask'] = 1.0
-                                    contract_info['bid'] = 0.5
-                            except:
-                                # Fallback pricing
-                                contract_info['ask'] = 1.0  
-                                contract_info['bid'] = 0.5
+                                    intrinsic = max(0, strike - underlying_price)
+                                    contract_info['ask'] = max(intrinsic + 0.50, 0.25)
+                                    contract_info['bid'] = max(intrinsic, 0.10)
                             
                             if contract['type'] == 'call':
                                 calls.append(contract_info)
