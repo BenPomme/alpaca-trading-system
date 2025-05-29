@@ -334,41 +334,75 @@ class Phase3Trader(Phase2Trader):
     def get_active_trading_symbols(self) -> List[str]:
         """
         Get symbols to trade based on current market sessions and global trading settings
-        Phase 4.1: Global Market Integration
+        Phase 4.1: FIXED - Match symbols to open markets for immediate execution
         """
-        if not self.global_trading or not self.global_market_manager:
-            # Use traditional tier-based approach
+        # Check which markets are currently open
+        import datetime
+        import pytz
+        
+        current_utc = datetime.datetime.now(pytz.UTC)
+        
+        # Check US market (using Alpaca API)
+        try:
+            us_market_open = self.api.get_clock().is_open
+        except:
+            us_market_open = False
+        
+        # Check Asian markets (9:00-15:30 JST weekdays)
+        tokyo_tz = pytz.timezone('Asia/Tokyo')
+        tokyo_time = current_utc.astimezone(tokyo_tz)
+        asian_market_open = (tokyo_time.weekday() < 5 and 9 <= tokyo_time.hour <= 15)
+        
+        # Check European markets (8:00-16:30 GMT weekdays)  
+        london_tz = pytz.timezone('Europe/London')
+        london_time = current_utc.astimezone(london_tz)
+        european_market_open = (london_time.weekday() < 5 and 8 <= london_time.hour <= 16)
+        
+        print(f"🌍 MARKET STATUS CHECK:")
+        print(f"   🇺🇸 US Market: {'OPEN' if us_market_open else 'CLOSED'}")
+        print(f"   🇯🇵 Asian Market: {'OPEN' if asian_market_open else 'CLOSED'}")
+        print(f"   🇪🇺 European Market: {'OPEN' if european_market_open else 'CLOSED'}")
+        
+        # CRITICAL FIX: Match symbols to open markets only
+        selected_symbols = []
+        
+        if us_market_open:
+            # Trade US symbols during US hours
             from market_universe import get_symbols_by_tier
-            return get_symbols_by_tier(self.market_tier)
+            us_symbols = get_symbols_by_tier(3)  # US stocks + ETFs
+            selected_symbols.extend(us_symbols)
+            print(f"🇺🇸 Trading US symbols: {len(us_symbols)} symbols")
+            
+        elif asian_market_open:
+            # Trade Asian ADRs during Asian hours (these execute immediately)
+            from market_universe import get_asian_symbols_by_region
+            asian_adrs = get_asian_symbols_by_region()
+            asian_symbols = []
+            for region_symbols in asian_adrs.values():
+                asian_symbols.extend(region_symbols)
+            selected_symbols.extend(asian_symbols)
+            print(f"🇯🇵 Trading Asian ADRs: {len(asian_symbols)} symbols")
+            
+        elif european_market_open:
+            # Trade European ADRs during European hours
+            european_symbols = ['ASML', 'SAP', 'NVO', 'UL', 'BP', 'SHELL', 'NESN', 'MC']
+            selected_symbols.extend(european_symbols)
+            print(f"🇪🇺 Trading European ADRs: {len(european_symbols)} symbols")
+            
+        else:
+            # No major markets open - minimal core symbols only
+            selected_symbols = ['SPY', 'QQQ', 'VEA']  # Core ETFs only
+            print(f"🌙 All markets closed, core ETFs only: {len(selected_symbols)} symbols")
         
-        # Global trading enabled - get symbols based on active sessions
-        active_sessions = self.global_market_manager.get_current_active_sessions()
+        # Remove duplicates and return
+        unique_symbols = list(set(selected_symbols))
         
-        if not active_sessions:
-            # No active sessions, wait or use core symbols
-            from market_universe import get_symbols_by_tier
-            core_symbols = get_symbols_by_tier(1)  # Core symbols only
-            print(f"🌍 No active global sessions, using core symbols: {len(core_symbols)}")
-            return core_symbols
-        
-        # Get symbols for active sessions
-        all_active_symbols = []
-        for session in active_sessions:
-            session_symbols = self.global_market_manager.get_tradeable_symbols_by_session(session)
-            all_active_symbols.extend(session_symbols)
-            print(f"🌍 Active Session {session}: {len(session_symbols)} symbols")
-        
-        # Remove duplicates and limit total symbols
-        unique_symbols = list(set(all_active_symbols))
-        
-        # Prioritize symbols based on current market regime
-        prioritized_symbols = self.prioritize_global_symbols(unique_symbols)
+        print(f"🎯 SELECTED SYMBOLS FOR IMMEDIATE EXECUTION: {unique_symbols}")
         
         # Limit to reasonable number for performance
-        max_symbols = min(len(prioritized_symbols), 30)  # Limit to 30 symbols max
-        final_symbols = prioritized_symbols[:max_symbols]
+        max_symbols = min(len(unique_symbols), 20)
+        final_symbols = unique_symbols[:max_symbols]
         
-        print(f"🌍 Global Trading: {len(final_symbols)} active symbols from {len(active_sessions)} sessions")
         return final_symbols
     
     def prioritize_global_symbols(self, symbols: List[str]) -> List[str]:
@@ -529,11 +563,13 @@ class Phase3Trader(Phase2Trader):
         print("=" * 60)
         
         try:
-            # CRITICAL: Cancel all pending orders to prevent closed-market duplicates
-            print("🧹 Cleaning up pending orders...")
+            # CRITICAL: Cancel all pending orders to prevent market mismatch and duplicates
+            print("🧹 EMERGENCY: Cleaning up all pending orders...")
             cancelled_count = self.order_manager.cancel_all_pending_orders()
             if cancelled_count > 0:
-                print(f"🧹 Cancelled {cancelled_count} pending orders from closed market")
+                print(f"🧹 EMERGENCY CLEANUP: Cancelled {cancelled_count} pending orders from wrong market/duplicates")
+            else:
+                print("🧹 No pending orders to cancel - account clean")
             
             # Get market data
             print("📈 Collecting market data...")
