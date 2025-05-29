@@ -586,7 +586,7 @@ class IntelligentExitManager:
             
             # Record with ML framework for learning
             if hasattr(self.ml_models, 'strategy_selector'):
-                self.ml_models.strategy_selector.record_trade_outcome(outcome_data)
+                self.ml_models.strategy_selector.update_strategy_performance(exit_reason, outcome_data)
                 print(f"   🧠 ML Learning: Recorded exit outcome for {symbol} ({exit_reason})")
             
             # Update exit strategy performance
