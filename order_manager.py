@@ -335,6 +335,27 @@ class OrderManager:
         except Exception as e:
             print(f"⚠️ Portfolio summary error: {e}")
             return {'error': str(e)}
+    
+    def get_current_positions(self):
+        """Get current portfolio positions"""
+        try:
+            positions = self.api.list_positions()
+            position_list = []
+            
+            for position in positions:
+                position_list.append({
+                    'symbol': position.symbol,
+                    'qty': float(position.qty),
+                    'market_value': float(position.market_value),
+                    'unrealized_pl': float(position.unrealized_pl),
+                    'side': 'long' if float(position.qty) > 0 else 'short'
+                })
+            
+            return position_list
+            
+        except Exception as e:
+            print(f"⚠️ Error getting positions: {e}")
+            return []
 
 def test_order_manager():
     """Test order manager functionality"""
