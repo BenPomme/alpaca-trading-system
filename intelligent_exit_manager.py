@@ -23,10 +23,10 @@ class IntelligentExitManager:
         self.pattern_recognition = pattern_recognition
         self.ml_models = ml_models
         
-        # Base exit parameters (enhanced dynamically)
-        self.base_stop_loss = 0.03  # 3%
-        self.base_take_profit = 0.08  # 8%
-        self.base_quick_profit = 0.03  # 3%
+        # Base exit parameters (enhanced dynamically) - Aggressive for 5-10% monthly target
+        self.base_stop_loss = 0.05  # 5% (was 3% - more tolerant of volatility)
+        self.base_take_profit = 0.12  # 12% (was 8% - higher profit targets)
+        self.base_quick_profit = 0.04  # 4% (was 3% - let small wins develop)
         
         # Intelligent exit parameters
         self.regime_multipliers = {
@@ -50,11 +50,11 @@ class IntelligentExitManager:
             'reversal_signal': 0.70          # Exit on ML reversal prediction
         }
         
-        # Partial exit strategy
+        # Partial exit strategy - More aggressive thresholds
         self.partial_exit_levels = [
-            {'profit_pct': 0.04, 'exit_portion': 0.25},  # 25% at +4%
-            {'profit_pct': 0.06, 'exit_portion': 0.35},  # 35% at +6%
-            {'profit_pct': 0.10, 'exit_portion': 0.40}   # 40% at +10%
+            {'profit_pct': 0.06, 'exit_portion': 0.20},  # 20% at +6% (was 25% at +4%)
+            {'profit_pct': 0.10, 'exit_portion': 0.30},  # 30% at +10% (was 35% at +6%)
+            {'profit_pct': 0.15, 'exit_portion': 0.40}   # 40% at +15% (was 40% at +10%)
         ]
         
         print("🧠 Intelligent Exit Manager Initialized")
