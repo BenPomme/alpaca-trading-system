@@ -110,10 +110,19 @@ class RiskManager:
             
             portfolio_value = float(account.portfolio_value)
             
-            # Check if already have position
+            # EMERGENCY FIX: Allow multiple trades in same symbol for aggressive strategy
+            # Check if already have position (but allow position building for unlimited strategy)
             existing_position = next((p for p in positions if p.symbol == symbol), None)
             if existing_position:
-                return False, f"Already have position in {symbol}"
+                # For aggressive strategy, allow position building up to 2x the normal size
+                current_value = float(existing_position.market_value)
+                max_total_position = portfolio_value * (self.max_position_size_pct * 2)  # 30% total max per symbol
+                
+                if current_value + (target_shares * entry_price) > max_total_position:
+                    return False, f"Position in {symbol} would exceed 30% limit (current: ${current_value:,.0f})"
+                else:
+                    print(f"   ✅ Position building allowed for {symbol} (current: ${current_value:,.0f})")
+                    # Continue with other checks
             
             # Check maximum positions (Phase 4.1: Unlimited positions enabled)
             if self.max_positions is not None and len(positions) >= self.max_positions:
@@ -166,31 +175,87 @@ class RiskManager:
     def check_sector_exposure(self, symbol: str, target_value: float) -> Tuple[bool, str]:
         """Check sector exposure limits"""
         try:
-            # Simple sector mapping (in real system, this would be more comprehensive)
+            # EMERGENCY FIX: Expanded sector mapping to prevent unknown sector clustering
             sector_map = {
-                'SPY': 'market', 'QQQ': 'technology', 'IWM': 'small_cap',
-                'AAPL': 'technology', 'MSFT': 'technology', 'GOOGL': 'technology',
-                'AMZN': 'technology', 'TSLA': 'technology', 'META': 'technology',
-                'NVDA': 'technology', 'JPM': 'finance', 'BAC': 'finance',
-                'JNJ': 'healthcare', 'PFE': 'healthcare', 'XOM': 'energy'
+                # Market ETFs
+                'SPY': 'market', 'QQQ': 'technology', 'IWM': 'small_cap', 'VTI': 'market',
+                'DIA': 'market', 'VEA': 'international', 'EFA': 'international', 'IEFA': 'international',
+                'VWO': 'emerging_markets', 'FXI': 'china', 'EWJ': 'japan', 'EWT': 'taiwan',
+                'EWY': 'korea', 'INDA': 'india',
+                
+                # Technology
+                'AAPL': 'technology', 'MSFT': 'technology', 'GOOGL': 'technology', 'GOOG': 'technology',
+                'AMZN': 'technology', 'TSLA': 'technology', 'META': 'technology', 'NVDA': 'technology',
+                'AMD': 'technology', 'INTC': 'technology', 'ORCL': 'technology', 'CRM': 'technology',
+                'CSCO': 'technology', 'AVGO': 'technology', 'ADBE': 'technology', 'PYPL': 'technology',
+                'ZM': 'technology', 'DOCU': 'technology', 'WDAY': 'technology', 'SNPS': 'technology',
+                'LRCX': 'technology', 'AMAT': 'technology', 'MRVL': 'technology',
+                
+                # Finance
+                'JPM': 'finance', 'BAC': 'finance', 'XLF': 'finance',
+                
+                # Healthcare
+                'JNJ': 'healthcare', 'PFE': 'healthcare', 'GILD': 'healthcare', 'MRNA': 'healthcare',
+                'XLV': 'healthcare',
+                
+                # Energy
+                'XOM': 'energy', 'XLE': 'energy',
+                
+                # Consumer
+                'DIS': 'consumer', 'SBUX': 'consumer', 'ABNB': 'consumer',
+                'EBAY': 'consumer', 'XLY': 'consumer',
+                
+                # Communications
+                'CMCSA': 'communications', 'T': 'communications', 'VZ': 'communications',
+                
+                # Industrial
+                'TXN': 'industrial',
+                
+                # Sector ETFs
+                'XLK': 'technology', 'XLV': 'healthcare', 'XLF': 'finance', 'XLE': 'energy',
+                'XLY': 'consumer',
+                
+                # Crypto (treat as separate asset class)
+                'BTCUSD': 'crypto', 'ETHUSD': 'crypto', 'SOLUSD': 'crypto', 'AAVEUSD': 'crypto'
             }
             
             symbol_sector = sector_map.get(symbol, 'unknown')
+            
+            # EMERGENCY FIX: Special handling for unknown symbols
+            if symbol_sector == 'unknown':
+                # For unknown symbols, create individual "sectors" to prevent clustering
+                symbol_sector = f'unknown_{symbol}'
+                print(f"⚠️ Unknown symbol {symbol} - treating as individual sector")
             
             # Get current positions in same sector
             positions = self.api.list_positions()
             account = self.api.get_account()
             portfolio_value = float(account.portfolio_value)
             
+            # Calculate sector exposure with debugging
             sector_exposure = 0.0
+            sector_positions = []
+            
             for pos in positions:
-                pos_sector = sector_map.get(pos.symbol, 'unknown')
+                pos_symbol = pos.symbol
+                pos_sector = sector_map.get(pos_symbol, f'unknown_{pos_symbol}')  # Individual sectors for unknown
+                
                 if pos_sector == symbol_sector:
-                    sector_exposure += float(pos.market_value)
+                    pos_value = float(pos.market_value)
+                    sector_exposure += pos_value
+                    sector_positions.append(f"{pos_symbol}(${pos_value:,.0f})")
             
             # Add target position
             total_sector_exposure = sector_exposure + target_value
             sector_exposure_pct = total_sector_exposure / portfolio_value
+            
+            # Debug logging
+            print(f"🔍 SECTOR EXPOSURE CHECK: {symbol} ({symbol_sector})")
+            print(f"   📊 Current sector positions: {sector_positions}")
+            print(f"   💰 Current exposure: ${sector_exposure:,.0f}")
+            print(f"   🎯 Target addition: ${target_value:,.0f}")
+            print(f"   📈 Total would be: ${total_sector_exposure:,.0f} ({sector_exposure_pct:.1%})")
+            print(f"   🚦 Limit: {self.max_sector_exposure:.1%}")
             
             if sector_exposure_pct > self.max_sector_exposure:
                 return False, f"Sector exposure too high ({sector_exposure_pct:.1%} > {self.max_sector_exposure:.1%})"

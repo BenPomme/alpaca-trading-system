@@ -384,6 +384,79 @@ class OrderManager:
             if shares <= 0:
                 return {'success': False, 'reason': 'No shares to sell'}
             
+            # EMERGENCY FIX: Check if shares are actually available for trading
+            # The "insufficient qty available" error suggests position exists but shares are locked
+            try:
+                # Check position side - can't sell short positions with regular sell
+                if hasattr(position, 'side') and position.side == 'short':
+                    return {'success': False, 'reason': f'Cannot sell short position {symbol} with regular sell order'}
+                
+                # Validate quantity is real and not zero
+                raw_qty = float(position.qty)
+                if raw_qty == 0:
+                    return {'success': False, 'reason': f'Position {symbol} has zero quantity'}
+                
+                # Log position details for debugging
+                print(f"🔍 Position validation for {symbol}:")
+                print(f"   📊 Quantity: {raw_qty}")
+                print(f"   💰 Market Value: ${float(position.market_value)}")
+                print(f"   📈 Unrealized P&L: ${float(position.unrealized_pl)}")
+                
+                # Additional check: verify position is not pending closure
+                if hasattr(position, 'unrealized_pl') and float(position.market_value) == 0:
+                    return {'success': False, 'reason': f'Position {symbol} appears to be closing (zero market value)'}
+                
+                # CRITICAL: Check for pending orders that might lock the position
+                try:
+                    pending_orders = self.api.list_orders(status='open', symbols=[symbol])
+                    if pending_orders:
+                        print(f"⚠️ Found {len(pending_orders)} pending orders for {symbol}:")
+                        sell_orders = []
+                        buy_orders = []
+                        
+                        for order in pending_orders:
+                            print(f"   📋 Order {order.id}: {order.side} {order.qty} shares @ {order.order_type}")
+                            if order.side == 'sell':
+                                sell_orders.append(order)
+                            else:
+                                buy_orders.append(order)
+                        
+                        # If there are pending sell orders, cancel them and retry
+                        if sell_orders:
+                            print(f"🧹 CANCELING {len(sell_orders)} pending sell orders for {symbol} to free up shares...")
+                            for sell_order in sell_orders:
+                                try:
+                                    self.api.cancel_order(sell_order.id)
+                                    print(f"   ✅ Cancelled sell order {sell_order.id}")
+                                except Exception as cancel_error:
+                                    print(f"   ❌ Failed to cancel order {sell_order.id}: {cancel_error}")
+                            
+                            # Wait a moment for orders to cancel
+                            import time
+                            time.sleep(1)
+                            print(f"✅ Cleared pending sell orders for {symbol} - proceeding with new sell order")
+                        
+                        # If there are only buy orders, shares should still be available
+                        if buy_orders and not sell_orders:
+                            print(f"   ℹ️ Only buy orders pending - shares should be available for selling")
+                            
+                except Exception as order_check_error:
+                    print(f"⚠️ Could not check pending orders for {symbol}: {order_check_error}")
+                
+                # Check account status
+                try:
+                    account = self.api.get_account()
+                    if hasattr(account, 'trading_blocked') and account.trading_blocked:
+                        return {'success': False, 'reason': 'Account trading is blocked'}
+                    if hasattr(account, 'pattern_day_trader') and account.pattern_day_trader:
+                        print(f"⚠️ Account marked as Pattern Day Trader")
+                except Exception as account_check_error:
+                    print(f"⚠️ Could not check account status: {account_check_error}")
+                    
+            except Exception as validation_error:
+                print(f"⚠️ Position validation error for {symbol}: {validation_error}")
+                # Continue with sell attempt even if validation fails
+            
             # Get current quote for sell price
             quote = self.api.get_latest_quote(symbol)
             if not quote or not quote.bid_price:
