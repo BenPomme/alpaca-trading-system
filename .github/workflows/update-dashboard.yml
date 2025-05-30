@@ -2,15 +2,9 @@
 
   on:
     schedule:
-      # Run every 10 minutes during market hours (9:30 
-  AM - 4:00 PM ET = 13:30-20:00 UTC)
-      - cron: '*/10 13-20 * * 1-5'  # Mon-Fri every 10 
-  minutes during market hours
-      # Run every 30 minutes outside market hours for 
-  crypto tracking
-      - cron: '*/30 * * * *'  # Every 30 minutes for 
-  crypto (24/7)
-    workflow_dispatch: # Allow manual trigger
+      - cron: '*/10 13-20 * * 1-5'
+      - cron: '*/30 * * * *'
+    workflow_dispatch:
 
   permissions:
     contents: write
