@@ -1,22 +1,22 @@
 {
   "portfolio": {
-    "value": 99102.3,
+    "value": 99109.86,
     "cash": 24532.57,
     "dayTradingPower": 222926.24,
-    "dailyPL": 87.0917607697047,
-    "dailyPLPercent": 0.08795796354766292
+    "dailyPL": 94.65176076970238,
+    "dailyPLPercent": 0.09559315427688098
   },
   "positions": [
     {
       "symbol": "AAPL",
       "quantity": 14.0,
       "entryPrice": 201.11,
-      "currentPrice": 200.1,
-      "marketValue": 2801.4,
-      "unrealizedPL": -14.14,
-      "unrealizedPLPercent": -0.50221271940729,
+      "currentPrice": 200.15,
+      "marketValue": 2802.1,
+      "unrealizedPL": -13.44,
+      "unrealizedPLPercent": -0.47735070359505,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "aggressive_momentum",
       "type": "stock"
     },
     {
@@ -28,19 +28,19 @@
       "unrealizedPL": -152.6175,
       "unrealizedPLPercent": -2.0062942564909503,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "crypto_momentum",
       "type": "crypto"
     },
     {
       "symbol": "ABNB",
       "quantity": 7.0,
       "entryPrice": 128.23,
-      "currentPrice": 124.0,
-      "marketValue": 868.0,
-      "unrealizedPL": -29.61,
-      "unrealizedPLPercent": -3.2987600405521302,
+      "currentPrice": 124.7,
+      "marketValue": 872.9,
+      "unrealizedPL": -24.71,
+      "unrealizedPLPercent": -2.75286594400686,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
@@ -51,20 +51,20 @@
       "marketValue": 954.6,
       "unrealizedPL": -14.950908,
       "unrealizedPLPercent": -1.5420446597116702,
-      "holdTime": "Unknown",
-      "strategy": "unknown",
+      "holdTime": "17h 57m",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
       "symbol": "AMD",
       "quantity": 8.0,
       "entryPrice": 112.75,
-      "currentPrice": 112.53,
-      "marketValue": 900.24,
-      "unrealizedPL": -1.76,
-      "unrealizedPLPercent": -0.19512195121951,
+      "currentPrice": 112.52,
+      "marketValue": 900.16,
+      "unrealizedPL": -1.84,
+      "unrealizedPLPercent": -0.2039911308204,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
@@ -76,43 +76,43 @@
       "unrealizedPL": -6.51,
       "unrealizedPLPercent": -0.7862793646959401,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
       "symbol": "AVGO",
       "quantity": 4.0,
       "entryPrice": 239.19,
-      "currentPrice": 240.88,
-      "marketValue": 963.52,
-      "unrealizedPL": 6.76,
-      "unrealizedPLPercent": 0.70655127722731,
+      "currentPrice": 240.98,
+      "marketValue": 963.92,
+      "unrealizedPL": 7.16,
+      "unrealizedPLPercent": 0.74835904511058,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
       "symbol": "BTCUSD",
       "quantity": 0.066499999,
       "entryPrice": 107100.49,
-      "currentPrice": 105761.59999641504,
-      "marketValue": 7033.146294,
-      "unrealizedPL": -89.036184,
-      "unrealizedPLPercent": -1.2501250041687,
+      "currentPrice": 105749.39199623145,
+      "marketValue": 7032.334462,
+      "unrealizedPL": -89.848016,
+      "unrealizedPLPercent": -1.26152364499976,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "crypto_momentum",
       "type": "crypto"
     },
     {
       "symbol": "CMCSA",
       "quantity": 28.0,
       "entryPrice": 34.62,
-      "currentPrice": 34.47,
-      "marketValue": 965.16,
-      "unrealizedPL": -4.2,
-      "unrealizedPLPercent": -0.43327556325822997,
+      "currentPrice": 34.410000000000004,
+      "marketValue": 963.48,
+      "unrealizedPL": -5.88,
+      "unrealizedPLPercent": -0.60658578856153,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
@@ -124,7 +124,7 @@
       "unrealizedPL": 11.07,
       "unrealizedPLPercent": 1.40839694656489,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
@@ -136,7 +136,7 @@
       "unrealizedPL": 1.65,
       "unrealizedPLPercent": 0.1744923857868,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
@@ -148,7 +148,7 @@
       "unrealizedPL": 0.96,
       "unrealizedPLPercent": 0.11376025027255,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
@@ -159,8 +159,8 @@
       "marketValue": 770.4,
       "unrealizedPL": -2.541177,
       "unrealizedPLPercent": -0.32876719155564,
-      "holdTime": "Unknown",
-      "strategy": "unknown",
+      "holdTime": "17h 44m",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
@@ -171,8 +171,8 @@
       "marketValue": 943.28,
       "unrealizedPL": -0.845,
       "unrealizedPLPercent": -0.0895008605852,
-      "holdTime": "Unknown",
-      "strategy": "unknown",
+      "holdTime": "17h 50m",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
@@ -184,7 +184,7 @@
       "unrealizedPL": -0.11,
       "unrealizedPLPercent": -0.01127522832337,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
@@ -196,19 +196,19 @@
       "unrealizedPL": -106.080736,
       "unrealizedPLPercent": -1.51528285269223,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "crypto_momentum",
       "type": "crypto"
     },
     {
       "symbol": "GILD",
       "quantity": 8.0,
       "entryPrice": 108.51,
-      "currentPrice": 111.3,
-      "marketValue": 890.4,
-      "unrealizedPL": 22.32,
-      "unrealizedPLPercent": 2.57119159524468,
+      "currentPrice": 111.66,
+      "marketValue": 893.28,
+      "unrealizedPL": 25.2,
+      "unrealizedPLPercent": 2.9029582526956,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
@@ -220,19 +220,19 @@
       "unrealizedPL": -2.4,
       "unrealizedPLPercent": -0.27680064586817,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
       "symbol": "GOOGL",
       "quantity": 5.0,
       "entryPrice": 173.56,
-      "currentPrice": 171.95999999999998,
-      "marketValue": 859.8,
-      "unrealizedPL": -8.0,
-      "unrealizedPLPercent": -0.92187139893985,
+      "currentPrice": 171.85,
+      "marketValue": 859.25,
+      "unrealizedPL": -8.55,
+      "unrealizedPLPercent": -0.98525005761696,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
@@ -244,31 +244,31 @@
       "unrealizedPL": -0.48,
       "unrealizedPLPercent": -0.04847897224579,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
       "symbol": "INTC",
       "quantity": 48.0,
       "entryPrice": 20.47,
-      "currentPrice": 20.72,
-      "marketValue": 994.56,
-      "unrealizedPL": 12.0,
-      "unrealizedPLPercent": 1.22129946262824,
+      "currentPrice": 20.669999999999998,
+      "marketValue": 992.16,
+      "unrealizedPL": 9.6,
+      "unrealizedPLPercent": 0.97703957010259,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
       "symbol": "IWM",
       "quantity": 9.0,
       "entryPrice": 206.206667,
-      "currentPrice": 205.67999999999998,
-      "marketValue": 1851.12,
-      "unrealizedPL": -4.74,
-      "unrealizedPLPercent": -0.25540719666354,
+      "currentPrice": 205.69,
+      "marketValue": 1851.21,
+      "unrealizedPL": -4.65,
+      "unrealizedPLPercent": -0.25055769292942,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
@@ -280,7 +280,7 @@
       "unrealizedPL": 8.52,
       "unrealizedPLPercent": 0.9361814345991599,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
@@ -291,8 +291,8 @@
       "marketValue": 791.1891,
       "unrealizedPL": -1.3209,
       "unrealizedPLPercent": -0.16667297573532,
-      "holdTime": "Unknown",
-      "strategy": "unknown",
+      "holdTime": "17h 57m",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
@@ -304,7 +304,7 @@
       "unrealizedPL": 1.98,
       "unrealizedPLPercent": 0.21420921099607,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
@@ -316,43 +316,43 @@
       "unrealizedPL": 30.78,
       "unrealizedPLPercent": 3.12018489984592,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
       "symbol": "MRVL",
       "quantity": 15.0,
       "entryPrice": 65.015,
-      "currentPrice": 61.51,
-      "marketValue": 922.65,
-      "unrealizedPL": -52.575,
-      "unrealizedPLPercent": -5.39106360070753,
+      "currentPrice": 61.580000000000005,
+      "marketValue": 923.7,
+      "unrealizedPL": -51.525,
+      "unrealizedPLPercent": -5.28339613935246,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
       "symbol": "MSFT",
       "quantity": 6.0,
       "entryPrice": 459.3,
-      "currentPrice": 458.61999999999995,
-      "marketValue": 2751.72,
-      "unrealizedPL": -4.08,
-      "unrealizedPLPercent": -0.14805138253865,
+      "currentPrice": 458.5,
+      "marketValue": 2751.0,
+      "unrealizedPL": -4.8,
+      "unrealizedPLPercent": -0.17417809710429,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "aggressive_momentum",
       "type": "stock"
     },
     {
       "symbol": "NVDA",
       "quantity": 7.0,
       "entryPrice": 140.804286,
-      "currentPrice": 138.37,
-      "marketValue": 968.59,
-      "unrealizedPL": -17.04,
-      "unrealizedPLPercent": -1.7288434808193702,
+      "currentPrice": 138.62,
+      "marketValue": 970.34,
+      "unrealizedPL": -15.29,
+      "unrealizedPLPercent": -1.55129206700283,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "aggressive_momentum",
       "type": "stock"
     },
     {
@@ -364,19 +364,19 @@
       "unrealizedPL": -11.5,
       "unrealizedPLPercent": -1.39225181598063,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
       "symbol": "PFE",
       "quantity": 42.0,
       "entryPrice": 23.4,
-      "currentPrice": 23.5,
-      "marketValue": 987.0,
-      "unrealizedPL": 4.2,
-      "unrealizedPLPercent": 0.42735042735043,
+      "currentPrice": 23.509999999999998,
+      "marketValue": 987.42,
+      "unrealizedPL": 4.62,
+      "unrealizedPLPercent": 0.47008547008546997,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
@@ -387,20 +387,20 @@
       "marketValue": 990.92,
       "unrealizedPL": -2.1,
       "unrealizedPLPercent": -0.21147610320034002,
-      "holdTime": "Unknown",
-      "strategy": "unknown",
+      "holdTime": "17h 53m",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
       "symbol": "QQQ",
       "quantity": 3.0,
       "entryPrice": 520.843333,
-      "currentPrice": 519.41,
-      "marketValue": 1558.23,
-      "unrealizedPL": -4.3,
-      "unrealizedPLPercent": -0.27519471626145,
+      "currentPrice": 519.53,
+      "marketValue": 1558.59,
+      "unrealizedPL": -3.94,
+      "unrealizedPLPercent": -0.25215515862095,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
@@ -412,7 +412,7 @@
       "unrealizedPL": -1.87,
       "unrealizedPLPercent": -0.20135023096056,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
@@ -423,8 +423,8 @@
       "marketValue": 906.1,
       "unrealizedPL": -16.48,
       "unrealizedPLPercent": -1.7862949554510201,
-      "holdTime": "Unknown",
-      "strategy": "unknown",
+      "holdTime": "17h 53m",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
@@ -436,19 +436,19 @@
       "unrealizedPL": -251.43622,
       "unrealizedPLPercent": -3.02943783238238,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "crypto_momentum",
       "type": "crypto"
     },
     {
       "symbol": "SPY",
       "quantity": 1.0,
       "entryPrice": 591.72,
-      "currentPrice": 589.45,
-      "marketValue": 589.45,
-      "unrealizedPL": -2.27,
-      "unrealizedPLPercent": -0.38362739133374,
+      "currentPrice": 589.43,
+      "marketValue": 589.43,
+      "unrealizedPL": -2.29,
+      "unrealizedPLPercent": -0.3870073683499,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
@@ -459,20 +459,20 @@
       "marketValue": 986.04,
       "unrealizedPL": 0.72,
       "unrealizedPLPercent": 0.07307270734381001,
-      "holdTime": "Unknown",
-      "strategy": "unknown",
+      "holdTime": "17h 55m",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
       "symbol": "TSLA",
       "quantity": 2.0,
       "entryPrice": 361.59,
-      "currentPrice": 353.12,
-      "marketValue": 706.24,
-      "unrealizedPL": -16.94,
-      "unrealizedPLPercent": -2.34243203628419,
+      "currentPrice": 353.85,
+      "marketValue": 707.7,
+      "unrealizedPL": -15.48,
+      "unrealizedPLPercent": -2.1405459221770498,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "aggressive_momentum",
       "type": "stock"
     },
     {
@@ -484,7 +484,7 @@
       "unrealizedPL": 5.92,
       "unrealizedPLPercent": 0.64254935799334,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
@@ -496,7 +496,7 @@
       "unrealizedPL": -1.98,
       "unrealizedPLPercent": -0.1977705861201,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
@@ -508,7 +508,7 @@
       "unrealizedPL": -4.05,
       "unrealizedPLPercent": -0.46316945140152,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
@@ -520,7 +520,7 @@
       "unrealizedPL": 6.21,
       "unrealizedPLPercent": 0.62601437514491,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
@@ -531,20 +531,20 @@
       "marketValue": 964.84,
       "unrealizedPL": -2.14,
       "unrealizedPLPercent": -0.22130757616497,
-      "holdTime": "Unknown",
-      "strategy": "unknown",
+      "holdTime": "17h 29m",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
       "symbol": "XLF",
       "quantity": 19.0,
       "entryPrice": 50.63,
-      "currentPrice": 50.760000000000005,
-      "marketValue": 964.44,
-      "unrealizedPL": 2.47,
-      "unrealizedPLPercent": 0.25676476397393,
+      "currentPrice": 50.75,
+      "marketValue": 964.25,
+      "unrealizedPL": 2.28,
+      "unrealizedPLPercent": 0.23701362828363,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
@@ -556,7 +556,7 @@
       "unrealizedPL": -3.06,
       "unrealizedPLPercent": -0.32986223400815,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
@@ -568,7 +568,7 @@
       "unrealizedPL": 1.96,
       "unrealizedPLPercent": 0.21199273167777002,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     },
     {
@@ -580,23 +580,26 @@
       "unrealizedPL": 2.8,
       "unrealizedPLPercent": 0.35149384885763996,
       "holdTime": "Unknown",
-      "strategy": "unknown",
+      "strategy": "momentum",
       "type": "stock"
     }
   ],
   "trades": [],
   "performance": {
-    "totalTrades": 156,
-    "winningTrades": 89,
-    "losingTrades": 67,
-    "winRate": 57.05,
-    "avgHoldTime": 6.2,
-    "bestTrade": 245.67,
-    "worstTrade": -89.23,
-    "totalROI": 12.34,
-    "dailyROI": 0.43,
-    "weeklyROI": 2.87,
-    "monthlyROI": 8.91
+    "totalTrades": 48,
+    "winningTrades": 16,
+    "losingTrades": 32,
+    "winRate": 33.33333333333333,
+    "avgHoldTime": 0.070171476994302,
+    "bestTrade": 30.78,
+    "worstTrade": -251.43622,
+    "totalROI": -0.8895899999999966,
+    "dailyROI": 0.09614862450189333,
+    "weeklyROI": 0.48074312250946666,
+    "monthlyROI": 2.1152697390416533,
+    "totalUnrealizedPL": -702.735457,
+    "currentValue": 99110.41,
+    "dataSource": "real_positions"
   },
   "strategies": [],
   "marketStatus": {
@@ -604,6 +607,6 @@
     "nextOpen": "2025-05-30T09:30:00-04:00",
     "nextClose": "2025-05-30T16:00:00-04:00"
   },
-  "generated_at": "2025-05-30T12:39:48.457206",
+  "generated_at": "2025-05-30T12:47:26.320960",
   "data_source": "live"
 }

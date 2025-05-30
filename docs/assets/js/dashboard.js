@@ -421,16 +421,31 @@ class TradingDashboard {
         const values = [];
         const currentValue = this.data.portfolio.value;
         
+        // Start from reasonable historical value (assume started near $100k)
+        const startingValue = 100000;
+        const totalChange = currentValue - startingValue;
+        
         for (let i = days; i >= 0; i--) {
             const date = new Date();
             date.setDate(date.getDate() - i);
-            labels.push(date.toLocaleDateString());
+            labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
             
-            // Generate realistic portfolio growth with some volatility
+            // Generate realistic portfolio progression
             const dayProgress = (days - i) / days;
-            const baseGrowth = currentValue * (0.95 + dayProgress * 0.15); // 5% to 10% growth
-            const volatility = (Math.random() - 0.5) * 0.02 * currentValue; // ±2% daily volatility
-            values.push(Math.round(baseGrowth + volatility));
+            
+            // Linear progression from start to current with realistic volatility
+            const baseValue = startingValue + (totalChange * dayProgress);
+            
+            // Add realistic daily volatility (±1% typical for portfolios)
+            const dailyVolatilityPct = 0.01;
+            const volatility = (Math.random() - 0.5) * 2 * dailyVolatilityPct * baseValue;
+            
+            // Ensure the last day matches current value exactly
+            if (i === 0) {
+                values.push(Math.round(currentValue));
+            } else {
+                values.push(Math.round(baseValue + volatility));
+            }
         }
         
         return { labels, values };
