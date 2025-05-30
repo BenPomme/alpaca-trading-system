@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+</head>
+<body>
+    <h1>API Test</h1>
+    <div id="result">Loading...</div>
+    
+    <script>
+        async function testAPI() {
+            try {
+                console.log('Testing API access...');
+                const response = await fetch('./api/dashboard-data.json');
+                console.log('Response status:', response.status);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('result').innerHTML = `
+                        <h2>✅ API Success!</h2>
+                        <p>Portfolio Value: $${data.portfolio.value.toLocaleString()}</p>
+                        <p>Active Positions: ${data.positions.length}</p>
+                        <p>Win Rate: ${data.performance.winRate.toFixed(1)}%</p>
+                        <p>Data Source: ${data.data_source}</p>
+                        <p>Generated: ${data.generated_at}</p>
+                    `;
+                } else {
+                    document.getElementById('result').innerHTML = `❌ API Error: ${response.status}`;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('result').innerHTML = `❌ Fetch Error: ${error.message}`;
+            }
+        }
+        
+        testAPI();
+    </script>
+</body>
+</html>
