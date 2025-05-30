@@ -15,16 +15,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a sophisticated multi-phase algorithmic trading system designed for Railway cloud deployment. The system has evolved from simple market monitoring into a comprehensive trading execution engine targeting **5-10% monthly returns** with advanced risk management. Built for paper trading with Alpaca Markets API, featuring **real options trading**, 24/7 cryptocurrency trading, enhanced stock strategies, and unlimited position scaling.
+This is a sophisticated multi-phase algorithmic trading system designed for Railway cloud deployment with **Firebase cloud database persistence**. The system has evolved from simple market monitoring into a comprehensive trading execution engine targeting **5-10% monthly returns** with advanced risk management. Built for paper trading with Alpaca Markets API, featuring **real options trading**, 24/7 cryptocurrency trading, enhanced stock strategies, unlimited position scaling, and **persistent ML learning across deployments**.
 
 ## Key Commands
 
 ### Environment Setup
 ```bash
-# Install dependencies (Phase 4)
-pip install alpaca-trade-api flask==2.3.3 pytz requests
+# Install dependencies (Phase 5 with Firebase)
+pip install alpaca-trade-api flask==2.3.3 pytz firebase-admin google-cloud-firestore
 
-# Set environment variables for Phase 4 deployment
+# Set environment variables for Phase 5 deployment
 export ALPACA_PAPER_API_KEY="your_key_here"
 export ALPACA_PAPER_SECRET_KEY="your_secret_here"
 export EXECUTION_ENABLED="true"
@@ -33,11 +33,21 @@ export OPTIONS_TRADING="true"
 export CRYPTO_TRADING="true"
 export MARKET_TIER="2"
 export MIN_CONFIDENCE="0.6"
+
+# Firebase service account credentials for persistent cloud database
+export FIREBASE_PRIVATE_KEY_ID="your_firebase_key_id"
+export FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nyour_key\n-----END PRIVATE KEY-----"
+export FIREBASE_CLIENT_EMAIL="firebase-adminsdk-xxxxx@alpaca-12fab.iam.gserviceaccount.com"
+export FIREBASE_CLIENT_ID="your_client_id"
+export FIREBASE_CLIENT_CERT_URL="your_cert_url"
 ```
 
 ### Development & Testing
 ```bash
-# Test complete Phase 4 system with all components
+# Test Firebase database connectivity and operations
+python firebase_database.py
+
+# Test complete Phase 5 system with Firebase persistence
 python test_phase4_complete.py
 
 # Test real options trading module
@@ -306,6 +316,82 @@ Phase3Trader (entry point)
   - Documents all deployment issues and their solutions (7 major bugs resolved)
   - Establishes coding standards to prevent recurring bugs
   - Required reading before making changes to inheritance chains or API integrations
+
+## Firebase Database Architecture (Phase 5.5)
+
+### Persistent Cloud Database Solution
+
+Phase 5.5 introduces **Firebase Firestore** as the primary database, solving the critical ephemeral storage problem that caused ML learning to reset on every Railway deployment.
+
+#### **Database Architecture Evolution**
+
+**Before (Ephemeral SQLite):**
+```
+Railway Restart → SQLite Wiped → ML Learning Lost → Start from Zero ❌
+```
+
+**After (Firebase Persistence):**
+```
+Railway Restart → Connect to Firebase → ML Learning Persists → Continuous Improvement ✅
+```
+
+#### **Firebase Collections Structure**
+
+1. **`trading_cycles`** - Intelligence analysis cycles with confidence scores
+2. **`trades`** - All trade executions (stocks, options, crypto) with P&L tracking
+3. **`market_quotes`** - Real-time market data for technical analysis
+4. **`ml_models`** - **CRITICAL**: ML model states persisting across deployments
+5. **`performance_metrics`** - Portfolio performance and win rates over time
+
+#### **Key Firebase Integration Points**
+
+```python
+# phase3_trader.py - Dual persistence (SQLite + Firebase)
+def enhanced_run_cycle_v2(self):
+    cycle_data = super().enhanced_run_cycle_v2()  # SQLite (local)
+    self.save_firebase_trading_cycle(cycle_data)   # Firebase (cloud)
+
+# ml_adaptive_framework.py - Persistent ML learning
+def load_ml_states_from_firebase(self):
+    strategy_state = self.firebase_db.get_ml_model_state('strategy_selector')
+    self.strategy_selector.load_state(strategy_state)  # Resume learning
+
+# dashboard_api.py - Prioritize Firebase data
+def get_trades_from_db(self):
+    if self.firebase_db.is_connected():
+        return self._get_trades_from_firebase()  # Live cloud data
+```
+
+#### **Firebase Configuration Requirements**
+
+**Environment Variables for Railway:**
+```bash
+FIREBASE_PRIVATE_KEY_ID="your_key_id"
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
+FIREBASE_CLIENT_EMAIL="firebase-adminsdk-xxxxx@alpaca-12fab.iam.gserviceaccount.com"
+FIREBASE_CLIENT_ID="your_client_id"
+FIREBASE_CLIENT_CERT_URL="your_cert_url"
+```
+
+**Project Details:**
+- **Project ID**: `alpaca-12fab`
+- **Database**: Firestore in Native mode
+- **Region**: Multi-region for global availability
+
+#### **Migration & Data Flow**
+
+1. **Startup Migration**: Existing SQLite data automatically migrated to Firebase on first run
+2. **Dual Write**: New data written to both SQLite (local) and Firebase (cloud)
+3. **Priority Read**: Dashboard and analytics prioritize Firebase data
+4. **Fallback Strategy**: Local SQLite used if Firebase unavailable
+
+#### **Firebase Performance Benefits**
+
+1. **True ML Persistence**: Models learn continuously across deployments
+2. **Real-time Dashboard**: Live updates without GitHub Pages delays
+3. **Scalability**: Multiple Railway instances can share data
+4. **Backup & Security**: Google Cloud infrastructure with automatic backups
+5. **Analytics**: Rich querying for performance insights
 
 ## ML Integration Architecture (Phase 5)
 

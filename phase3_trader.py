@@ -31,6 +31,9 @@ from intelligent_exit_manager import IntelligentExitManager
 # Import ML Framework for iterative improvement
 from ml_adaptive_framework import MLAdaptiveFramework
 
+# Import Firebase Database for persistent cloud storage
+from firebase_database import FirebaseDatabase
+
 class Phase3Trader(Phase2Trader):
     """
     Phase 3: Intelligence Layer
@@ -44,6 +47,16 @@ class Phase3Trader(Phase2Trader):
     
     def __init__(self, use_database=True, market_tier=2, global_trading=False, options_trading=False, crypto_trading=False):
         super().__init__(use_database, market_tier)
+        
+        # Initialize Firebase Database for persistent cloud storage
+        print("🔥 Initializing Firebase Database...")
+        self.firebase_db = FirebaseDatabase()
+        if self.firebase_db.is_connected():
+            print("✅ Firebase Database: Connected")
+            # Migrate any existing SQLite data to Firebase on first run
+            self._migrate_sqlite_to_firebase()
+        else:
+            print("⚠️ Firebase Database: Not connected - using local fallback")
         
         # Initialize intelligence modules
         self.technical_indicators = TechnicalIndicators()
@@ -95,9 +108,10 @@ class Phase3Trader(Phase2Trader):
             self.ml_framework = MLAdaptiveFramework(
                 api_client=self.api,
                 risk_manager=self.risk_manager,
-                db=self.db
+                db=self.db,
+                firebase_db=self.firebase_db
             )
-            print("🧠 ML Adaptive Framework: ✅ Enabled")
+            print("🧠 ML Adaptive Framework: ✅ Enabled with Firebase Persistence")
         except Exception as e:
             print(f"⚠️ ML Framework failed to initialize: {e}")
             self.ml_framework = None
@@ -130,6 +144,25 @@ class Phase3Trader(Phase2Trader):
         
         print(f"   🧠 Intelligent Exits: {'✅ Enabled' if self.intelligent_exit_manager else '❌ Disabled'}")
         print(f"   🤖 ML Enhancement: {'✅ Active' if self.ml_framework else '❌ Disabled'}")
+    
+    def enhanced_run_cycle_v2(self):
+        """
+        Override parent method to add Firebase persistence
+        Enhanced trading cycle with Firebase cloud storage
+        """
+        try:
+            # Call parent method to get cycle data
+            cycle_data = super().enhanced_run_cycle_v2()
+            
+            # Save to Firebase in addition to SQLite
+            if cycle_data:
+                self.save_firebase_trading_cycle(cycle_data)
+            
+            return cycle_data
+            
+        except Exception as e:
+            print(f"❌ Enhanced cycle v2 with Firebase error: {e}")
+            return None
     
     def analyze_symbol_intelligence(self, symbol: str, price: float, volume: int = 0) -> Dict:
         """
@@ -1489,6 +1522,144 @@ class Phase3Trader(Phase2Trader):
             except Exception as restart_error:
                 print(f"❌ Restart failed: {restart_error}")
                 raise
+    
+    def _migrate_sqlite_to_firebase(self):
+        """Migrate existing SQLite data to Firebase on first run"""
+        try:
+            if not self.firebase_db.is_connected() or not os.path.exists(self.db_path):
+                return
+            
+            print("🔄 Migrating SQLite data to Firebase...")
+            
+            # Check if migration already happened by looking for recent data in Firebase
+            recent_cycles = self.firebase_db.get_recent_trading_cycles(limit=5)
+            if len(recent_cycles) > 0:
+                print("✅ Firebase already has data - migration not needed")
+                return
+            
+            # Import data from SQLite
+            import sqlite3
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # Migrate trading cycles
+            try:
+                cursor.execute("SELECT * FROM trading_cycles ORDER BY timestamp DESC LIMIT 100")
+                cycles_data = cursor.fetchall()
+                columns = [description[0] for description in cursor.description]
+                
+                migrated_cycles = 0
+                for row in cycles_data:
+                    cycle_dict = dict(zip(columns, row))
+                    # Convert to Firebase format
+                    firebase_cycle = {
+                        'analysis_type': 'intelligence',
+                        'confidence': cycle_dict.get('confidence', 0.5),
+                        'strategy': cycle_dict.get('strategy', 'unknown'),
+                        'regime': cycle_dict.get('regime', 'unknown'),
+                        'symbols_analyzed': [],
+                        'technical_score': cycle_dict.get('confidence', 0.5),
+                        'regime_score': cycle_dict.get('confidence', 0.5),
+                        'pattern_score': cycle_dict.get('confidence', 0.5),
+                        'migrated_from_sqlite': True
+                    }
+                    
+                    self.firebase_db.save_trading_cycle(firebase_cycle)
+                    migrated_cycles += 1
+                
+                print(f"✅ Migrated {migrated_cycles} trading cycles to Firebase")
+                
+            except Exception as cycle_error:
+                print(f"⚠️ Trading cycles migration error: {cycle_error}")
+            
+            # Migrate trades if table exists
+            try:
+                cursor.execute("SELECT * FROM trades ORDER BY timestamp DESC LIMIT 100")
+                trades_data = cursor.fetchall()
+                columns = [description[0] for description in cursor.description]
+                
+                migrated_trades = 0
+                for row in trades_data:
+                    trade_dict = dict(zip(columns, row))
+                    # Convert to Firebase format
+                    firebase_trade = {
+                        'symbol': trade_dict.get('symbol', 'UNKNOWN'),
+                        'side': trade_dict.get('side', 'BUY'),
+                        'quantity': trade_dict.get('quantity', 0),
+                        'price': trade_dict.get('price', 0),
+                        'strategy': trade_dict.get('strategy', 'unknown'),
+                        'confidence': trade_dict.get('confidence', 0.5),
+                        'profit_loss': trade_dict.get('profit_loss', 0),
+                        'exit_reason': trade_dict.get('exit_reason', None),
+                        'migrated_from_sqlite': True
+                    }
+                    
+                    self.firebase_db.save_trade(firebase_trade)
+                    migrated_trades += 1
+                
+                print(f"✅ Migrated {migrated_trades} trades to Firebase")
+                
+            except Exception as trade_error:
+                print(f"⚠️ Trades migration error: {trade_error}")
+            
+            conn.close()
+            print("✅ SQLite to Firebase migration completed")
+            
+        except Exception as e:
+            print(f"❌ Migration error: {e}")
+    
+    def save_firebase_trading_cycle(self, cycle_data: Dict[str, Any]):
+        """Save trading cycle to Firebase in addition to SQLite"""
+        try:
+            if self.firebase_db.is_connected():
+                # Enhance cycle data for Firebase
+                firebase_cycle = {
+                    'analysis_type': 'intelligence_v3',
+                    'confidence': cycle_data.get('confidence', 0.5),
+                    'strategy': cycle_data.get('strategy', 'momentum'),
+                    'regime': cycle_data.get('regime', 'unknown'),
+                    'symbols_analyzed': [q['symbol'] for q in cycle_data.get('quotes', [])[:10]],
+                    'technical_score': cycle_data.get('technical_score', 0.5),
+                    'regime_score': cycle_data.get('regime_score', 0.5),
+                    'pattern_score': cycle_data.get('pattern_score', 0.5),
+                    'final_confidence': cycle_data.get('confidence', 0.5),
+                    'execution_enabled': self.execution_enabled,
+                    'options_trading': self.options_trading,
+                    'crypto_trading': self.crypto_trading,
+                    'global_trading': self.global_trading
+                }
+                
+                cycle_id = self.firebase_db.save_trading_cycle(firebase_cycle)
+                print(f"🔥 Trading cycle saved to Firebase: {cycle_id}")
+                
+        except Exception as e:
+            print(f"❌ Firebase cycle save error: {e}")
+    
+    def save_firebase_trade(self, trade_data: Dict[str, Any]):
+        """Save trade to Firebase in addition to SQLite"""
+        try:
+            if self.firebase_db.is_connected():
+                # Enhance trade data for Firebase
+                firebase_trade = {
+                    'symbol': trade_data.get('symbol', 'UNKNOWN'),
+                    'side': trade_data.get('side', 'BUY'),
+                    'quantity': trade_data.get('quantity', 0),
+                    'price': trade_data.get('price', 0),
+                    'strategy': trade_data.get('strategy', 'momentum'),
+                    'confidence': trade_data.get('confidence', 0.5),
+                    'profit_loss': trade_data.get('profit_loss', 0),
+                    'exit_reason': trade_data.get('exit_reason', None),
+                    'execution_method': 'real_api' if self.execution_enabled else 'simulation',
+                    'asset_type': 'crypto' if trade_data.get('symbol', '').endswith('USD') else 'stock',
+                    'options_trade': 'options_' in trade_data.get('strategy', '').lower(),
+                    'global_market_session': getattr(self, 'current_market_session', 'US')
+                }
+                
+                trade_id = self.firebase_db.save_trade(firebase_trade)
+                print(f"🔥 Trade saved to Firebase: {trade_data.get('symbol')} - {trade_id}")
+                
+        except Exception as e:
+            print(f"❌ Firebase trade save error: {e}")
 
 if __name__ == "__main__":
     # Initialize Phase 3 Trader

@@ -1,3 +1,5 @@
 alpaca-trade-api
 flask==2.3.3
 pytz
+firebase-admin
+google-cloud-firestore

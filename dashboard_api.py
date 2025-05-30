@@ -10,12 +10,16 @@ import sqlite3
 from datetime import datetime, timedelta
 from typing import Dict, List, Any
 import alpaca_trade_api as tradeapi
+from firebase_database import FirebaseDatabase
 
 class DashboardAPI:
     """Generate dashboard data from trading database"""
     
     def __init__(self, db_path: str = "data/trading_system.db"):
         self.db_path = db_path
+        
+        # Initialize Firebase Database for cloud data
+        self.firebase_db = FirebaseDatabase()
         
         # Initialize Alpaca API for real-time data
         api_key = os.getenv('ALPACA_PAPER_API_KEY')
@@ -156,17 +160,59 @@ class DashboardAPI:
             return self.get_mock_positions_data()
     
     def get_trades_from_db(self) -> List[Dict[str, Any]]:
-        """Get trades from database (local or cloud)"""
+        """Get trades from database (Firebase first, then local)"""
         try:
-            # Try local database first
-            if os.path.exists(self.db_path):
-                return self._get_trades_from_local_db()
+            # Try Firebase first for most recent data
+            if self.firebase_db.is_connected():
+                firebase_trades = self._get_trades_from_firebase()
+                if firebase_trades:
+                    print(f"✅ Using {len(firebase_trades)} trades from Firebase")
+                    return firebase_trades
             
-            # Fallback to cloud data
+            # Fallback to local database
+            if os.path.exists(self.db_path):
+                local_trades = self._get_trades_from_local_db()
+                if local_trades:
+                    print(f"✅ Using {len(local_trades)} trades from local SQLite")
+                    return local_trades
+            
+            # Final fallback to cloud data
             return self._get_trades_from_cloud_data()
             
         except Exception as e:
             print(f"⚠️ Error getting trades from database: {e}")
+            return []
+    
+    def _get_trades_from_firebase(self) -> List[Dict[str, Any]]:
+        """Get trades from Firebase database"""
+        try:
+            if not self.firebase_db.is_connected():
+                return []
+            
+            # Get recent trades from Firebase
+            firebase_trades = self.firebase_db.get_trades(limit=500, days_back=30)
+            
+            # Convert Firebase format to dashboard format
+            trades_data = []
+            for trade in firebase_trades:
+                trade_formatted = {
+                    'date': trade.get('timestamp', datetime.now()).isoformat() if isinstance(trade.get('timestamp'), datetime) else str(trade.get('timestamp', '')),
+                    'symbol': trade.get('symbol', ''),
+                    'side': trade.get('side', '').upper(),
+                    'quantity': float(trade.get('quantity', 0)),
+                    'price': float(trade.get('price', 0)),
+                    'pl': float(trade.get('profit_loss', 0)),
+                    'plPercent': (float(trade.get('profit_loss', 0)) / (float(trade.get('price', 1)) * float(trade.get('quantity', 1)))) * 100 if float(trade.get('price', 0)) > 0 else 0,
+                    'strategy': trade.get('strategy', 'unknown'),
+                    'exitReason': trade.get('exit_reason', None),
+                    'source': 'firebase'
+                }
+                trades_data.append(trade_formatted)
+            
+            return trades_data
+            
+        except Exception as e:
+            print(f"⚠️ Error getting trades from Firebase: {e}")
             return []
     
     def _get_trades_from_local_db(self) -> List[Dict[str, Any]]:

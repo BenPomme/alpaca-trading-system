@@ -11,6 +11,7 @@ from typing import Dict, List, Optional, Tuple
 from ml_strategy_selector import MLStrategySelector
 from ml_risk_predictor import MLRiskPredictor
 from database_manager import TradingDatabase
+from firebase_database import FirebaseDatabase
 
 class MLAdaptiveFramework:
     """
@@ -18,14 +19,15 @@ class MLAdaptiveFramework:
     Integrates with Phase 4 system for intelligent decision making
     """
     
-    def __init__(self, api_client, risk_manager, db: TradingDatabase = None):
+    def __init__(self, api_client, risk_manager, db: TradingDatabase = None, firebase_db: FirebaseDatabase = None):
         self.api = api_client
         self.risk_manager = risk_manager
         self.db = db
+        self.firebase_db = firebase_db
         
-        # Initialize ML components
-        self.strategy_selector = MLStrategySelector(db)
-        self.risk_predictor = MLRiskPredictor(db)
+        # Initialize ML components with Firebase support
+        self.strategy_selector = MLStrategySelector(db, firebase_db)
+        self.risk_predictor = MLRiskPredictor(db, firebase_db)
         
         # ML configuration
         self.ml_enabled = True
@@ -50,6 +52,67 @@ class MLAdaptiveFramework:
         print(f"   🎯 ML Strategy Selection: {'✅' if self.use_ml_strategy_selection else '❌'}")
         print(f"   📊 ML Position Sizing: {'✅' if self.use_ml_position_sizing else '❌'}")
         print(f"   🛡️ ML Risk Prediction: {'✅' if self.use_ml_risk_prediction else '❌'}")
+        print(f"   🔥 Firebase Persistence: {'✅' if self.firebase_db and self.firebase_db.is_connected() else '❌'}")
+        
+        # Load ML model states from Firebase on startup
+        self.load_ml_states_from_firebase()
+    
+    def load_ml_states_from_firebase(self):
+        """Load ML model states from Firebase for persistence across deployments"""
+        try:
+            if not self.firebase_db or not self.firebase_db.is_connected():
+                print("⚠️ Firebase not available - ML states will not persist")
+                return
+            
+            # Load strategy selector model state
+            strategy_state = self.firebase_db.get_ml_model_state('strategy_selector')
+            if strategy_state:
+                self.strategy_selector.load_state(strategy_state)
+                print("✅ ML Strategy Selector state loaded from Firebase")
+            
+            # Load risk predictor model state
+            risk_state = self.firebase_db.get_ml_model_state('risk_predictor')
+            if risk_state:
+                self.risk_predictor.load_state(risk_state)
+                print("✅ ML Risk Predictor state loaded from Firebase")
+            
+            # Load performance metrics
+            performance_state = self.firebase_db.get_ml_model_state('ml_performance')
+            if performance_state:
+                self.ml_performance.update(performance_state.get('performance', {}))
+                print("✅ ML Performance metrics loaded from Firebase")
+            
+        except Exception as e:
+            print(f"❌ Error loading ML states from Firebase: {e}")
+    
+    def save_ml_states_to_firebase(self):
+        """Save ML model states to Firebase for persistence"""
+        try:
+            if not self.firebase_db or not self.firebase_db.is_connected():
+                return
+            
+            # Save strategy selector model state
+            if hasattr(self.strategy_selector, 'get_state'):
+                strategy_state = self.strategy_selector.get_state()
+                self.firebase_db.save_ml_model_state('strategy_selector', strategy_state)
+            
+            # Save risk predictor model state
+            if hasattr(self.risk_predictor, 'get_state'):
+                risk_state = self.risk_predictor.get_state()
+                self.firebase_db.save_ml_model_state('risk_predictor', risk_state)
+            
+            # Save performance metrics
+            performance_data = {
+                'performance': self.ml_performance,
+                'last_updated': datetime.now(),
+                'total_trades': self.ml_performance['total_trades']
+            }
+            self.firebase_db.save_ml_model_state('ml_performance', performance_data)
+            
+            print("🔥 ML states saved to Firebase")
+            
+        except Exception as e:
+            print(f"❌ Error saving ML states to Firebase: {e}")
     
     def enhance_market_analysis(self, market_regime: str, regime_confidence: float,
                                technical_analysis: Dict, pattern_analysis: Dict) -> Dict:
