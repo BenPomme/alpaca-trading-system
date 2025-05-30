@@ -108,6 +108,9 @@ railway status
 # View Railway logs (may be truncated)
 railway logs
 
+# CRITICAL: Check if latest commit is deployed (common issue)
+railway logs | head -10 | grep -E "(commit|hash|deploy)"
+
 # If Railway logs are truncated, debug locally to see full output
 python debug_cycle.py | head -200
 
@@ -117,6 +120,36 @@ python debug_cycle.py 2>&1 | grep -A 5 "ML Predictions"
 
 # Test ML integration is working
 python test_ml_integration.py
+
+# Force Railway deployment sync (if latest commits not deploying)
+git commit --allow-empty -m "🚀 Force Railway sync" && git push
+```
+
+### Railway Deployment Troubleshooting
+```bash
+# Common Railway Issues and Solutions:
+
+# 1. Check if Railway is deploying latest commits
+git log --oneline -5  # Check local commits
+railway logs | head -5  # Check deployed commit hash
+
+# 2. Force deployment if Railway is stuck on old commit
+echo "# Force sync $(date)" >> README.md
+git add README.md && git commit -m "🚀 Force Railway deployment sync"
+git push
+
+# 3. Verify Firebase environment variables are set in Railway
+railway env | grep FIREBASE
+
+# 4. Debug Railway service linking issues
+export RAILWAY_TOKEN="your_token"  # Use Railway API token if needed
+railway login
+
+# 5. Monitor Railway build logs for Python dependency issues
+railway logs --build
+
+# 6. Check Railway resource usage if performance issues
+railway metrics
 ```
 
 ## Multi-Phase Architecture
@@ -393,6 +426,24 @@ FIREBASE_CLIENT_CERT_URL="your_cert_url"
 4. **Backup & Security**: Google Cloud infrastructure with automatic backups
 5. **Analytics**: Rich querying for performance insights
 
+#### **Firebase Debugging Commands**
+```bash
+# Test Firebase connectivity specifically
+python -c "from firebase_database import FirebaseDatabase; db = FirebaseDatabase(); print('🔥 Firebase Connected:', db.is_connected())"
+
+# Debug Firebase environment variables (Railway deployment)
+python -c "import os; print('🔥 Firebase vars:', {k:v[:20]+'...' for k,v in os.environ.items() if 'FIREBASE' in k})"
+
+# Test Firebase during Phase 3 startup (look for debugging messages)
+python start_phase3.py | grep -E "(🔥|Firebase|FIREBASE)"
+
+# Check Firebase integration status in trading cycle
+python debug_cycle.py 2>&1 | grep "🔥 Trading cycle saved to Firebase"
+
+# Verify Firebase data persistence across restarts
+python -c "from firebase_database import FirebaseDatabase; db = FirebaseDatabase(); cycles = db.get_recent_trading_cycles(limit=5); print(f'Recent cycles: {len(cycles)}')"
+```
+
 ## ML Integration Architecture (Phase 5)
 
 ### Full ML Integration Achievement
@@ -612,3 +663,59 @@ python analyze_trading_performance.py | grep "Win Rate"
 - **Monthly**: Win rate 45-60%, positive P&L trend
 
 **⚠️ CRITICAL**: If win rate remains <30% after 1 week, further exit system adjustments needed.
+
+## Current System Status & Firebase Integration
+
+### Firebase Integration Status (Phase 5.5)
+**Current State**: Firebase Firestore integration implemented but **deployment verification needed**
+
+#### **Implementation Completed:**
+- ✅ `firebase_database.py` - Complete Firestore integration with collections for trading_cycles, trades, market_quotes, ml_models, performance_metrics
+- ✅ `phase3_trader.py` - Updated with Firebase initialization and dual persistence (SQLite + Firebase)
+- ✅ Automatic SQLite to Firebase migration on first run
+- ✅ Enhanced debugging output with 🔥 Firebase status messages
+- ✅ Environment variable support for Railway deployment
+- ✅ Fallback strategy if Firebase unavailable
+
+#### **Verification Required:**
+- ⚠️ **Railway Deployment Sync**: Verify latest Firebase code is deployed (previous issue: Railway deploying old commits)
+- ⚠️ **Firebase Connection**: Confirm Firebase environment variables are properly set in Railway
+- ⚠️ **ML State Persistence**: Test ML learning persists across Railway restarts
+- ⚠️ **Data Migration**: Verify existing SQLite data migrates to Firebase successfully
+
+#### **Expected Firebase Startup Messages:**
+```
+🔥 Initializing Firebase Database...
+🔥 DEBUG: Attempting Firebase import...
+✅ DEBUG: FirebaseDatabase import successful
+✅ DEBUG: FirebaseDatabase object created
+✅ Firebase Database: Connected
+🔄 Migrating SQLite data to Firebase...
+✅ Migrated 45 trading cycles to Firebase
+✅ Migrated 128 trades to Firebase
+```
+
+#### **Firebase Environment Variables Checklist:**
+```bash
+# Required in Railway dashboard:
+FIREBASE_PRIVATE_KEY_ID="xxxxx"
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
+FIREBASE_CLIENT_EMAIL="firebase-adminsdk-xxxxx@alpaca-12fab.iam.gserviceaccount.com"
+FIREBASE_CLIENT_ID="xxxxx"
+FIREBASE_CLIENT_CERT_URL="https://www.googleapis.com/robot/v1/metadata/x509/..."
+```
+
+#### **Next Steps for Full Firebase Deployment:**
+1. Verify Railway has deployed latest Firebase integration code
+2. Set Firebase environment variables in Railway dashboard
+3. Monitor startup logs for Firebase connection confirmation
+4. Test ML learning persistence across multiple Railway restarts
+5. Verify real-time dashboard updates from Firebase data
+
+### Post-Firebase Integration Benefits
+Once Firebase is fully deployed and connected:
+- **Persistent ML Learning**: Models improve continuously across deployments
+- **Real-time Analytics**: Live portfolio performance tracking
+- **Scalable Architecture**: Support for multiple trading instances
+- **Data Backup**: Automatic cloud backup of all trading data
+- **Enhanced Debugging**: Persistent logs for troubleshooting across restarts

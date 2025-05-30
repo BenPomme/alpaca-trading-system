@@ -2,4 +2,4 @@
 __pycache__/
 *.pyc
 data/trading_system.db
-data/trading_log.json
+data/trading_log.json.railway-token
