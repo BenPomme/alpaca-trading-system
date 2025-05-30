@@ -576,7 +576,7 @@ class Phase3Trader(Phase2Trader):
                 except:
                     print(f"   📊 {pos.symbol}: {pos.qty} shares")
             
-            return len(phantom_positions)
+            return phantom_count
             
         except Exception as e:
             print(f"❌ Emergency position reconciliation failed: {e}")
