@@ -1,12 +1,13 @@
-name: Update Trading Dashboard Data
-
-on:
-  schedule:
-    - cron: '*/10 13-20 * * 1-5'
-    - cron: '*/30 * * * *'
-  workflow_dispatch:
-  push:
-    branches: [ main ]
+# DISABLED - Using simple-dashboard-update.yml instead to prevent conflicts
+# name: Update Trading Dashboard Data
+#
+# on:
+#   schedule:
+#     - cron: '*/10 13-20 * * 1-5'
+#     - cron: '*/30 * * * *'
+#   workflow_dispatch:
+#   push:
+#     branches: [ main ]
 
 permissions:
   contents: write

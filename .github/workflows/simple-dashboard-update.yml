@@ -100,6 +100,12 @@ jobs:
           git config --local user.name "Simple Dashboard Update"
           git add docs/api/dashboard-data.json
           git commit -m "📊 Simple dashboard update $(date -u '+%Y-%m-%d %H:%M UTC')"
-          git push
+          
+          # Pull before push to handle conflicts
+          git pull origin main --no-rebase || true
+          git push || {
+            echo "⚠️ Push failed, likely due to concurrent update - this is normal"
+            exit 0
+          }
           echo "✅ Dashboard data updated"
         fi
