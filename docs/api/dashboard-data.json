@@ -1,46 +1,15 @@
 {
   "portfolio": {
-    "value": 99071.57,
+    "value": 99131.16,
     "cash": 24532.57,
-    "dayTradingPower": 222926.24,
-    "dailyPL": -428.43,
-    "dailyPLPercent": -0.43
+    "dayTradingPower": 222926.24
   },
-  "positions": [
-    {
-      "symbol": "AAPL",
-      "quantity": 14,
-      "entryPrice": 198.5,
-      "currentPrice": 200.11,
-      "marketValue": 2801.54,
-      "unrealizedPL": 22.54,
-      "unrealizedPLPercent": 0.81,
-      "holdTime": "2.3h",
-      "strategy": "momentum",
-      "type": "stock"
-    }
-  ],
-  "trades": [],
+  "positions": [],
   "performance": {
-    "totalTrades": 48,
-    "winningTrades": 0,
-    "losingTrades": 0,
-    "winRate": 0.0,
-    "avgHoldTime": 0.0,
-    "bestTrade": 0.0,
-    "worstTrade": 0.0,
-    "totalROI": -0.9,
-    "dailyROI": 0.09,
-    "weeklyROI": 0.0,
-    "monthlyROI": 0.0,
-    "dataSource": "positions_only"
+    "totalTrades": 55,
+    "winRate": 31.25,
+    "dataSource": "cloud_data"
   },
-  "strategies": [],
-  "marketStatus": {
-    "isOpen": false,
-    "nextOpen": "Unknown",
-    "nextClose": "Unknown"
-  },
-  "generated_at": "2025-05-30T13:47:47.805906",
-  "data_source": "mock"
+  "generated_at": "2025-05-30T14:24:26.560253",
+  "data_source": "cloud_based"
 }
