@@ -23,10 +23,12 @@ class FirebaseDatabase:
     def initialize_firebase(self):
         """Initialize Firebase Admin SDK"""
         try:
+            print("🔥 FIREBASE INIT: Starting Firebase initialization...")
+            
             # Check if Firebase is already initialized
             if firebase_admin._apps:
                 self.db = firestore.client()
-                print("✅ Firebase already initialized")
+                print("✅ FIREBASE INIT: Firebase already initialized")
                 return
             
             # Initialize with service account key
@@ -39,6 +41,7 @@ class FirebaseDatabase:
                 print(f"✅ Firebase initialized with service account: {service_account_path}")
             else:
                 # Use environment variables for Railway deployment
+                print("🔥 FIREBASE INIT: Attempting environment variable initialization...")
                 firebase_config = {
                     "type": "service_account",
                     "project_id": "alpaca-12fab",
@@ -51,6 +54,14 @@ class FirebaseDatabase:
                     "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
                     "client_x509_cert_url": os.getenv('FIREBASE_CLIENT_CERT_URL')
                 }
+                
+                # Debug: Check which variables are present
+                env_vars = ['FIREBASE_PRIVATE_KEY_ID', 'FIREBASE_PRIVATE_KEY', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_CLIENT_ID', 'FIREBASE_CLIENT_CERT_URL']
+                missing_vars = [var for var in env_vars if not os.getenv(var)]
+                if missing_vars:
+                    print(f"❌ FIREBASE INIT: Missing environment variables: {missing_vars}")
+                else:
+                    print("✅ FIREBASE INIT: All environment variables present")
                 
                 if all(firebase_config.values()):
                     cred = credentials.Certificate(firebase_config)
