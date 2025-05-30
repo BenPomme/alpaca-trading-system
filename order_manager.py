@@ -118,10 +118,11 @@ class OrderManager:
         # Update current positions
         self.log_current_positions()
         
-        # Check if we already have this position
+        # AGGRESSIVE STRATEGY: Allow position building for unlimited scaling
+        # For 5-10% monthly targets, we need aggressive position scaling
         if symbol in self.active_positions:
-            print(f"⚠️ Already have position in {symbol}")
-            return False
+            print(f"✅ Position building allowed for {symbol} (aggressive strategy)")
+            # Continue to other checks - don't block position additions
         
         # Check maximum positions limit (Phase 4.1: Unlimited positions)
         if self.max_positions is not None and len(self.active_positions) >= self.max_positions:
