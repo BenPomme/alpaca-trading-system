@@ -82,6 +82,11 @@ python test_global_trading.py   # Multi-timezone trading
 # EXECUTION_ENABLED=true, GLOBAL_TRADING=true
 # OPTIONS_TRADING=true, CRYPTO_TRADING=true
 # MARKET_TIER=2, MIN_CONFIDENCE=0.6
+
+# OPTIMIZATION: Market-aware cycle delays reduce resource usage
+# - US Market Open: 2 minute cycles (active trading)
+# - US Market Closed + Crypto: 10 minute cycles (crypto-only)
+# - All Markets Closed: 30 minute cycles (monitoring only)
 ```
 
 ### Post-Deployment Verification
@@ -438,6 +443,32 @@ python test_ml_integration.py  # Verify ML components
 - Unlimited positions (35+ concurrent) with proper exposure limits
 - RegT buying power detection for accurate position sizing
 - Emergency order cancellation prevents accumulation of wrong orders
+
+### Market Hours Optimization (Phase 5.2)
+**BREAKTHROUGH**: Smart cycle delays based on market status prevent unnecessary processing
+
+**Optimization Logic**:
+- **US Market Open**: 2-minute cycles for active stock/options trading
+- **US Market Closed + Crypto Enabled**: 10-minute cycles for crypto-only trading
+- **All Markets Closed**: 30-minute cycles for position monitoring only
+
+**Resource Savings**:
+- 80% reduction in processing during off-hours (10 min vs 2 min cycles)
+- US stock/options analysis skipped when markets closed
+- Crypto trading continues 24/7 regardless of US market status
+
+**Implementation**:
+```python
+# Smart cycle delay based on market status
+def get_market_aware_cycle_delay(self) -> int:
+    us_market_open = self.api.get_clock().is_open
+    if us_market_open:
+        return 120  # 2 minutes - active trading
+    elif self.crypto_trading:
+        return 600  # 10 minutes - crypto only
+    else:
+        return 1800  # 30 minutes - monitoring
+```
 
 ## 🚨 CRITICAL: Performance Monitoring & Analysis
 

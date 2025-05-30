@@ -6,7 +6,7 @@ import time
 import json
 import random
 from datetime import datetime
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 
 # Import Phase 2 foundation
 from phase2_trader import Phase2Trader
@@ -685,12 +685,21 @@ class Phase3Trader(Phase2Trader):
     
     def run_trading_cycle_with_intelligence(self):
         """
-        Enhanced trading cycle with Phase 3 intelligence
+        OPTIMIZED: Market-aware trading cycle with Phase 3 intelligence
         """
         cycle_start = datetime.now()
         cycle_id = int(cycle_start.timestamp())
         
+        # Check market status for optimization
+        try:
+            us_market_open = self.api.get_clock().is_open
+            market_status = "🇺🇸 OPEN" if us_market_open else "🇺🇸 CLOSED"
+        except:
+            us_market_open = True  # Assume open if check fails
+            market_status = "🇺🇸 UNKNOWN"
+        
         print(f"\n🧠 PHASE 3 INTELLIGENCE CYCLE - {cycle_start.strftime('%H:%M:%S')}")
+        print(f"🕐 Market Status: {market_status}")
         print("=" * 60)
         
         try:
@@ -987,11 +996,13 @@ class Phase3Trader(Phase2Trader):
             # Show strategy details
             print(f"🎯 Final Strategy: {strategy} (confidence: {regime_confidence:.1%})")
             
-            # Phase 4.4: Execute 24/7 crypto trading if enabled
+            # Phase 4.4: Execute 24/7 crypto trading if enabled (MARKET INDEPENDENT)
             crypto_results = {}
             if self.crypto_trading and self.crypto_trader:
-                print("\n₿ CRYPTO TRADING CYCLE")
+                print("\n₿ CRYPTO TRADING CYCLE (24/7 MARKET INDEPENDENT)")
                 print("-" * 30)
+                if not us_market_open:
+                    print("💡 US markets closed - crypto is primary trading focus")
                 
                 # Get active crypto symbols for current session
                 crypto_symbols = self.crypto_trader.get_active_crypto_symbols()
@@ -1037,10 +1048,10 @@ class Phase3Trader(Phase2Trader):
                     except Exception as e:
                         print(f"⚠️ Crypto trading error for {symbol}: {e}")
             
-            # CRITICAL FIX: Phase 4.3 - Real Options Trading Integration  
+            # CRITICAL FIX: Phase 4.3 - Real Options Trading Integration (US MARKET DEPENDENT)
             options_results = {}
-            if self.options_trading and self.options_manager:
-                print("\n📊 REAL OPTIONS TRADING")
+            if self.options_trading and self.options_manager and us_market_open:
+                print("\n📊 REAL OPTIONS TRADING (US MARKET HOURS ONLY)")
                 print("-" * 30)
                 
                 try:
@@ -1099,233 +1110,194 @@ class Phase3Trader(Phase2Trader):
                             
                 except Exception as e:
                     print(f"⚠️ Options trading system error: {e}")
+            elif self.options_trading and self.options_manager and not us_market_open:
+                print("\n📊 OPTIONS TRADING: 💤 SKIPPED (US MARKET CLOSED)")
+                print("-" * 30)
+                print("   💡 Options require US market hours - will resume when market opens")
             else:
                 print("\n📊 OPTIONS TRADING: ❌ DISABLED")
                 print("-" * 30)
                 print("   💡 Options trading module not enabled or initialized")
             
-            # Phase 4.4: Enhanced Stock Trading Strategies
+            # Phase 4.4: Enhanced Stock Trading Strategies (US MARKET DEPENDENT)
             enhanced_strategies = {}
-            print("\n📊 ENHANCED STOCK STRATEGIES")
-            print("-" * 30)
-            
-            # Implement aggressive stock strategies to compensate for no options
-            # 1. Leveraged ETF Trading
-            leveraged_etfs = ['TQQQ', 'UPRO', 'SOXL', 'FAS', 'UDOW']  # 3x leveraged ETFs
-            for symbol in leveraged_etfs:
-                try:
-                    # Get current price
-                    quote = self.api.get_latest_quote(symbol)
-                    if quote and quote.ask_price:
-                        price = float(quote.ask_price)
-                        
-                        # Use regime to determine if leveraged ETF is appropriate
-                        if regime_confidence > 0.70 and regime_type == 'bullish':
-                            # High confidence bullish - use leveraged ETFs for amplified returns
-                            position_size = 5000  # $5K for leveraged ETF positions
-                            
-                            # Check if we should execute
-                            should_trade, final_conf, intel = self.should_execute_trade_with_intelligence(
-                                symbol, strategy, regime_confidence, price
-                            )
-                            
-                            if should_trade:
-                                trade_result = self.order_manager.execute_buy_order(
-                                    symbol=symbol, 
-                                    strategy=f"leveraged_{strategy}", 
-                                    confidence=final_conf,
-                                    cycle_id=cycle_id
-                                )
-                                
-                                if trade_result["status"] == "success":
-                                    print(f"📊 LEVERAGED ETF: {symbol}")
-                                    print(f"   💰 {trade_result['shares']} shares @ ${trade_result['price']:.2f}")
-                                    print(f"   🎯 3x Leverage Effect")
-                                    print(f"   📊 Intelligence: {intel}")
-                        
-                except Exception as e:
-                    print(f"⚠️ Leveraged ETF error for {symbol}: {e}")
-            
-            # 2. Sector Rotation Strategy
-            sector_etfs = {
-                'technology': 'XLK',
-                'healthcare': 'XLV', 
-                'financials': 'XLF',
-                'energy': 'XLE',
-                'consumer': 'XLY'
-            }
-            
-            print(f"📊 Sector rotation based on regime: {regime_type}")
-            if regime_type == 'bullish':
-                # Bullish: Focus on growth sectors
-                priority_sectors = ['technology', 'consumer', 'financials']
-            elif regime_type == 'bearish':
-                # Bearish: Focus on defensive sectors  
-                priority_sectors = ['healthcare', 'consumer']
+            if us_market_open:
+                print("\n📊 ENHANCED STOCK STRATEGIES (US MARKET HOURS)")
+                print("-" * 30)
             else:
-                # Neutral: Balanced approach
-                priority_sectors = ['technology', 'healthcare']
+                print("\n📊 ENHANCED STOCK STRATEGIES: 💤 SKIPPED (US MARKET CLOSED)")
+                print("-" * 30)
+                print("   💡 Stock strategies require US market hours - will resume when market opens")
             
-            for sector in priority_sectors[:2]:  # Top 2 sectors
-                symbol = sector_etfs[sector]
-                try:
-                    quote = self.api.get_latest_quote(symbol)
-                    if quote and quote.ask_price:
-                        price = float(quote.ask_price)
-                        should_trade, final_conf, intel = self.should_execute_trade_with_intelligence(
-                            symbol, f"sector_{sector}", regime_confidence, price
-                        )
+            if us_market_open:
+                # Implement aggressive stock strategies to compensate for no options
+                # 1. Leveraged ETF Trading
+                leveraged_etfs = ['TQQQ', 'UPRO', 'SOXL', 'FAS', 'UDOW']  # 3x leveraged ETFs
+                for symbol in leveraged_etfs:
+                    try:
+                        # Get current price
+                        quote = self.api.get_latest_quote(symbol)
+                        if quote and quote.ask_price:
+                            price = float(quote.ask_price)
                         
-                        if should_trade:
-                            trade_result = self.order_manager.execute_buy_order(
-                                symbol=symbol, 
-                                strategy=f"sector_{sector}", 
-                                confidence=final_conf,
-                                cycle_id=cycle_id
-                            )
+                            # Use regime to determine if leveraged ETF is appropriate
+                            if regime_confidence > 0.70 and regime_type == 'bullish':
+                                # High confidence bullish - use leveraged ETFs for amplified returns
+                                position_size = 5000  # $5K for leveraged ETF positions
                             
-                            if trade_result["status"] == "success":
-                                print(f"📊 SECTOR PLAY: {symbol} ({sector})")
-                                print(f"   💰 {trade_result['shares']} shares @ ${trade_result['price']:.2f}")
+                                # Check if we should execute
+                                should_trade, final_conf, intel = self.should_execute_trade_with_intelligence(
+                                    symbol, strategy, regime_confidence, price
+                                )
+                            
+                                if should_trade:
+                                    trade_result = self.order_manager.execute_buy_order(
+                                        symbol=symbol, 
+                                        strategy=f"leveraged_{strategy}", 
+                                        confidence=final_conf,
+                                        cycle_id=cycle_id
+                                    )
                                 
-                except Exception as e:
-                    print(f"⚠️ Sector ETF error for {symbol}: {e}")
+                                    if trade_result["status"] == "success":
+                                        print(f"📊 LEVERAGED ETF: {symbol}")
+                                        print(f"   💰 {trade_result['shares']} shares @ ${trade_result['price']:.2f}")
+                                        print(f"   🎯 3x Leverage Effect")
+                                        print(f"   📊 Intelligence: {intel}")
+                        
+                    except Exception as e:
+                        print(f"⚠️ Leveraged ETF error for {symbol}: {e}")
             
-            # 3. Momentum Amplification Strategy
-            # Use higher position sizes during high-confidence periods
-            if regime_confidence > 0.75 and regime_type == 'bullish':
-                momentum_stocks = ['NVDA', 'TSLA', 'AMD', 'AAPL', 'MSFT']
-                print(f"📊 MOMENTUM AMPLIFICATION: High confidence ({regime_confidence:.1%})")
+                # 2. Sector Rotation Strategy
+                sector_etfs = {
+                    'technology': 'XLK',
+                    'healthcare': 'XLV', 
+                    'financials': 'XLF',
+                    'energy': 'XLE',
+                    'consumer': 'XLY'
+                }
                 
-                for symbol in momentum_stocks[:2]:  # Top 2 momentum stocks
+                print(f"📊 Sector rotation based on regime: {regime_type}")
+                if regime_type == 'bullish':
+                    # Bullish: Focus on growth sectors
+                    priority_sectors = ['technology', 'consumer', 'financials']
+                elif regime_type == 'bearish':
+                    # Bearish: Focus on defensive sectors  
+                    priority_sectors = ['healthcare', 'consumer']
+                else:
+                    # Neutral: Balanced approach
+                    priority_sectors = ['technology', 'healthcare']
+                
+                for sector in priority_sectors[:2]:  # Top 2 sectors
+                    symbol = sector_etfs[sector]
                     try:
                         quote = self.api.get_latest_quote(symbol)
                         if quote and quote.ask_price:
                             price = float(quote.ask_price)
-                            
-                            # Use 2x normal position size for high-conviction trades
                             should_trade, final_conf, intel = self.should_execute_trade_with_intelligence(
-                                symbol, "momentum_amplified", regime_confidence * 1.1, price  # Boost confidence
+                                symbol, f"sector_{sector}", regime_confidence, price
                             )
-                            
+                        
                             if should_trade:
-                                # Override position size for aggressive momentum
-                                original_position_multiplier = self.risk_manager.position_size_multiplier
-                                self.risk_manager.position_size_multiplier = 2.0  # 2x leverage through position size
-                                
                                 trade_result = self.order_manager.execute_buy_order(
                                     symbol=symbol, 
-                                    strategy="momentum_amplified", 
+                                    strategy=f"sector_{sector}", 
                                     confidence=final_conf,
                                     cycle_id=cycle_id
                                 )
-                                
-                                # Restore original multiplier
-                                self.risk_manager.position_size_multiplier = original_position_multiplier
-                                
-                                if trade_result["status"] == "success":
-                                    print(f"📊 MOMENTUM 2X: {symbol}")
-                                    print(f"   💰 {trade_result['shares']} shares @ ${trade_result['price']:.2f}")
-                                    print(f"   🚀 2x Position Size")
-                                    print(f"   📊 Intelligence: {intel}")
-                    
-                    except Exception as e:
-                        print(f"⚠️ Momentum stock error for {symbol}: {e}")
-            
-            # 4. Volatility Trading Strategy
-            # Trade VIX-related ETFs based on market volatility
-            volatility_symbols = {
-                'low_vol': 'VXX',   # Long volatility
-                'short_vol': 'SVXY'  # Short volatility
-            }
-            
-            if regime_confidence > 0.45:  # Lowered from 0.60 for aggressive trading
-                if regime_type == 'uncertain':
-                    # High uncertainty - long volatility
-                    vol_symbol = volatility_symbols['low_vol']
-                    vol_strategy = "long_volatility"
-                elif regime_type == 'bullish' and regime_confidence > 0.80:
-                    # Very bullish - short volatility
-                    vol_symbol = volatility_symbols['short_vol'] 
-                    vol_strategy = "short_volatility"
-                else:
-                    vol_symbol = None
-                
-                if vol_symbol:
-                    try:
-                        quote = self.api.get_latest_quote(vol_symbol)
-                        if quote and quote.ask_price:
-                            price = float(quote.ask_price)
-                            should_trade, final_conf, intel = self.should_execute_trade_with_intelligence(
-                                vol_symbol, vol_strategy, regime_confidence, price
-                            )
                             
-                            if should_trade:
-                                trade_result = self.order_manager.execute_buy_order(
-                                    symbol=vol_symbol, 
-                                    strategy=vol_strategy, 
-                                    confidence=final_conf,
-                                    cycle_id=cycle_id
+                                if trade_result["status"] == "success":
+                                    print(f"📊 SECTOR PLAY: {symbol} ({sector})")
+                                    print(f"   💰 {trade_result['shares']} shares @ ${trade_result['price']:.2f}")
+                                
+                    except Exception as e:
+                        print(f"⚠️ Sector ETF error for {symbol}: {e}")
+                
+                # 3. Momentum Amplification Strategy
+                # Use higher position sizes during high-confidence periods
+                if regime_confidence > 0.75 and regime_type == 'bullish':
+                    momentum_stocks = ['NVDA', 'TSLA', 'AMD', 'AAPL', 'MSFT']
+                    print(f"📊 MOMENTUM AMPLIFICATION: High confidence ({regime_confidence:.1%})")
+                    
+                    for symbol in momentum_stocks[:2]:  # Top 2 momentum stocks
+                        try:
+                            quote = self.api.get_latest_quote(symbol)
+                            if quote and quote.ask_price:
+                                price = float(quote.ask_price)
+                                
+                                # Use 2x normal position size for high-conviction trades
+                                should_trade, final_conf, intel = self.should_execute_trade_with_intelligence(
+                                    symbol, "momentum_amplified", regime_confidence * 1.1, price  # Boost confidence
                                 )
                                 
-                                if trade_result["status"] == "success":
-                                    print(f"📊 VOLATILITY PLAY: {vol_symbol}")
-                                    print(f"   💰 {trade_result['shares']} shares @ ${trade_result['price']:.2f}")
-                                    print(f"   🎯 Strategy: {vol_strategy}")
+                                if should_trade:
+                                    # Override position size for aggressive momentum
+                                    original_position_multiplier = self.risk_manager.position_size_multiplier
+                                    self.risk_manager.position_size_multiplier = 2.0  # 2x leverage through position size
+                                    
+                                    trade_result = self.order_manager.execute_buy_order(
+                                        symbol=symbol, 
+                                        strategy="momentum_amplified", 
+                                        confidence=final_conf,
+                                        cycle_id=cycle_id
+                                    )
+                                    
+                                    # Restore original multiplier
+                                    self.risk_manager.position_size_multiplier = original_position_multiplier
+                                    
+                                    if trade_result["status"] == "success":
+                                        print(f"📊 MOMENTUM 2X: {symbol}")
+                                        print(f"   💰 {trade_result['shares']} shares @ ${trade_result['price']:.2f}")
+                                        print(f"   🚀 2x Position Size")
+                                        print(f"   📊 Intelligence: {intel}")
+                        
+                        except Exception as e:
+                            print(f"⚠️ Momentum stock error for {symbol}: {e}")
+                
+                # 4. Volatility Trading Strategy
+                # Trade VIX-related ETFs based on market volatility
+                volatility_symbols = {
+                    'low_vol': 'VXX',   # Long volatility
+                    'short_vol': 'SVXY'  # Short volatility
+                }
+                
+                if regime_confidence > 0.45:  # Lowered from 0.60 for aggressive trading
+                    if regime_type == 'uncertain':
+                        # High uncertainty - long volatility
+                        vol_symbol = volatility_symbols['low_vol']
+                        vol_strategy = "long_volatility"
+                    elif regime_type == 'bullish' and regime_confidence > 0.80:
+                        # Very bullish - short volatility
+                        vol_symbol = volatility_symbols['short_vol'] 
+                        vol_strategy = "short_volatility"
+                    else:
+                        vol_symbol = None
                     
-                    except Exception as e:
-                        print(f"⚠️ Volatility ETF error for {vol_symbol}: {e}")
+                    if vol_symbol:
+                        try:
+                            quote = self.api.get_latest_quote(vol_symbol)
+                            if quote and quote.ask_price:
+                                price = float(quote.ask_price)
+                                should_trade, final_conf, intel = self.should_execute_trade_with_intelligence(
+                                    vol_symbol, vol_strategy, regime_confidence, price
+                                )
+                                
+                                if should_trade:
+                                    trade_result = self.order_manager.execute_buy_order(
+                                        symbol=vol_symbol, 
+                                        strategy=vol_strategy, 
+                                        confidence=final_conf,
+                                        cycle_id=cycle_id
+                                    )
+                                    
+                                    if trade_result["status"] == "success":
+                                        print(f"📊 VOLATILITY PLAY: {vol_symbol}")
+                                        print(f"   💰 {trade_result['shares']} shares @ ${trade_result['price']:.2f}")
+                                        print(f"   🎯 Strategy: {vol_strategy}")
+                        
+                        except Exception as e:
+                            print(f"⚠️ Volatility ETF error for {vol_symbol}: {e}")
             
-            # 5. Real Options Trading
-            options_results = {}
-            if self.options_trading and self.options_manager:
-                print("\n📊 REAL OPTIONS TRADING")
-                print("-" * 30)
-                
-                # Monitor current options exposure
-                try:
-                    options_monitoring = self.options_manager.monitor_options_positions()
-                    print(f"📊 Options exposure: {options_monitoring['exposure'].get('options_allocation', 0):.1%}")
-                    
-                    # Show alerts if any
-                    if options_monitoring['alerts']:
-                        for alert in options_monitoring['alerts']:
-                            print(f"⚠️ {alert['type']}: {alert['message']}")
-                except Exception as e:
-                    print(f"⚠️ Options monitoring error: {e}")
-                
-                # Analyze options opportunities for liquid stocks
-                options_stocks = ['SPY', 'QQQ', 'AAPL', 'MSFT', 'NVDA']
-                for symbol in options_stocks:
-                    try:
-                        # Analyze options opportunity
-                        options_analysis = self.options_manager.analyze_options_opportunity(
-                            symbol, regime_type, regime_confidence
-                        )
-                        
-                        recommended_strategy = options_analysis.get('recommended_strategy', {})
-                        if recommended_strategy.get('strategy') != 'none':
-                            # Calculate options position size
-                            position_size = 3000  # $3K base position for options
-                            
-                            # Execute options strategy
-                            options_result = self.options_manager.execute_options_strategy(
-                                options_analysis, position_size
-                            )
-                            options_results[symbol] = options_result
-                            
-                            if options_result['status'] == 'success':
-                                print(f"📊 OPTIONS TRADE: {symbol}")
-                                print(f"   🎯 Strategy: {options_result['strategy']}")
-                                print(f"   💰 Contracts: {options_result.get('contracts', 0)}")
-                                print(f"   🎯 Confidence: {regime_confidence:.1%}")
-                            elif options_result['status'] == 'error':
-                                print(f"📊 OPTIONS FAILED: {symbol} - {options_result.get('reason', 'Unknown error')}")
-                        else:
-                            print(f"📊 OPTIONS SKIP: {symbol} - no suitable strategy")
-                        
-                    except Exception as e:
-                        print(f"⚠️ Options trading error for {symbol}: {e}")
+                    # DUPLICATE OPTIONS SECTION REMOVED - already handled above with market hours check
             
             # Execute trades with intelligence
             if self.execution_enabled:
@@ -1365,9 +1337,54 @@ class Phase3Trader(Phase2Trader):
             traceback.print_exc()
             print("🔄 Continuing to next cycle despite error...")
     
+    def get_market_aware_cycle_delay(self) -> int:
+        """
+        OPTIMIZATION: Smart cycle delays based on market status
+        - US Market Open: 2 minutes (active trading)
+        - US Market Closed + Crypto Enabled: 10 minutes (crypto only)
+        - All Markets Closed: 30 minutes (minimal activity)
+        """
+        try:
+            # Check US market status
+            us_market_open = self.api.get_clock().is_open
+            
+            if us_market_open:
+                # Active US market trading
+                return 120  # 2 minutes - normal high-frequency trading
+            elif self.crypto_trading:
+                # US market closed but crypto available
+                return 600  # 10 minutes - crypto-only trading
+            else:
+                # All trading disabled when markets closed
+                return 1800  # 30 minutes - minimal monitoring
+                
+        except Exception as e:
+            print(f"⚠️ Market status check failed: {e}")
+            return 300  # 5 minutes default if API fails
+    
+    def should_trade_during_cycle(self) -> Tuple[bool, str]:
+        """
+        OPTIMIZATION: Determine if we should trade based on market status
+        Returns (should_trade, reason)
+        """
+        try:
+            # Check US market status
+            us_market_open = self.api.get_clock().is_open
+            
+            if us_market_open:
+                return True, "US market open - full trading enabled"
+            elif self.crypto_trading:
+                return True, "US market closed - crypto-only trading"
+            else:
+                return False, "All markets closed - monitoring only"
+                
+        except Exception as e:
+            print(f"⚠️ Market status check failed: {e}")
+            return True, "Market status unknown - proceeding with caution"
+    
     def run_continuous_intelligence_trading(self):
         """
-        Run continuous trading with Phase 3 intelligence
+        OPTIMIZED: Market-aware continuous trading with smart cycle delays
         """
         print(f"\n🧠 PHASE 3 INTELLIGENCE TRADER STARTING")
         print("=" * 60)
@@ -1377,18 +1394,41 @@ class Phase3Trader(Phase2Trader):
         print(f"📊 Symbol Universe: {len(self.market_universe)} symbols")
         print(f"🎯 Min Confidence: {self.min_confidence_to_trade:.1%}")
         print(f"🧠 Min Technical Confidence: {self.min_technical_confidence:.1%}")
+        print(f"⚡ OPTIMIZATION: Market-aware cycle delays enabled")
         
         cycle_count = 0
         
         try:
             while True:
                 cycle_count += 1
+                
+                # Check if we should trade this cycle
+                should_trade, trade_reason = self.should_trade_during_cycle()
+                cycle_delay = self.get_market_aware_cycle_delay()
+                
                 print(f"\n📊 Cycle #{cycle_count}")
+                print(f"🕐 Market Status: {trade_reason}")
+                print(f"⏳ Next cycle delay: {cycle_delay//60} minutes ({cycle_delay} seconds)")
                 
-                self.run_trading_cycle_with_intelligence()
+                if should_trade:
+                    self.run_trading_cycle_with_intelligence()
+                else:
+                    print(f"💤 SKIPPING CYCLE: {trade_reason}")
+                    print(f"   💡 No US market orders will execute until market reopens")
+                    print(f"   ₿ Crypto trading: {'ENABLED' if self.crypto_trading else 'DISABLED'}")
+                    
+                    # During market closure, only monitor positions for exits if needed
+                    if self.intelligent_exit_manager:
+                        try:
+                            positions = self.api.list_positions()
+                            if positions:
+                                print(f"   📊 Monitoring {len(positions)} positions for emergency exits only")
+                                # Note: Exit monitoring could still be valuable even when markets closed
+                        except Exception as e:
+                            print(f"   ⚠️ Position monitoring failed: {e}")
                 
-                print(f"⏳ Next cycle in {self.cycle_delay} seconds...")
-                time.sleep(self.cycle_delay)
+                print(f"⏳ Sleeping for {cycle_delay//60} minutes until next cycle...")
+                time.sleep(cycle_delay)
                 
         except KeyboardInterrupt:
             print("\n\n🛑 Phase 3 Intelligence Trader stopped by user")
