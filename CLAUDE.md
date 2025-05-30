@@ -67,10 +67,11 @@ python debug_cycle.py
 # CRITICAL: Analyze real trading performance (win rates, P&L, hold times)
 python analyze_trading_performance.py
 
-# Test individual trading phases
-python test_phase1_complete.py  # Database and analysis
-python test_phase2_execution.py # Execution engine
+# Test current system components
+python test_phase4_complete.py  # Complete Phase 4 system integration  
+python test_phase3_standalone.py # Core intelligence modules (87.5% accuracy)
 python test_global_trading.py   # Multi-timezone trading
+python test_ml_integration.py   # ML integration verification
 ```
 
 ### Railway Deployment
