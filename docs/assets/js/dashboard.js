@@ -66,40 +66,73 @@ class TradingDashboard {
 
         } catch (error) {
             console.error('❌ Error loading dashboard data:', error);
+            console.error('❌ Error stack:', error.stack);
             this.showError('Failed to load trading data. Using demo data.');
-            await this.loadMockData();
+            
+            // Force load mock data as fallback
+            try {
+                console.log('🔄 Loading mock data as fallback...');
+                await this.loadMockData();
+                console.log('✅ Mock data loaded successfully');
+            } catch (mockError) {
+                console.error('❌ Even mock data failed to load:', mockError);
+                // Manually set basic values if everything fails
+                document.getElementById('portfolio-value').textContent = '$99,107.70';
+                document.getElementById('active-positions').textContent = '48';
+                document.getElementById('success-rate').textContent = '33.3%';
+                document.getElementById('last-updated').textContent = 'Last updated: Error loading data';
+            }
         } finally {
             document.body.classList.remove('loading');
         }
     }
 
     async fetchTradingData() {
-        // Try to fetch from GitHub Pages API endpoint first
+        const timestamp = Date.now();
+        
+        // Try to fetch from GitHub Pages API endpoint first with cache busting
         try {
-            const response = await fetch('./api/dashboard-data.json');
+            console.log('🔄 Attempting to fetch live data from GitHub Pages...');
+            const response = await fetch(`./api/dashboard-data.json?v=${timestamp}`);
+            console.log('📊 Response status:', response.status);
+            
             if (response.ok) {
                 const data = await response.json();
                 console.log('✅ Loaded live trading data from GitHub Pages');
+                console.log('📊 Data preview:', {
+                    portfolioValue: data.portfolio?.value,
+                    positionsCount: data.positions?.length,
+                    winRate: data.performance?.winRate,
+                    dataSource: data.data_source
+                });
                 return data;
+            } else {
+                console.log('❌ Response not OK:', response.status, response.statusText);
             }
         } catch (error) {
-            console.log('GitHub Pages API not available, trying alternative paths...');
+            console.log('❌ GitHub Pages API error:', error.message);
         }
 
         // Try alternative paths for GitHub Pages
         try {
-            const response = await fetch('api/dashboard-data.json');
+            console.log('🔄 Trying alternative path...');
+            const response = await fetch(`api/dashboard-data.json?v=${timestamp}`);
+            console.log('📊 Alternative response status:', response.status);
+            
             if (response.ok) {
                 const data = await response.json();
                 console.log('✅ Loaded live trading data (alternative path)');
                 return data;
+            } else {
+                console.log('❌ Alternative response not OK:', response.status);
             }
         } catch (error) {
-            console.log('Alternative path failed, using mock data');
+            console.log('❌ Alternative path error:', error.message);
         }
 
         // If no API available, generate realistic mock data based on current system
         console.log('📊 Using mock data for demo purposes');
+        console.log('⚠️ This indicates API access issues on GitHub Pages');
         return this.generateMockData();
     }
 
