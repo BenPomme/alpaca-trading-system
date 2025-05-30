@@ -173,6 +173,7 @@ class DashboardAPI:
         """Get trades from local SQLite database"""
         try:
             conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
             
             # Get trades from the last 30 days
             thirty_days_ago = (datetime.now() - timedelta(days=30)).isoformat()
