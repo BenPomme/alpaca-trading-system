@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple JavaScript Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #1a1a1a; color: white; }
+        .result { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #10b981; }
+        .error { background: #ef4444; }
+    </style>
+</head>
+<body>
+    <h1>🧪 JavaScript & API Test</h1>
+    <div id="js-test" class="result">Testing JavaScript...</div>
+    <div id="api-test" class="result">Testing API...</div>
+    <div id="manual-values" class="result">Manual Values Test...</div>
+    
+    <script>
+        console.log('🚀 JavaScript is executing!');
+        
+        // Test 1: Basic JavaScript
+        document.getElementById('js-test').innerHTML = '✅ JavaScript is working!';
+        document.getElementById('js-test').className = 'result success';
+        
+        // Test 2: Manual value setting (like our fallback)
+        document.getElementById('manual-values').innerHTML = `
+            <strong>✅ Manual Values Working:</strong><br>
+            Portfolio: $99,107.70<br>
+            Positions: 48<br>
+            Win Rate: 33.3%
+        `;
+        document.getElementById('manual-values').className = 'result success';
+        
+        // Test 3: API fetch
+        async function testAPI() {
+            try {
+                console.log('🔄 Testing API fetch...');
+                const timestamp = Date.now();
+                const response = await fetch(`./api/dashboard-data.json?v=${timestamp}`);
+                console.log('📊 API Response status:', response.status);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ API data loaded:', data.portfolio?.value);
+                    
+                    document.getElementById('api-test').innerHTML = `
+                        <strong>✅ API Working:</strong><br>
+                        Portfolio: $${data.portfolio?.value?.toLocaleString()}<br>
+                        Positions: ${data.positions?.length}<br>
+                        Win Rate: ${data.performance?.winRate?.toFixed(1)}%<br>
+                        Source: ${data.data_source}
+                    `;
+                    document.getElementById('api-test').className = 'result success';
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                console.error('❌ API Test failed:', error);
+                document.getElementById('api-test').innerHTML = `❌ API Failed: ${error.message}`;
+                document.getElementById('api-test').className = 'result error';
+            }
+        }
+        
+        // Run API test
+        testAPI();
+        
+        console.log('🎯 All tests executed');
+    </script>
+</body>
+</html>
