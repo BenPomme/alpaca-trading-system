@@ -5,6 +5,8 @@ on:
     - cron: '*/10 13-20 * * 1-5'
     - cron: '*/30 * * * *'
   workflow_dispatch:
+  push:
+    branches: [ main ]
 
 permissions:
   contents: write
@@ -38,6 +40,9 @@ jobs:
         ALPACA_PAPER_SECRET_KEY: ${{ secrets.ALPACA_PAPER_SECRET_KEY }}
       run: |
         echo "🔄 Generating dashboard data..."
+        # Clean environment variables (remove any trailing newlines/spaces)
+        export ALPACA_PAPER_API_KEY=$(echo "$ALPACA_PAPER_API_KEY" | tr -d '\n\r ')
+        export ALPACA_PAPER_SECRET_KEY=$(echo "$ALPACA_PAPER_SECRET_KEY" | tr -d '\n\r ')
         python dashboard_api.py
         echo "✅ Dashboard data generated"
     
