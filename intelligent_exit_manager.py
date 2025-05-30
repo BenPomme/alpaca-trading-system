@@ -93,6 +93,21 @@ class IntelligentExitManager:
                 'analysis_components': {}
             }
             
+            # INTRADAY END-OF-DAY LIQUIDATION CHECK (highest priority)
+            if hasattr(self.risk_manager, 'should_liquidate_intraday_positions') and self.risk_manager.should_liquidate_intraday_positions():
+                is_stock = not symbol.endswith('USD') and '/' not in symbol and len(symbol) <= 5
+                if is_stock:
+                    return {
+                        'action': 'sell',
+                        'reason': 'end_of_day_liquidation',
+                        'confidence': 1.0,
+                        'exit_portion': 1.0,  # Full liquidation
+                        'exit_signals': ['intraday_eod_liquidation'],
+                        'pl_pct': pl_pct,
+                        'hold_hours': hold_hours,
+                        'priority': 'highest'
+                    }
+            
             # CRITICAL FIX: Prevent premature exits (main cause of 13.2% win rate)
             if hold_hours < self.min_hold_hours and pl_pct > -self.base_stop_loss:
                 return {

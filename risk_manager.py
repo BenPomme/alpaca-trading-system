@@ -38,8 +38,49 @@ class RiskManager:
             'conservative': 0.3                   # Minimal positions
         }
         
+        # INTRADAY TRADING PARAMETERS
+        self.intraday_enabled = False
+        self.intraday_eligible = False
+        self.daytrading_buying_power = 0
+        self.max_intraday_position_size = 0
+        self.intraday_position_multiplier = 1.5  # 50% larger positions for intraday
+        self.end_of_day_liquidation_hour = 15.5  # 3:30 PM ET (30 min before close)
+        
+        # Initialize intraday capabilities
+        self._initialize_intraday_trading()
+        
         print("✅ Risk Manager initialized")
         self.print_risk_parameters()
+    
+    def _initialize_intraday_trading(self):
+        """Initialize intraday trading capabilities"""
+        try:
+            if self.api:
+                account = self.api.get_account()
+                equity = float(account.equity)
+                self.daytrading_buying_power = float(getattr(account, 'daytrading_buying_power', 0))
+                
+                # Check Pattern Day Trading eligibility
+                self.intraday_eligible = (
+                    equity >= 25000 and 
+                    hasattr(account, 'pattern_day_trader') and 
+                    account.pattern_day_trader
+                )
+                
+                if self.intraday_eligible:
+                    # Calculate maximum intraday position size (15% of day trading power)
+                    self.max_intraday_position_size = self.daytrading_buying_power * 0.15
+                    self.intraday_enabled = True
+                    print(f"🚀 Intraday Trading: ✅ ENABLED")
+                    print(f"   💰 Day Trading Power: ${self.daytrading_buying_power:,.2f}")
+                    print(f"   🎯 Max Intraday Position: ${self.max_intraday_position_size:,.2f}")
+                else:
+                    print(f"🚀 Intraday Trading: ❌ DISABLED (Account not eligible)")
+                    print(f"   💰 Equity: ${equity:,.2f} (need $25k+)")
+                    
+        except Exception as e:
+            print(f"⚠️ Intraday initialization failed: {e}")
+            self.intraday_enabled = False
     
     def print_risk_parameters(self):
         """Display current risk parameters"""
@@ -50,14 +91,34 @@ class RiskManager:
         print(f"   Stop Loss: {self.stop_loss_pct:.1%}")
         print(f"   Take Profit: {self.take_profit_pct:.1%}")
         print(f"   Max Daily Loss: {self.max_daily_loss_pct:.1%}")
+        if self.intraday_enabled:
+            print(f"   🚀 Intraday Strategy: ACTIVE")
+            print(f"   ⏰ EOD Liquidation: {int(self.end_of_day_liquidation_hour)}:{int((self.end_of_day_liquidation_hour % 1) * 60):02d} ET")
     
     def calculate_position_size(self, symbol: str, entry_price: float, 
                                strategy: str, confidence: float, 
                                portfolio_value: float) -> Tuple[int, Dict]:
         """Calculate optimal position size with risk management"""
         
-        # Base risk amount (2% of portfolio)
-        base_risk_amount = portfolio_value * self.position_risk_pct
+        # Determine if this is an intraday stock position
+        is_stock_intraday = (
+            self.intraday_enabled and 
+            self._is_stock_symbol(symbol) and
+            self._should_use_intraday_strategy()
+        )
+        
+        if is_stock_intraday:
+            # INTRADAY POSITION SIZING - Use day trading power
+            base_risk_amount = self.daytrading_buying_power * self.position_risk_pct
+            max_position_value = self.max_intraday_position_size
+            sizing_multiplier = self.intraday_position_multiplier
+            sizing_mode = "intraday"
+        else:
+            # MULTI-DAY POSITION SIZING - Use portfolio value  
+            base_risk_amount = portfolio_value * self.position_risk_pct
+            max_position_value = portfolio_value * self.max_position_size_pct
+            sizing_multiplier = 1.0
+            sizing_mode = "multiday"
         
         # Strategy-based risk adjustment
         strategy_multiplier = self.confidence_multipliers.get(strategy, 1.0)
@@ -65,11 +126,10 @@ class RiskManager:
         # Confidence-based adjustment (scale with confidence 0.5-1.0 → 0.7-1.3)
         confidence_multiplier = 0.7 + (confidence * 0.6)
         
-        # Calculate adjusted risk
-        adjusted_risk = base_risk_amount * strategy_multiplier * confidence_multiplier
+        # Calculate adjusted risk with intraday multiplier
+        adjusted_risk = base_risk_amount * strategy_multiplier * confidence_multiplier * sizing_multiplier
         
         # Position size limits
-        max_position_value = portfolio_value * self.max_position_size_pct
         target_position_value = min(adjusted_risk, max_position_value)
         
         # Calculate shares
@@ -80,14 +140,17 @@ class RiskManager:
             target_shares = 1
         
         sizing_info = {
+            'sizing_mode': sizing_mode,
             'base_risk_amount': base_risk_amount,
             'strategy_multiplier': strategy_multiplier,
             'confidence_multiplier': confidence_multiplier,
+            'sizing_multiplier': sizing_multiplier,
             'adjusted_risk': adjusted_risk,
             'max_position_value': max_position_value,
             'target_position_value': target_position_value,
             'target_shares': target_shares,
-            'estimated_cost': target_shares * entry_price
+            'estimated_cost': target_shares * entry_price,
+            'is_intraday': is_stock_intraday
         }
         
         return target_shares, sizing_info
@@ -411,6 +474,88 @@ class RiskManager:
             
         except Exception as e:
             return {'error': f'Risk metrics calculation failed: {e}'}
+    
+    def _is_stock_symbol(self, symbol: str) -> bool:
+        """Determine if symbol is a stock/ETF (not crypto or options)"""
+        # Crypto symbols end with USD
+        if symbol.endswith('USD'):
+            return False
+        
+        # Options symbols typically have / or are longer than 5 chars
+        if '/' in symbol or len(symbol) > 5:
+            return False
+            
+        # Everything else is considered stock/ETF
+        return True
+    
+    def _should_use_intraday_strategy(self) -> bool:
+        """Determine if we should use intraday strategy based on market hours"""
+        try:
+            if not self.api:
+                return False
+                
+            # Check if market is open
+            clock = self.api.get_clock()
+            if not clock.is_open:
+                return False
+                
+            # Check if it's close to end of day (don't start new intraday positions)
+            import datetime
+            import pytz
+            
+            # Get current ET time
+            et = pytz.timezone('America/New_York')
+            now_et = datetime.datetime.now(et)
+            market_close_hour = self.end_of_day_liquidation_hour
+            
+            # Don't start new intraday positions if we're close to liquidation time
+            current_hour = now_et.hour + now_et.minute / 60.0
+            if current_hour >= market_close_hour:
+                return False
+                
+            return True
+            
+        except Exception as e:
+            print(f"⚠️ Intraday strategy check failed: {e}")
+            return False
+    
+    def should_liquidate_intraday_positions(self) -> bool:
+        """Check if it's time to liquidate intraday positions (end of day)"""
+        try:
+            if not self.intraday_enabled:
+                return False
+                
+            import datetime
+            import pytz
+            
+            # Get current ET time
+            et = pytz.timezone('America/New_York')
+            now_et = datetime.datetime.now(et)
+            current_hour = now_et.hour + now_et.minute / 60.0
+            
+            # Liquidate at or after the specified hour
+            return current_hour >= self.end_of_day_liquidation_hour
+            
+        except Exception as e:
+            print(f"⚠️ Liquidation time check failed: {e}")
+            return False
+    
+    def get_intraday_positions(self) -> List:
+        """Get list of positions that should be liquidated at end of day"""
+        try:
+            positions = self.api.list_positions()
+            intraday_positions = []
+            
+            for pos in positions:
+                # All stock positions are considered intraday if intraday is enabled
+                if self._is_stock_symbol(pos.symbol):
+                    intraday_positions.append(pos)
+                    
+            return intraday_positions
+            
+        except Exception as e:
+            print(f"⚠️ Error getting intraday positions: {e}")
+            return []
 
 def test_risk_manager():
     """Test risk management functionality"""
