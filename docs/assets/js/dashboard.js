@@ -74,17 +74,32 @@ class TradingDashboard {
     }
 
     async fetchTradingData() {
-        // Try to fetch from local API endpoint first
+        // Try to fetch from GitHub Pages API endpoint first
         try {
-            const response = await fetch('/api/dashboard-data.json');
+            const response = await fetch('./api/dashboard-data.json');
             if (response.ok) {
-                return await response.json();
+                const data = await response.json();
+                console.log('✅ Loaded live trading data from GitHub Pages');
+                return data;
             }
         } catch (error) {
-            console.log('Local API not available, using mock data');
+            console.log('GitHub Pages API not available, trying alternative paths...');
+        }
+
+        // Try alternative paths for GitHub Pages
+        try {
+            const response = await fetch('api/dashboard-data.json');
+            if (response.ok) {
+                const data = await response.json();
+                console.log('✅ Loaded live trading data (alternative path)');
+                return data;
+            }
+        } catch (error) {
+            console.log('Alternative path failed, using mock data');
         }
 
         // If no API available, generate realistic mock data based on current system
+        console.log('📊 Using mock data for demo purposes');
         return this.generateMockData();
     }
 
