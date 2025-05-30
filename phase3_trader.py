@@ -726,6 +726,44 @@ class Phase3Trader(Phase2Trader):
             
             print(f"✅ Retrieved {len(quotes)} quotes")
             
+            # Enhanced regime detection using intelligence (MOVED TO TOP TO FIX VARIABLE SCOPE)
+            print("\n🧠 ANALYZING MARKET INTELLIGENCE")
+            print("-" * 40)
+            
+            # Add VIX data if available (simulated for now)
+            import random
+            simulated_vix = random.uniform(15, 25)
+            self.regime_detector.add_vix_data(simulated_vix)
+            
+            # Get comprehensive market regime analysis
+            regime_analysis = self.regime_detector.get_comprehensive_regime_analysis()
+            
+            # Extract regime information (now guaranteed to exist)
+            overall = regime_analysis['overall_assessment']
+            regime_type = overall['regime']
+            
+            if regime_type == 'bullish':
+                market_regime = "active"
+            elif regime_type == 'bearish':
+                market_regime = "uncertain"
+            else:
+                market_regime = "neutral"
+            
+            regime_confidence = overall['confidence']
+            
+            # Display additional info if available
+            if 'note' in overall:
+                print(f"ℹ️ Regime Analysis: {overall['note']}")
+                
+                # Show data accumulation progress
+                indices_analyzed = overall.get('indices_analyzed', 0)
+                if indices_analyzed == 0:
+                    print(f"📊 Intelligence Building: Accumulating market data...")
+                    print(f"   💡 Technical indicators need 20-50 cycles for full analysis")
+                    print(f"   🎯 Regime detection will improve as data accumulates")
+            
+            print(f"🎯 Market Regime: {market_regime} ({regime_confidence:.1%} confidence)")
+            
             # CRITICAL FIX: Position monitoring and exit management
             print("\n💼 POSITION MONITORING & EXIT MANAGEMENT")
             print("-" * 50)
@@ -914,45 +952,10 @@ class Phase3Trader(Phase2Trader):
             except Exception as e:
                 print(f"⚠️ Position monitoring error: {e}")
             
-            # Enhanced regime detection using intelligence
-            print("\n🧠 ANALYZING MARKET INTELLIGENCE")
-            print("-" * 40)
+            # ML-Enhanced strategy selection (FIXED: Initialize strategy variable first)
+            # Initialize strategy with default value to prevent variable scope errors
+            strategy = "conservative"
             
-            # Add VIX data if available (simulated for now)
-            import random
-            simulated_vix = random.uniform(15, 25)
-            self.regime_detector.add_vix_data(simulated_vix)
-            
-            # Get comprehensive market regime analysis
-            regime_analysis = self.regime_detector.get_comprehensive_regime_analysis()
-            
-            # Extract regime information (now guaranteed to exist)
-            overall = regime_analysis['overall_assessment']
-            regime_type = overall['regime']
-            
-            if regime_type == 'bullish':
-                market_regime = "active"
-            elif regime_type == 'bearish':
-                market_regime = "uncertain"
-            else:
-                market_regime = "neutral"
-            
-            regime_confidence = overall['confidence']
-            
-            # Display additional info if available
-            if 'note' in overall:
-                print(f"ℹ️ Regime Analysis: {overall['note']}")
-                
-                # Show data accumulation progress
-                indices_analyzed = overall.get('indices_analyzed', 0)
-                if indices_analyzed == 0:
-                    print(f"📊 Intelligence Building: Accumulating market data...")
-                    print(f"   💡 Technical indicators need 20-50 cycles for full analysis")
-                    print(f"   🎯 Regime detection will improve as data accumulates")
-            
-            print(f"🎯 Market Regime: {market_regime} ({regime_confidence:.1%} confidence)")
-            
-            # ML-Enhanced strategy selection
             if self.ml_framework:
                 print(f"🧠 USING ML-ENHANCED STRATEGY SELECTION")
                 try:
