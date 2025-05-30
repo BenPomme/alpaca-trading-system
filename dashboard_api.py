@@ -22,12 +22,19 @@ class DashboardAPI:
         secret_key = os.getenv('ALPACA_PAPER_SECRET_KEY')
         
         if api_key and secret_key:
-            self.api = tradeapi.REST(
-                key_id=api_key,
-                secret_key=secret_key,
-                base_url='https://paper-api.alpaca.markets',
-                api_version='v2'
-            )
+            try:
+                self.api = tradeapi.REST(
+                    key_id=api_key,
+                    secret_key=secret_key,
+                    base_url='https://paper-api.alpaca.markets',
+                    api_version='v2'
+                )
+                # Test the connection
+                account = self.api.get_account()
+                print(f"✅ API Connection successful: Portfolio Value: ${account.portfolio_value}")
+            except Exception as e:
+                print(f"⚠️ API connection failed: {e}")
+                self.api = None
         else:
             self.api = None
             print("⚠️ Alpaca API credentials not found")
@@ -336,7 +343,21 @@ class DashboardAPI:
             return {'isOpen': False, 'nextOpen': 'Unknown', 'nextClose': 'Unknown'}
     
     def get_mock_dashboard_data(self) -> Dict[str, Any]:
-        """Fallback mock data"""
+        """Fallback data using last known real data"""
+        # Try to load the last known good data
+        try:
+            if os.path.exists("docs/api/dashboard-data.json"):
+                with open("docs/api/dashboard-data.json", 'r') as f:
+                    last_data = json.load(f)
+                    # Update the timestamp and data source
+                    last_data['generated_at'] = datetime.now().isoformat()
+                    last_data['data_source'] = 'cached_fallback'
+                    print("📋 Using cached data as fallback")
+                    return last_data
+        except Exception as e:
+            print(f"⚠️ Could not load cached data: {e}")
+        
+        # If no cached data, use basic mock data
         return {
             'portfolio': self.get_mock_portfolio_data(),
             'positions': self.get_mock_positions_data(),
