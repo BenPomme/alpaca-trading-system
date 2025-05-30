@@ -764,14 +764,17 @@ class Phase3Trader(Phase2Trader):
             
             print(f"🎯 Market Regime: {market_regime} ({regime_confidence:.1%} confidence)")
             
-            # CRITICAL FIX: Position monitoring and exit management
-            print("\n💼 POSITION MONITORING & EXIT MANAGEMENT")
-            print("-" * 50)
-            print(f"🔍 DEBUG: Intelligent exit manager status: {'✅ ACTIVE' if self.intelligent_exit_manager else '❌ INACTIVE'}")
+            print("🔍 DEBUG: About to start position monitoring section...")
             
-            # Get current positions for monitoring
             try:
+                # CRITICAL FIX: Position monitoring and exit management
+                print("\n💼 POSITION MONITORING & EXIT MANAGEMENT")
+                print("-" * 50)
+                print(f"🔍 DEBUG: Intelligent exit manager status: {'✅ ACTIVE' if self.intelligent_exit_manager else '❌ INACTIVE'}")
+                
+                # Get current positions for monitoring
                 positions = self.api.list_positions()
+                print(f"🔍 DEBUG: Retrieved {len(positions)} positions from API")
                 if positions:
                     print(f"📊 Monitoring {len(positions)} open positions for intelligent exits...")
                     
@@ -986,7 +989,10 @@ class Phase3Trader(Phase2Trader):
                     print("📊 No open positions to monitor")
                     
             except Exception as e:
-                print(f"⚠️ Position monitoring error: {e}")
+                print(f"🚨 CRITICAL POSITION MONITORING ERROR: {e}")
+                import traceback
+                traceback.print_exc()
+                print("🔍 Position monitoring section failed completely!")
             
             # ML-Enhanced strategy selection (FIXED: Initialize strategy variable first)
             # Initialize strategy with default value to prevent variable scope errors
