@@ -792,19 +792,21 @@ class Phase3Trader(Phase2Trader):
                                 
                                 # Get current market data for the position (handle crypto differently)
                                 if is_crypto:
-                                    # For crypto, try to get price data
+                                    # For crypto, use position market value as primary method (more reliable)
                                     try:
-                                        quote = self.api.get_latest_quote(symbol)
-                                        if quote and hasattr(quote, 'bid_price') and quote.bid_price:
-                                            current_price = float(quote.bid_price)
-                                        elif quote and hasattr(quote, 'ask_price') and quote.ask_price:
-                                            current_price = float(quote.ask_price)
-                                        else:
-                                            # Fallback to position market value calculation
-                                            current_price = float(position.market_value) / float(position.qty) if float(position.qty) != 0 else 0
-                                            print(f"   ₿ Using position market value for {symbol}: ${current_price:.2f}")
-                                    except Exception as crypto_quote_error:
-                                        print(f"   ⚠️ Crypto quote error for {symbol}: {crypto_quote_error}")
+                                        # Primary: Use position market value (always available)
+                                        current_price = float(position.market_value) / float(position.qty) if float(position.qty) != 0 else 0
+                                        print(f"   ₿ Using position market value for {symbol}: ${current_price:.2f}")
+                                        
+                                        # Secondary: Try to get quote for volume data (optional)
+                                        quote = None
+                                        try:
+                                            quote = self.api.get_latest_quote(symbol)
+                                        except Exception as quote_error:
+                                            print(f"   ₿ Quote unavailable for {symbol} (using position data): {quote_error}")
+                                        
+                                    except Exception as crypto_calc_error:
+                                        print(f"   ⚠️ Crypto price calculation error for {symbol}: {crypto_calc_error}")
                                         continue
                                 else:
                                     # Standard stock quote handling
@@ -834,10 +836,11 @@ class Phase3Trader(Phase2Trader):
                                 if is_crypto:
                                     market_data = {
                                         'current_price': current_price,
-                                        'volume': getattr(quote, 'volume', 0) if quote else 0,
+                                        'volume': getattr(quote, 'volume', 1000) if quote else 1000,  # Default volume for crypto
                                         'bid': float(quote.bid_price) if quote and hasattr(quote, 'bid_price') and quote.bid_price else current_price,
                                         'ask': float(quote.ask_price) if quote and hasattr(quote, 'ask_price') and quote.ask_price else current_price,
-                                        'is_crypto': True
+                                        'is_crypto': True,
+                                        'data_source': 'position_value'  # Indicate data source for debugging
                                     }
                                 else:
                                     market_data = {
