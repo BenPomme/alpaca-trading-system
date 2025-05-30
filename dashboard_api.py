@@ -156,14 +156,23 @@ class DashboardAPI:
             return self.get_mock_positions_data()
     
     def get_trades_from_db(self) -> List[Dict[str, Any]]:
-        """Get trades from database"""
+        """Get trades from database (local or cloud)"""
         try:
-            if not os.path.exists(self.db_path):
-                print(f"⚠️ Database not found: {self.db_path}")
-                return []
+            # Try local database first
+            if os.path.exists(self.db_path):
+                return self._get_trades_from_local_db()
             
+            # Fallback to cloud data
+            return self._get_trades_from_cloud_data()
+            
+        except Exception as e:
+            print(f"⚠️ Error getting trades from database: {e}")
+            return []
+    
+    def _get_trades_from_local_db(self) -> List[Dict[str, Any]]:
+        """Get trades from local SQLite database"""
+        try:
             conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
             
             # Get trades from the last 30 days
             thirty_days_ago = (datetime.now() - timedelta(days=30)).isoformat()

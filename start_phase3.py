@@ -48,6 +48,17 @@ def main():
         return 1
     
     try:
+        # Initialize cloud database sync for Railway deployment
+        print("\n☁️ Initializing cloud database sync...")
+        try:
+            from cloud_database import CloudDatabase
+            cloud_db = CloudDatabase()
+            # Sync from cloud to get latest trading data
+            cloud_db.sync_from_github()
+            print("✅ Cloud database sync completed")
+        except Exception as e:
+            print(f"⚠️ Cloud sync failed: {e} - continuing with local data")
+        
         # Import and initialize Phase 3 trader
         from phase3_trader import Phase3Trader
         
