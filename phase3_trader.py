@@ -1539,7 +1539,21 @@ class Phase3Trader(Phase2Trader):
     def _migrate_sqlite_to_firebase(self):
         """Migrate existing SQLite data to Firebase on first run"""
         try:
-            if not self.firebase_db.is_connected() or not os.path.exists(self.db_path):
+            # QA.md Rule 6: Check attribute exists before accessing
+            if not self.firebase_db.is_connected():
+                return
+            
+            # Get database path from parent class or construct it
+            if hasattr(self, 'db_path'):
+                db_path = self.db_path
+            elif hasattr(self, 'db') and hasattr(self.db, 'db_path'):
+                db_path = self.db.db_path  
+            else:
+                # Construct default path
+                db_path = os.path.join('data', 'trading_system.db')
+            
+            if not os.path.exists(db_path):
+                print("ℹ️ No local SQLite database found for migration")
                 return
             
             print("🔄 Migrating SQLite data to Firebase...")
@@ -1552,7 +1566,7 @@ class Phase3Trader(Phase2Trader):
             
             # Import data from SQLite
             import sqlite3
-            conn = sqlite3.connect(self.db_path)
+            conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
             
             # Migrate trading cycles

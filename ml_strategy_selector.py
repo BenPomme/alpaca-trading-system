@@ -15,8 +15,9 @@ from database_manager import TradingDatabase
 class MLStrategySelector:
     """Machine learning-enhanced strategy selection"""
     
-    def __init__(self, db: TradingDatabase = None):
+    def __init__(self, db: TradingDatabase = None, firebase_db = None):
         self.db = db
+        self.firebase_db = firebase_db
         
         # Strategy performance tracking
         self.strategy_history = {}

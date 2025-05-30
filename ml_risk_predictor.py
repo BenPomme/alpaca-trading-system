@@ -13,8 +13,9 @@ from database_manager import TradingDatabase
 class MLRiskPredictor:
     """Machine learning risk prediction and position sizing"""
     
-    def __init__(self, db: TradingDatabase = None):
+    def __init__(self, db: TradingDatabase = None, firebase_db = None):
         self.db = db
+        self.firebase_db = firebase_db
         
         # Risk prediction parameters
         self.lookback_period = 20  # Days for volatility calculation
