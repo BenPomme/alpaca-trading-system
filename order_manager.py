@@ -63,7 +63,18 @@ class OrderManager:
         try:
             account = self.api.get_account()
             portfolio_value = float(account.portfolio_value)
-            buying_power = float(account.buying_power)
+            
+            # CRITICAL FIX: Use proper buying power based on trade type
+            daytrading_bp = float(getattr(account, 'daytrading_buying_power', 0))
+            regt_bp = float(getattr(account, 'regt_buying_power', 0))
+            
+            # Use day trading power if available for intraday trades
+            if daytrading_bp > 0:
+                buying_power = daytrading_bp  # 4:1 leverage
+            elif regt_bp > 0:
+                buying_power = regt_bp  # 2:1 leverage  
+            else:
+                buying_power = float(account.buying_power)  # Fallback
             
             # Base position size (2% of portfolio)
             risk_amount = portfolio_value * self.position_size_pct

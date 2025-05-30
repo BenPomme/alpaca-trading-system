@@ -92,16 +92,41 @@ class MLStrategySelector:
             cutoff_date = (datetime.now() - timedelta(days=days)).isoformat()
             
             # This would query the database for strategy performance
-            # For now, return mock data that would come from real database
-            performance = {
-                'aggressive_momentum': {'win_rate': 0.68, 'avg_return': 0.045, 'sharpe_ratio': 1.2, 'trade_count': 15},
-                'momentum': {'win_rate': 0.62, 'avg_return': 0.035, 'sharpe_ratio': 1.0, 'trade_count': 25},
-                'sector_rotation': {'win_rate': 0.58, 'avg_return': 0.025, 'sharpe_ratio': 0.8, 'trade_count': 18},
-                'volatility_trading': {'win_rate': 0.55, 'avg_return': 0.030, 'sharpe_ratio': 0.7, 'trade_count': 12},
-                'defensive': {'win_rate': 0.45, 'avg_return': 0.015, 'sharpe_ratio': 0.5, 'trade_count': 8}
-            }
+            # PRODUCTION FIX: Use real database performance data instead of hardcoded values
+            if self.db:
+                # Query actual performance from database
+                try:
+                    # Get trades for this strategy
+                    trades = self.db.get_trades_by_strategy(strategy)
+                    if trades and len(trades) > 0:
+                        # Calculate real performance metrics
+                        wins = sum(1 for trade in trades if trade.get('profit_loss', 0) > 0)
+                        total_trades = len(trades)
+                        win_rate = wins / total_trades if total_trades > 0 else 0.5
+                        
+                        # Calculate average return
+                        returns = [trade.get('profit_loss', 0) for trade in trades]
+                        avg_return = sum(returns) / len(returns) if returns else 0.0
+                        
+                        # Simplified Sharpe ratio calculation
+                        if len(returns) > 1:
+                            import statistics
+                            return_std = statistics.stdev(returns) if len(returns) > 1 else 1.0
+                            sharpe_ratio = avg_return / return_std if return_std > 0 else 0.0
+                        else:
+                            sharpe_ratio = 0.0
+                        
+                        return {
+                            'win_rate': win_rate,
+                            'avg_return': avg_return,
+                            'sharpe_ratio': sharpe_ratio,
+                            'trade_count': total_trades
+                        }
+                except Exception as db_error:
+                    print(f"⚠️ Database query failed for {strategy}: {db_error}")
             
-            return performance.get(strategy, {'win_rate': 0.5, 'avg_return': 0.0, 'sharpe_ratio': 0.0, 'trade_count': 0})
+            # Fallback to neutral baseline for unknown strategies
+            return {'win_rate': 0.5, 'avg_return': 0.0, 'sharpe_ratio': 0.0, 'trade_count': 0}
             
         except Exception as e:
             print(f"⚠️ Error getting strategy performance: {e}")

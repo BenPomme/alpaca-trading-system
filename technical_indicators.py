@@ -99,9 +99,19 @@ class TechnicalIndicators:
         # MACD line
         macd_line = fast_ema - slow_ema
         
-        # For signal line, we need previous MACD values
-        # Simplified: use current MACD as signal approximation
-        signal_line = macd_line * 0.8  # Simplified signal calculation
+        # Add current MACD to history for signal line calculation
+        self.macd_history[symbol].append(macd_line)
+        
+        # Calculate signal line (EMA of MACD line)
+        if len(self.macd_history[symbol]) >= signal_period:
+            # Use proper EMA calculation for signal line - use ALL available MACD values
+            signal_line = self._calculate_ema_from_values(
+                self.macd_history[symbol], 
+                signal_period
+            )
+        else:
+            # Not enough MACD history - use simple average as approximation
+            signal_line = sum(self.macd_history[symbol]) / len(self.macd_history[symbol])
         
         # Histogram
         histogram = macd_line - signal_line

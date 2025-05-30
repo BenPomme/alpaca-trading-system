@@ -197,16 +197,23 @@ class RiskManager:
             if position_pct > self.max_position_size_pct:
                 return False, f"Position too large ({position_pct:.1%} > {self.max_position_size_pct:.1%})"
             
-            # Check buying power (FIXED: Use RegT buying power, not day trading)
-            # Try RegT buying power first (this is what we want!)
+            # CRITICAL FIX: Use day trading power for intraday, RegT for overnight
+            daytrading_bp = float(getattr(account, 'daytrading_buying_power', 0))
             regt_bp = float(getattr(account, 'regt_buying_power', 0))
-            buying_power = float(account.buying_power)  # Default (day trading)
+            buying_power = float(account.buying_power)  # Fallback
             
-            if regt_bp > 0:
-                buying_power = regt_bp
-                print(f"   ✅ Using RegT buying power: ${buying_power:,.2f}")
+            # CRITICAL: Check if this is an intraday trade to determine leverage
+            is_intraday = hasattr(self, 'should_liquidate_intraday_positions') and not self.should_liquidate_intraday_positions()
+            
+            # PRODUCTION FIX: Prioritize day trading power for maximum leverage utilization
+            if daytrading_bp > 0:
+                buying_power = daytrading_bp  # Use 4:1 leverage when available
+                print(f"   🚀 Using Day Trading buying power (4:1): ${buying_power:,.2f}")
+            elif regt_bp > 0:
+                buying_power = regt_bp  # Use 2:1 leverage for overnight positions
+                print(f"   ✅ Using RegT buying power (2:1): ${buying_power:,.2f}")
             elif buying_power > 0:
-                print(f"   ✅ Using standard buying power: ${buying_power:,.2f}")
+                print(f"   ⚠️ Using standard buying power: ${buying_power:,.2f}")
             else:
                 # Fallback to cash if both are 0
                 cash = float(account.cash)

@@ -323,14 +323,11 @@ class CryptoTrader:
                 # Fallback to regular quote method
                 quote = self.api.get_latest_quote(symbol)
                 return float(quote.ask_price) if quote and quote.ask_price else 0.0
-            except:
-                # Final fallback - return mock price for testing
-                if 'BTC' in symbol:
-                    return 45000.0  # Mock BTC price
-                elif 'ETH' in symbol:
-                    return 3000.0   # Mock ETH price
-                else:
-                    return 100.0    # Mock price for other cryptos
+            except Exception as e:
+                # PRODUCTION FIX: No mock prices in real trading
+                print(f"❌ CRITICAL: Cannot get real price for {symbol}: {e}")
+                print(f"🚨 TRADING HALTED: No mock prices allowed in production")
+                return None
     
     def get_crypto_portfolio_status(self) -> Dict:
         """Get current crypto portfolio status"""

@@ -2,4 +2,9 @@
 __pycache__/
 *.pyc
 data/trading_system.db
-data/trading_log.json.railway-token
+data/trading_log.json
+.railway-token
+
+# Firebase credentials
+*firebase-adminsdk*.json
+firebase-config.json
