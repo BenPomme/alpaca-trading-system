@@ -50,13 +50,26 @@ class Phase3Trader(Phase2Trader):
         
         # Initialize Firebase Database for persistent cloud storage
         print("🔥 Initializing Firebase Database...")
-        self.firebase_db = FirebaseDatabase()
-        if self.firebase_db.is_connected():
-            print("✅ Firebase Database: Connected")
-            # Migrate any existing SQLite data to Firebase on first run
-            self._migrate_sqlite_to_firebase()
-        else:
-            print("⚠️ Firebase Database: Not connected - using local fallback")
+        try:
+            print("🔥 DEBUG: Attempting Firebase import...")
+            from firebase_database import FirebaseDatabase
+            print("✅ DEBUG: FirebaseDatabase import successful")
+            
+            self.firebase_db = FirebaseDatabase()
+            print("✅ DEBUG: FirebaseDatabase object created")
+            
+            if self.firebase_db.is_connected():
+                print("✅ Firebase Database: Connected")
+                # Migrate any existing SQLite data to Firebase on first run
+                self._migrate_sqlite_to_firebase()
+            else:
+                print("⚠️ Firebase Database: Not connected - using local fallback")
+        except ImportError as e:
+            print(f"❌ DEBUG: Firebase import failed: {e}")
+            self.firebase_db = None
+        except Exception as e:
+            print(f"❌ DEBUG: Firebase initialization failed: {e}")
+            self.firebase_db = None
         
         # Initialize intelligence modules
         self.technical_indicators = TechnicalIndicators()
