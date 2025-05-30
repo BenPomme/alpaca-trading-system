@@ -55,6 +55,25 @@ class TradingDatabase:
             )
         ''')
         
+        # Real trades table (for actual executions)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS trades (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                symbol TEXT NOT NULL,
+                side TEXT NOT NULL,  -- 'buy' or 'sell'
+                price REAL NOT NULL,
+                quantity REAL NOT NULL,
+                strategy TEXT NOT NULL,
+                regime TEXT,
+                confidence REAL,
+                timestamp TEXT NOT NULL,
+                order_id TEXT,
+                exit_reason TEXT,
+                profit_loss REAL DEFAULT 0,
+                date_created TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
         # Virtual trades table (for performance tracking)
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS virtual_trades (
@@ -90,7 +109,9 @@ class TradingDatabase:
         # Create indexes for better performance
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_quotes_symbol_timestamp ON market_quotes(symbol, timestamp)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_cycles_timestamp ON trading_cycles(timestamp)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_trades_symbol_timestamp ON virtual_trades(symbol, timestamp)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_trades_symbol_timestamp ON trades(symbol, timestamp)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_virtual_trades_symbol_timestamp ON virtual_trades(symbol, timestamp)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_trades_strategy ON trades(strategy, timestamp)')
         
         conn.commit()
         conn.close()
@@ -257,6 +278,84 @@ class TradingDatabase:
         
         conn.close()
         return results
+    
+    def get_trades_by_strategy(self, strategy: str, days: int = 30) -> List[Dict]:
+        """Get trades filtered by strategy for ML analysis"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cutoff_date = (datetime.now() - timedelta(days=days)).isoformat()
+        
+        # First try real trades table
+        cursor.execute('''
+            SELECT symbol, side, price, quantity, strategy, regime, confidence, timestamp, profit_loss, exit_reason
+            FROM trades 
+            WHERE strategy = ? AND timestamp > ?
+            ORDER BY timestamp DESC
+        ''', (strategy, cutoff_date))
+        
+        results = []
+        for row in cursor.fetchall():
+            results.append({
+                'symbol': row[0],
+                'side': row[1],
+                'price': row[2],
+                'quantity': row[3],
+                'strategy': row[4],
+                'regime': row[5],
+                'confidence': row[6],
+                'timestamp': row[7],
+                'profit_loss': row[8],
+                'exit_reason': row[9]
+            })
+        
+        # If no real trades, fallback to virtual trades for analysis
+        if not results:
+            cursor.execute('''
+                SELECT symbol, action, price, quantity, strategy, regime, confidence, timestamp, profit_loss
+                FROM virtual_trades 
+                WHERE strategy = ? AND timestamp > ?
+                ORDER BY timestamp DESC
+            ''', (strategy, cutoff_date))
+            
+            for row in cursor.fetchall():
+                results.append({
+                    'symbol': row[0],
+                    'side': row[1],  # Map action to side
+                    'price': row[2],
+                    'quantity': row[3],
+                    'strategy': row[4],
+                    'regime': row[5],
+                    'confidence': row[6],
+                    'timestamp': row[7],
+                    'profit_loss': row[8],
+                    'exit_reason': None
+                })
+        
+        conn.close()
+        return results
+    
+    def store_trade(self, symbol: str, side: str, price: float, quantity: float, 
+                   strategy: str, regime: str = None, confidence: float = None, 
+                   order_id: str = None, exit_reason: str = None, profit_loss: float = 0):
+        """Store a real trade execution"""
+        timestamp = datetime.now().isoformat()
+        
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT INTO trades (symbol, side, price, quantity, strategy, regime, confidence, 
+                              timestamp, order_id, exit_reason, profit_loss)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (symbol, side, price, quantity, strategy, regime, confidence, 
+              timestamp, order_id, exit_reason, profit_loss))
+        
+        trade_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return trade_id
     
     def calculate_strategy_performance(self, strategy: str = None, days: int = 30) -> Dict:
         """Calculate strategy performance metrics"""
