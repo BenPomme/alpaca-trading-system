@@ -46,8 +46,13 @@ jobs:
         os.environ['ALPACA_PAPER_API_KEY'] = '${{ secrets.ALPACA_PAPER_API_KEY }}'.strip()
         os.environ['ALPACA_PAPER_SECRET_KEY'] = '${{ secrets.ALPACA_PAPER_SECRET_KEY }}'.strip()
         
-        # Import and run the dashboard API
+        # Import cloud database and dashboard API
+        from cloud_database import CloudDatabase
         from dashboard_api import DashboardAPI
+        
+        # Sync data from cloud first
+        cloud_db = CloudDatabase()
+        cloud_db.sync_from_github()
         
         try:
             api = DashboardAPI()
