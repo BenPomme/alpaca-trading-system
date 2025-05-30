@@ -777,10 +777,13 @@ class Phase3Trader(Phase2Trader):
                     
                     # Use intelligent exit system instead of basic stop-losses
                     intelligent_exit_results = []
+                    print(f"🔍 CRITICAL DEBUG: intelligent_exit_manager exists: {self.intelligent_exit_manager is not None}")
                     if self.intelligent_exit_manager:
+                        print(f"🔍 ENTERING position loop with {len(positions)} positions")
                         for position in positions:
                             try:
                                 symbol = position.symbol
+                                print(f"🔍 PROCESSING position: {symbol}")
                                 
                                 # Handle crypto symbols with adapted quote structure
                                 is_crypto = symbol.endswith('USD') and symbol.startswith(('BTC', 'ETH', 'ADA', 'SOL', 'MANA', 'SAND', 'AAVE', 'UNI', 'COMP', 'DOT', 'LINK', 'MATIC', 'AVAX'))
@@ -919,6 +922,7 @@ class Phase3Trader(Phase2Trader):
                     
                     # Fallback to basic system if intelligent system unavailable
                     else:
+                        print("🚨 CRITICAL: Intelligent exit manager is NONE - using basic system")
                         print("   ⚠️ Using basic exit system (intelligent system unavailable)")
                         exit_results = self.order_manager.check_stop_losses()
                         if exit_results:
