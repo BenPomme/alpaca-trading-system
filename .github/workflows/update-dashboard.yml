@@ -1,6 +1,6 @@
  name: Update Trading Dashboard Data
 
-  on:
+ on:
     schedule:
       - cron: '*/10 13-20 * * 1-5'
       - cron: '*/30 * * * *'
