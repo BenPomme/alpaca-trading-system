@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Alpaca Trading System - Live Dashboard</title>
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <h1>🚀 Alpaca Trading System - Live Dashboard</h1>
+            <div class="connection-status">
+                <div class="status-indicator" id="firebase-status">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Connecting...</span>
+                </div>
+                <div class="last-updated" id="last-updated">Last updated: Never</div>
+            </div>
+            <div class="header-stats">
+                <div class="stat-card">
+                    <span class="stat-label">Portfolio Value</span>
+                    <span class="stat-value" id="portfolio-value">$0.00</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Daily P&L</span>
+                    <span class="stat-value" id="daily-pl">$0.00</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Active Positions</span>
+                    <span class="stat-value" id="active-positions">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Buying Power</span>
+                    <span class="stat-value" id="buying-power">$0.00</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Trading Status -->
+        <section class="trading-status">
+            <div class="status-grid">
+                <div class="status-item">
+                    <h3>🔥 System Status</h3>
+                    <div class="status-details">
+                        <div class="detail-row">
+                            <span class="label">Execution:</span>
+                            <span class="value" id="execution-status">Unknown</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Options Trading:</span>
+                            <span class="value" id="options-status">Unknown</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Crypto Trading:</span>
+                            <span class="value" id="crypto-status">Unknown</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Global Trading:</span>
+                            <span class="value" id="global-status">Unknown</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="status-item">
+                    <h3>🚀 Leverage Status</h3>
+                    <div class="status-details">
+                        <div class="detail-row">
+                            <span class="label">Day Trading Power:</span>
+                            <span class="value" id="daytrading-power">$0.00</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">RegT Power:</span>
+                            <span class="value" id="regt-power">$0.00</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Leverage Ratio:</span>
+                            <span class="value" id="leverage-ratio">0:1</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">PDT Status:</span>
+                            <span class="value" id="pdt-status">Unknown</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="status-item">
+                    <h3>📊 Recent Performance</h3>
+                    <div class="status-details">
+                        <div class="detail-row">
+                            <span class="label">Win Rate:</span>
+                            <span class="value" id="win-rate">0%</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Total Trades:</span>
+                            <span class="value" id="total-trades">0</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Avg Hold Time:</span>
+                            <span class="value" id="avg-hold-time">0h</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Best Trade:</span>
+                            <span class="value" id="best-trade">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Dashboard Grid -->
+        <main class="dashboard-grid">
+            <!-- Live Trading Cycles -->
+            <section class="card cycles-container">
+                <h2>🔄 Live Trading Cycles</h2>
+                <div class="cycles-list" id="cycles-list">
+                    <!-- Live cycles will be populated here -->
+                </div>
+            </section>
+
+            <!-- Active Positions -->
+            <section class="card positions-container">
+                <h2>💼 Active Positions (Real-time)</h2>
+                <div class="positions-filters">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="stocks">Stocks</button>
+                    <button class="filter-btn" data-filter="crypto">Crypto</button>
+                    <button class="filter-btn" data-filter="etf">ETFs</button>
+                </div>
+                <div class="positions-grid" id="positions-grid">
+                    <!-- Real-time positions will be populated here -->
+                </div>
+            </section>
+
+            <!-- Recent Trades -->
+            <section class="card trades-container">
+                <h2>📋 Live Trade Execution</h2>
+                <div class="trades-stream" id="trades-stream">
+                    <!-- Live trades will be populated here -->
+                </div>
+            </section>
+
+            <!-- Strategy Performance -->
+            <section class="card strategy-performance">
+                <h2>🎯 Strategy Analytics</h2>
+                <div class="strategy-grid" id="strategy-grid">
+                    <!-- Strategy performance will be populated here -->
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="dashboard-footer">
+            <p>🤖 Alpaca Trading System | Live Production Dashboard</p>
+            <p>Real-time Firebase connection | Phase 5 Multi-Asset Intelligence</p>
+        </footer>
+    </div>
+
+    <!-- Firebase SDK v9 -->
+    <script type="module">
+        // Import Firebase SDK
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+        import { getFirestore, collection, query, orderBy, limit, onSnapshot, doc, getDoc } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+
+        // Firebase configuration for alpaca-12fab project (Real Config)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBI0T8hMlzbz45mXrY-fXNF1m2bCg-D_EM",
+            authDomain: "alpaca-12fab.firebaseapp.com",
+            projectId: "alpaca-12fab",
+            storageBucket: "alpaca-12fab.firebasestorage.app",
+            messagingSenderId: "331366849839",
+            appId: "1:331366849839:web:9a27ca63e1da1cd4e855da",
+            measurementId: "G-STJBCT0RFE"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Global state
+        let lastUpdate = null;
+        let connectionStatus = 'connecting';
+
+        // Update connection status
+        function updateConnectionStatus(status) {
+            connectionStatus = status;
+            const statusEl = document.getElementById('firebase-status');
+            const statusDot = statusEl.querySelector('.status-dot');
+            const statusText = statusEl.querySelector('.status-text');
+            
+            statusDot.className = `status-dot ${status}`;
+            statusText.textContent = status === 'connected' ? 'Connected' : 
+                                   status === 'error' ? 'Connection Error' : 'Connecting...';
+        }
+
+        // Format currency
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('en-US', { 
+                style: 'currency', 
+                currency: 'USD',
+                minimumFractionDigits: 2 
+            }).format(value || 0);
+        }
+
+        // Format percentage
+        function formatPercentage(value) {
+            return `${(value || 0).toFixed(2)}%`;
+        }
+
+        // Update last updated time
+        function updateLastUpdated() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString();
+            document.getElementById('last-updated').textContent = `Last updated: ${timeStr}`;
+            lastUpdate = now;
+        }
+
+        // Listen to trading cycles
+        function setupCyclesListener() {
+            const cyclesQuery = query(
+                collection(db, 'trading_cycles'),
+                orderBy('timestamp', 'desc'),
+                limit(10)
+            );
+
+            onSnapshot(cyclesQuery, (snapshot) => {
+                updateConnectionStatus('connected');
+                const cyclesList = document.getElementById('cycles-list');
+                
+                console.log(`Firebase: Received ${snapshot.docs.length} trading cycles`);
+                
+                if (snapshot.docs.length === 0) {
+                    cyclesList.innerHTML = '<div class="no-data">No trading cycles found. Waiting for data from trading system...</div>';
+                } else {
+                    cyclesList.innerHTML = '';
+                    let latestCycle = null;
+                    
+                    snapshot.docs.forEach(doc => {
+                        const cycle = doc.data();
+                        console.log('Cycle data:', cycle);
+                        const cycleEl = createCycleElement(cycle);
+                        cyclesList.appendChild(cycleEl);
+                        
+                        // Use latest cycle for portfolio data
+                        if (!latestCycle) {
+                            latestCycle = cycle;
+                        }
+                    });
+                    
+                    // Update portfolio data from latest cycle
+                    if (latestCycle) {
+                        updatePortfolioData(latestCycle);
+                    }
+                }
+
+                updateLastUpdated();
+            }, (error) => {
+                console.error('Cycles listener error:', error);
+                updateConnectionStatus('error');
+                document.getElementById('cycles-list').innerHTML = `<div class="error-message">Connection Error: ${error.message}</div>`;
+            });
+        }
+
+        // Create cycle element
+        function createCycleElement(cycle) {
+            const div = document.createElement('div');
+            div.className = 'cycle-item';
+            
+            const timestamp = cycle.timestamp ? new Date(cycle.timestamp.seconds * 1000) : new Date();
+            const timeStr = timestamp.toLocaleTimeString();
+            
+            div.innerHTML = `
+                <div class="cycle-header">
+                    <span class="cycle-time">${timeStr}</span>
+                    <span class="cycle-strategy">${cycle.strategy || 'Unknown'}</span>
+                    <span class="cycle-confidence">${formatPercentage(cycle.confidence * 100)}</span>
+                </div>
+                <div class="cycle-details">
+                    <span>Regime: ${cycle.regime || 'Unknown'}</span>
+                    <span>Symbols: ${cycle.symbols_analyzed?.length || 0}</span>
+                    <span>Technical: ${formatPercentage((cycle.technical_score || 0) * 100)}</span>
+                </div>
+            `;
+            
+            return div;
+        }
+
+        // Listen to trades
+        function setupTradesListener() {
+            const tradesQuery = query(
+                collection(db, 'trades'),
+                orderBy('timestamp', 'desc'),
+                limit(20)
+            );
+
+            onSnapshot(tradesQuery, (snapshot) => {
+                const tradesStream = document.getElementById('trades-stream');
+                
+                console.log(`Firebase: Received ${snapshot.docs.length} trades`);
+
+                if (snapshot.docs.length === 0) {
+                    tradesStream.innerHTML = '<div class="no-data">No trades found. Waiting for trade execution data...</div>';
+                } else {
+                    tradesStream.innerHTML = '';
+                }
+
+                let totalTrades = 0;
+                let winningTrades = 0;
+                let totalPL = 0;
+                let bestTrade = 0;
+
+                snapshot.docs.forEach(doc => {
+                    const trade = doc.data();
+                    console.log('Trade data:', trade);
+                    const tradeEl = createTradeElement(trade);
+                    tradesStream.appendChild(tradeEl);
+
+                    // Calculate stats
+                    totalTrades++;
+                    const pl = trade.profit_loss || 0;
+                    totalPL += pl;
+                    if (pl > 0) winningTrades++;
+                    if (pl > bestTrade) bestTrade = pl;
+                });
+
+                // Update performance stats
+                const winRate = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0;
+                document.getElementById('win-rate').textContent = formatPercentage(winRate);
+                document.getElementById('total-trades').textContent = totalTrades;
+                document.getElementById('best-trade').textContent = formatCurrency(bestTrade);
+                document.getElementById('daily-pl').textContent = formatCurrency(totalPL);
+
+                updateLastUpdated();
+            }, (error) => {
+                console.error('Trades listener error:', error);
+                updateConnectionStatus('error');
+                document.getElementById('trades-stream').innerHTML = `<div class="error-message">Connection Error: ${error.message}</div>`;
+            });
+        }
+
+        // Create trade element
+        function createTradeElement(trade) {
+            const div = document.createElement('div');
+            div.className = `trade-item ${trade.side}`;
+            
+            const timestamp = trade.timestamp ? new Date(trade.timestamp.seconds * 1000) : new Date();
+            const timeStr = timestamp.toLocaleTimeString();
+            const pl = trade.profit_loss || 0;
+            const plClass = pl > 0 ? 'profit' : pl < 0 ? 'loss' : 'neutral';
+            
+            div.innerHTML = `
+                <div class="trade-header">
+                    <span class="trade-symbol">${trade.symbol || 'Unknown'}</span>
+                    <span class="trade-side ${trade.side}">${(trade.side || 'buy').toUpperCase()}</span>
+                    <span class="trade-time">${timeStr}</span>
+                </div>
+                <div class="trade-details">
+                    <span>Qty: ${trade.quantity || 0}</span>
+                    <span>Price: ${formatCurrency(trade.price)}</span>
+                    <span class="trade-pl ${plClass}">P&L: ${formatCurrency(pl)}</span>
+                    <span>Strategy: ${trade.strategy || 'Unknown'}</span>
+                </div>
+            `;
+            
+            return div;
+        }
+
+        // Update portfolio data from trading cycle
+        function updatePortfolioData(cycle) {
+            console.log('Updating portfolio data from cycle:', cycle);
+            
+            // Update portfolio stats
+            if (cycle.portfolio_value !== undefined) {
+                document.getElementById('portfolio-value').textContent = formatCurrency(cycle.portfolio_value);
+            }
+            if (cycle.daily_pl !== undefined) {
+                document.getElementById('daily-pl').textContent = formatCurrency(cycle.daily_pl);
+            }
+            if (cycle.active_positions_count !== undefined) {
+                document.getElementById('active-positions').textContent = cycle.active_positions_count;
+            }
+            if (cycle.buying_power !== undefined) {
+                document.getElementById('buying-power').textContent = formatCurrency(cycle.buying_power);
+            }
+            
+            // Update system status
+            if (cycle.system_status) {
+                const systemStatus = cycle.system_status;
+                document.getElementById('execution-status').textContent = systemStatus.execution || 'Unknown';
+                document.getElementById('options-status').textContent = systemStatus.options_trading || 'Unknown';
+                document.getElementById('crypto-status').textContent = systemStatus.crypto_trading || 'Unknown';
+                document.getElementById('global-status').textContent = systemStatus.global_trading || 'Unknown';
+            }
+            
+            // Update leverage status
+            if (cycle.daytrading_buying_power !== undefined) {
+                document.getElementById('daytrading-power').textContent = formatCurrency(cycle.daytrading_buying_power);
+            }
+            if (cycle.regt_buying_power !== undefined) {
+                document.getElementById('regt-power').textContent = formatCurrency(cycle.regt_buying_power);
+            }
+            if (cycle.leverage_ratio) {
+                document.getElementById('leverage-ratio').textContent = cycle.leverage_ratio;
+            }
+            if (cycle.pdt_status) {
+                document.getElementById('pdt-status').textContent = cycle.pdt_status;
+            }
+        }
+
+        // Listen to positions
+        function setupPositionsListener() {
+            const positionsQuery = query(
+                collection(db, 'positions'),
+                orderBy('timestamp', 'desc'),
+                limit(50)
+            );
+
+            onSnapshot(positionsQuery, (snapshot) => {
+                const positionsGrid = document.getElementById('positions-grid');
+                
+                console.log(`Firebase: Received ${snapshot.docs.length} positions`);
+                
+                if (snapshot.docs.length === 0) {
+                    positionsGrid.innerHTML = '<div class="no-data">No active positions found. Waiting for position data...</div>';
+                } else {
+                    positionsGrid.innerHTML = '';
+                    snapshot.docs.forEach(doc => {
+                        const position = doc.data();
+                        console.log('Position data:', position);
+                        const positionEl = createPositionElement(position);
+                        positionsGrid.appendChild(positionEl);
+                    });
+                    
+                    // Update active positions count in header
+                    document.getElementById('active-positions').textContent = snapshot.docs.length;
+                }
+
+                updateLastUpdated();
+            }, (error) => {
+                console.error('Positions listener error:', error);
+                document.getElementById('positions-grid').innerHTML = `<div class="error-message">Connection Error: ${error.message}</div>`;
+            });
+        }
+
+        // Create position element
+        function createPositionElement(position) {
+            const div = document.createElement('div');
+            div.className = `position-item ${position.asset_type || 'stock'}`;
+            
+            const pl = position.unrealized_pl || 0;
+            const plPercent = position.unrealized_pl_percent || 0;
+            const plClass = pl > 0 ? 'profit' : pl < 0 ? 'loss' : 'neutral';
+            
+            div.innerHTML = `
+                <div class="position-header">
+                    <span class="position-symbol">${position.symbol || 'Unknown'}</span>
+                    <span class="position-type">${(position.asset_type || 'stock').toUpperCase()}</span>
+                </div>
+                <div class="position-details">
+                    <div class="position-row">
+                        <span>Qty: ${position.quantity || 0}</span>
+                        <span>Entry: ${formatCurrency(position.entry_price)}</span>
+                    </div>
+                    <div class="position-row">
+                        <span>Current: ${formatCurrency(position.current_price)}</span>
+                        <span>Value: ${formatCurrency(position.market_value)}</span>
+                    </div>
+                    <div class="position-row">
+                        <span class="position-pl ${plClass}">P&L: ${formatCurrency(pl)}</span>
+                        <span class="position-pl ${plClass}">(${plPercent.toFixed(2)}%)</span>
+                    </div>
+                </div>
+            `;
+            
+            return div;
+        }
+
+        // Initialize dashboard
+        function initDashboard() {
+            updateConnectionStatus('connecting');
+            
+            try {
+                setupCyclesListener();
+                setupTradesListener();
+                setupPositionsListener();
+                
+                // Set up periodic updates
+                setInterval(updateLastUpdated, 30000); // Update every 30 seconds
+                
+            } catch (error) {
+                console.error('Dashboard initialization error:', error);
+                updateConnectionStatus('error');
+            }
+        }
+
+        // Start dashboard when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initDashboard);
+    </script>
+
+    <style>
+        /* Embedded CSS for the Firebase dashboard */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #ffffff;
+            min-height: 100vh;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .dashboard-header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 25px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .dashboard-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .connection-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ffc107;
+        }
+
+        .status-dot.connected {
+            background: #28a745;
+            box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
+        }
+
+        .status-dot.error {
+            background: #dc3545;
+            box-shadow: 0 0 10px rgba(220, 53, 69, 0.5);
+        }
+
+        .header-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .stat-label {
+            display: block;
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            display: block;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .trading-status {
+            margin-bottom: 30px;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .status-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .status-item h3 {
+            margin-bottom: 15px;
+            color: #ffd700;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 25px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .card h2 {
+            margin-bottom: 20px;
+            color: #ffd700;
+            font-size: 1.3rem;
+        }
+
+        .cycles-list, .trades-stream {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .cycle-item, .trade-item {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border-left: 4px solid #28a745;
+        }
+
+        .trade-item.sell {
+            border-left-color: #dc3545;
+        }
+
+        .cycle-header, .trade-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .cycle-details, .trade-details {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .trade-pl.profit {
+            color: #28a745;
+        }
+
+        .trade-pl.loss {
+            color: #dc3545;
+        }
+
+        .trade-side.buy {
+            color: #28a745;
+        }
+
+        .trade-side.sell {
+            color: #dc3545;
+        }
+
+        .positions-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .filter-btn.active, .filter-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .positions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .position-item {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .position-item.crypto {
+            border-left-color: #fd7e14;
+        }
+
+        .position-item.etf {
+            border-left-color: #6f42c1;
+        }
+
+        .position-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .position-details {
+            font-size: 0.9rem;
+        }
+
+        .position-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .position-pl.profit {
+            color: #28a745;
+        }
+
+        .position-pl.loss {
+            color: #dc3545;
+        }
+
+        .position-type {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            text-transform: uppercase;
+        }
+
+        .dashboard-footer {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .last-updated {
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .dashboard-header h1 {
+                font-size: 2rem;
+            }
+            
+            .header-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .cycle-details, .trade-details {
+                flex-direction: column;
+                gap: 5px;
+            }
+        }
+
+        /* No data and error messages */
+        .no-data, .error-message {
+            text-align: center;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .no-data {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+            border: 1px solid rgba(255, 193, 7, 0.3);
+        }
+
+        .error-message {
+            background: rgba(220, 53, 69, 0.2);
+            color: #dc3545;
+            border: 1px solid rgba(220, 53, 69, 0.3);
+        }
+
+        /* Scrollbar styling */
+        .cycles-list::-webkit-scrollbar, .trades-stream::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .cycles-list::-webkit-scrollbar-track, .trades-stream::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .cycles-list::-webkit-scrollbar-thumb, .trades-stream::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+        }
+
+        .cycles-list::-webkit-scrollbar-thumb:hover, .trades-stream::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</body>
+</html>

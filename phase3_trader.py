@@ -1639,7 +1639,11 @@ class Phase3Trader(Phase2Trader):
         """Save trading cycle to Firebase in addition to SQLite"""
         try:
             if self.firebase_db.is_connected():
-                # Enhance cycle data for Firebase
+                # Get real-time portfolio and system data
+                portfolio_data = self._get_portfolio_status()
+                system_data = self._get_system_status()
+                
+                # Enhance cycle data for Firebase with all dashboard data
                 firebase_cycle = {
                     'analysis_type': 'intelligence_v3',
                     'confidence': cycle_data.get('confidence', 0.5),
@@ -1653,14 +1657,132 @@ class Phase3Trader(Phase2Trader):
                     'execution_enabled': self.execution_enabled,
                     'options_trading': self.options_trading,
                     'crypto_trading': self.crypto_trading,
-                    'global_trading': self.global_trading
+                    'global_trading': self.global_trading,
+                    
+                    # Portfolio data for dashboard
+                    'portfolio_value': portfolio_data.get('portfolio_value', 0),
+                    'daily_pl': portfolio_data.get('daily_pl', 0),
+                    'buying_power': portfolio_data.get('buying_power', 0),
+                    'active_positions_count': portfolio_data.get('active_positions_count', 0),
+                    'daytrading_buying_power': portfolio_data.get('daytrading_buying_power', 0),
+                    'regt_buying_power': portfolio_data.get('regt_buying_power', 0),
+                    'pdt_status': portfolio_data.get('pdt_status', 'Unknown'),
+                    'leverage_ratio': portfolio_data.get('leverage_ratio', '0:1'),
+                    
+                    # System status for dashboard
+                    'system_status': system_data
                 }
                 
                 cycle_id = self.firebase_db.save_trading_cycle(firebase_cycle)
-                print(f"🔥 Trading cycle saved to Firebase: {cycle_id}")
+                print(f"🔥 Trading cycle with portfolio data saved to Firebase: {cycle_id}")
+                
+                # Also save current positions separately for real-time updates
+                self._save_firebase_positions()
                 
         except Exception as e:
             print(f"❌ Firebase cycle save error: {e}")
+    
+    def _get_portfolio_status(self) -> Dict[str, Any]:
+        """Get current portfolio status for dashboard"""
+        try:
+            account = self.api.get_account()
+            positions = self.api.list_positions()
+            
+            portfolio_value = float(account.equity)
+            last_equity = float(account.last_equity)
+            daily_pl = portfolio_value - last_equity
+            
+            # Get buying power data
+            daytrading_bp = float(getattr(account, 'daytrading_buying_power', 0))
+            regt_bp = float(getattr(account, 'regt_buying_power', 0))
+            buying_power = float(account.buying_power)
+            
+            # Calculate leverage ratio
+            if portfolio_value > 0:
+                if daytrading_bp > 0:
+                    leverage_ratio = f"{daytrading_bp/portfolio_value:.1f}:1"
+                elif regt_bp > 0:
+                    leverage_ratio = f"{regt_bp/portfolio_value:.1f}:1"
+                else:
+                    leverage_ratio = f"{buying_power/portfolio_value:.1f}:1"
+            else:
+                leverage_ratio = "0:1"
+            
+            # PDT status
+            pdt_status = "Eligible" if hasattr(account, 'pattern_day_trader') and account.pattern_day_trader else "Not Eligible"
+            
+            return {
+                'portfolio_value': portfolio_value,
+                'daily_pl': daily_pl,
+                'buying_power': buying_power,
+                'active_positions_count': len(positions),
+                'daytrading_buying_power': daytrading_bp,
+                'regt_buying_power': regt_bp,
+                'pdt_status': pdt_status,
+                'leverage_ratio': leverage_ratio
+            }
+            
+        except Exception as e:
+            print(f"⚠️ Error getting portfolio status: {e}")
+            return {}
+    
+    def _get_system_status(self) -> Dict[str, Any]:
+        """Get current system status for dashboard"""
+        return {
+            'execution': 'Enabled' if self.execution_enabled else 'Disabled',
+            'options_trading': 'Enabled' if self.options_trading else 'Disabled',
+            'crypto_trading': 'Enabled' if self.crypto_trading else 'Disabled',
+            'global_trading': 'Enabled' if self.global_trading else 'Disabled',
+            'intelligence_enabled': 'Enabled' if self.intelligence_enabled else 'Disabled'
+        }
+    
+    def _save_firebase_positions(self):
+        """Save current positions to Firebase for real-time dashboard updates"""
+        try:
+            if self.firebase_db.is_connected():
+                positions = self.api.list_positions()
+                
+                # Create positions data for dashboard
+                positions_data = []
+                for pos in positions:
+                    try:
+                        # Calculate P&L
+                        current_price = float(pos.market_value) / float(pos.qty) if float(pos.qty) != 0 else 0
+                        entry_price = float(getattr(pos, 'avg_entry_price', current_price))
+                        pl_amount = float(pos.unrealized_pl)
+                        pl_percent = float(pos.unrealized_plpc) * 100
+                        
+                        # Determine asset type
+                        symbol = pos.symbol
+                        if symbol.endswith('USD') and len(symbol) <= 7:
+                            asset_type = 'crypto'
+                        elif symbol in ['SPY', 'QQQ', 'IWM', 'VTI', 'EFA', 'VEA', 'XLK', 'XLV', 'XLF', 'XLE', 'XLY']:
+                            asset_type = 'etf'
+                        else:
+                            asset_type = 'stock'
+                        
+                        position_data = {
+                            'symbol': symbol,
+                            'quantity': float(pos.qty),
+                            'entry_price': entry_price,
+                            'current_price': current_price,
+                            'market_value': float(pos.market_value),
+                            'unrealized_pl': pl_amount,
+                            'unrealized_pl_percent': pl_percent,
+                            'asset_type': asset_type,
+                            'side': 'long' if float(pos.qty) > 0 else 'short'
+                        }
+                        positions_data.append(position_data)
+                        
+                    except Exception as pos_error:
+                        print(f"⚠️ Error processing position {pos.symbol}: {pos_error}")
+                
+                # Save positions to Firebase
+                self.firebase_db.save_positions(positions_data)
+                print(f"🔥 {len(positions_data)} positions saved to Firebase")
+                
+        except Exception as e:
+            print(f"❌ Error saving positions to Firebase: {e}")
     
     def save_firebase_trade(self, trade_data: Dict[str, Any]):
         """Save trade to Firebase in addition to SQLite"""

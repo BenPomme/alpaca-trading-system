@@ -313,6 +313,65 @@ class FirebaseDatabase:
             print(f"❌ Error getting ML models: {e}")
             return []
     
+    # POSITIONS COLLECTION
+    def save_positions(self, positions_data: List[Dict[str, Any]]) -> str:
+        """Save current positions to Firebase for real-time dashboard updates"""
+        try:
+            if not self.is_connected():
+                return "mock_positions_id"
+            
+            # Clear existing positions and save new ones
+            positions_ref = self.db.collection('positions')
+            
+            # Delete old positions
+            old_positions = positions_ref.stream()
+            for doc in old_positions:
+                doc.reference.delete()
+            
+            # Save new positions
+            batch = self.db.batch()
+            position_ids = []
+            
+            for i, position in enumerate(positions_data):
+                position['timestamp'] = datetime.now()
+                position['created_at'] = firestore.SERVER_TIMESTAMP
+                position['id'] = f"pos_{i}_{int(datetime.now().timestamp())}"
+                
+                doc_ref = positions_ref.document(position['id'])
+                batch.set(doc_ref, position)
+                position_ids.append(position['id'])
+            
+            batch.commit()
+            
+            print(f"🔥 {len(positions_data)} positions saved to Firebase")
+            return f"batch_{len(positions_data)}_positions"
+            
+        except Exception as e:
+            print(f"❌ Error saving positions: {e}")
+            return "error_positions_id"
+    
+    def get_current_positions(self) -> List[Dict[str, Any]]:
+        """Get current positions from Firebase"""
+        try:
+            if not self.is_connected():
+                return []
+            
+            positions_ref = self.db.collection('positions')
+            query = positions_ref.order_by('timestamp', direction=firestore.Query.DESCENDING)
+            docs = query.stream()
+            
+            positions = []
+            for doc in docs:
+                position_data = doc.to_dict()
+                position_data['id'] = doc.id
+                positions.append(position_data)
+            
+            return positions
+            
+        except Exception as e:
+            print(f"❌ Error getting positions: {e}")
+            return []
+
     # PERFORMANCE METRICS COLLECTION
     def save_performance_metrics(self, metrics_data: Dict[str, Any]) -> str:
         """Save performance metrics to Firebase"""

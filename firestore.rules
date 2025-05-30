@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow read access to trading data (dashboard needs to read)
+    match /trading_cycles/{document} {
+      allow read: if true;
+      allow write: if true; // Allow trading system to write
+    }
+    
+    match /trades/{document} {
+      allow read: if true;
+      allow write: if true; // Allow trading system to write
+    }
+    
+    match /market_quotes/{document} {
+      allow read: if true;
+      allow write: if true; // Allow trading system to write
+    }
+    
+    match /ml_models/{document} {
+      allow read: if true;
+      allow write: if true; // Allow trading system to write
+    }
+    
+    match /performance_metrics/{document} {
+      allow read: if true;
+      allow write: if true; // Allow trading system to write
+    }
+  }
+}
