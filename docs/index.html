@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alpaca Trading System Dashboard</title>
+    <link rel="stylesheet" href="assets/css/dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <h1>🚀 Alpaca Trading System Dashboard</h1>
+            <div class="header-stats">
+                <div class="stat-card">
+                    <span class="stat-label">Portfolio Value</span>
+                    <span class="stat-value" id="portfolio-value">$0.00</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Daily P&L</span>
+                    <span class="stat-value" id="daily-pl">$0.00</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Success Rate</span>
+                    <span class="stat-value" id="success-rate">0%</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Active Positions</span>
+                    <span class="stat-value" id="active-positions">0</span>
+                </div>
+            </div>
+            <div class="last-updated" id="last-updated">Last updated: Never</div>
+        </header>
+
+        <!-- Main Dashboard Grid -->
+        <main class="dashboard-grid">
+            
+            <!-- Performance Overview -->
+            <section class="card performance-overview">
+                <h2>📈 Performance Overview</h2>
+                <div class="performance-grid">
+                    <div class="perf-item">
+                        <label>Today ROI:</label>
+                        <span id="roi-today" class="roi-value">0%</span>
+                    </div>
+                    <div class="perf-item">
+                        <label>Week ROI:</label>
+                        <span id="roi-week" class="roi-value">0%</span>
+                    </div>
+                    <div class="perf-item">
+                        <label>Month ROI:</label>
+                        <span id="roi-month" class="roi-value">0%</span>
+                    </div>
+                    <div class="perf-item">
+                        <label>Total ROI:</label>
+                        <span id="roi-total" class="roi-value">0%</span>
+                    </div>
+                    <div class="perf-item">
+                        <label>Win Rate:</label>
+                        <span id="win-rate">0%</span>
+                    </div>
+                    <div class="perf-item">
+                        <label>Avg Hold Time:</label>
+                        <span id="avg-hold-time">0h</span>
+                    </div>
+                    <div class="perf-item">
+                        <label>Total Trades:</label>
+                        <span id="total-trades">0</span>
+                    </div>
+                    <div class="perf-item">
+                        <label>Best Trade:</label>
+                        <span id="best-trade">$0</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Portfolio Chart -->
+            <section class="card chart-container">
+                <h2>📊 Portfolio Performance</h2>
+                <canvas id="portfolio-chart"></canvas>
+            </section>
+
+            <!-- Active Positions -->
+            <section class="card positions-container">
+                <h2>💼 Active Positions</h2>
+                <div class="positions-header">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="stocks">Stocks</button>
+                    <button class="filter-btn" data-filter="crypto">Crypto</button>
+                    <button class="filter-btn" data-filter="options">Options</button>
+                </div>
+                <div class="positions-table-container">
+                    <table class="positions-table" id="positions-table">
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Qty</th>
+                                <th>Entry Price</th>
+                                <th>Current Price</th>
+                                <th>P&L</th>
+                                <th>P&L %</th>
+                                <th>Hold Time</th>
+                                <th>Strategy</th>
+                            </tr>
+                        </thead>
+                        <tbody id="positions-tbody">
+                            <!-- Positions will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Recent Trades -->
+            <section class="card trades-container">
+                <h2>📋 Recent Trades</h2>
+                <div class="trades-table-container">
+                    <table class="trades-table" id="trades-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Symbol</th>
+                                <th>Side</th>
+                                <th>Qty</th>
+                                <th>Price</th>
+                                <th>P&L</th>
+                                <th>Strategy</th>
+                                <th>Exit Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trades-tbody">
+                            <!-- Trades will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Strategy Performance -->
+            <section class="card strategy-performance">
+                <h2>🎯 Strategy Performance</h2>
+                <div id="strategy-stats">
+                    <!-- Strategy stats will be populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Intraday Status -->
+            <section class="card intraday-status">
+                <h2>🚀 Intraday Trading Status</h2>
+                <div class="intraday-info">
+                    <div class="status-item">
+                        <label>Day Trading Power:</label>
+                        <span id="dt-power">$0</span>
+                    </div>
+                    <div class="status-item">
+                        <label>Intraday Positions:</label>
+                        <span id="intraday-count">0</span>
+                    </div>
+                    <div class="status-item">
+                        <label>EOD Liquidation:</label>
+                        <span id="eod-time">15:30 ET</span>
+                    </div>
+                    <div class="status-item">
+                        <label>Market Status:</label>
+                        <span id="market-status">CLOSED</span>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="dashboard-footer">
+            <p>🤖 Alpaca Trading System | Phase 5.2 Multi-Asset Intelligence Platform</p>
+            <p>Last sync: <span id="footer-sync-time">Never</span></p>
+        </footer>
+    </div>
+
+    <script src="assets/js/dashboard.js"></script>
+</body>
+</html>

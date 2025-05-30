@@ -1,0 +1,32 @@
+# GitHub Pages Configuration for Trading Dashboard
+title: "Alpaca Trading System Dashboard"
+description: "Real-time trading performance dashboard for the Alpaca algorithmic trading system"
+
+# Theme
+theme: minima
+
+# GitHub Pages settings
+baseurl: ""
+url: "https://benpomme.github.io"
+
+# Exclude files from processing
+exclude:
+  - assets/js/dashboard.js
+  - assets/css/dashboard.css
+  - api/
+
+# Include files
+include:
+  - _*
+  - .nojekyll
+
+# Plugins
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+
+# Collections
+collections:
+  api:
+    output: true
+    permalink: /:collection/:name/
