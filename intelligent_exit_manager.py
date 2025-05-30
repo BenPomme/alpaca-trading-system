@@ -499,10 +499,29 @@ class IntelligentExitManager:
             }
     
     def execute_intelligent_exit(self, symbol: str, exit_analysis: Dict, order_manager) -> Dict:
-        """Execute the intelligent exit decision"""
+        """Execute the intelligent exit decision with market hours awareness"""
         try:
             if exit_analysis.get('action') != 'sell':
                 return {'status': 'no_action', 'reason': exit_analysis.get('reason', 'hold_decision')}
+            
+            # CRITICAL FIX: Check if US market is open before placing orders
+            try:
+                us_market_open = self.api.get_clock().is_open
+                if not us_market_open:
+                    # Check if this is crypto (can trade 24/7)
+                    is_crypto = symbol.endswith('USD') and symbol.startswith(('BTC', 'ETH', 'ADA', 'SOL', 'MANA', 'SAND', 'AAVE', 'UNI', 'COMP', 'DOT', 'LINK', 'MATIC', 'AVAX'))
+                    if not is_crypto:
+                        print(f"   💤 SKIPPING EXIT ORDER: {symbol} - US market closed, order would queue until 10:00 PM")
+                        print(f"   🎯 Exit recommendation recorded but no order placed during market closure")
+                        return {
+                            'status': 'market_closed', 
+                            'reason': f'exit_deferred_market_closed_{exit_analysis.get("reason", "intelligent_exit")}',
+                            'exit_portion': exit_analysis.get('exit_portion', 1.0),
+                            'deferred_until_market_open': True
+                        }
+            except Exception as market_check_error:
+                print(f"   ⚠️ Market hours check failed: {market_check_error}")
+                # Continue with order placement if check fails
             
             exit_portion = exit_analysis.get('exit_portion', 1.0)
             reason = exit_analysis.get('reason', 'intelligent_exit')
