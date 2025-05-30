@@ -782,18 +782,37 @@ class Phase3Trader(Phase2Trader):
                             try:
                                 symbol = position.symbol
                                 
-                                # Skip crypto symbols for now (different quote structure)
-                                if symbol.endswith('USD') and symbol.startswith(('BTC', 'ETH', 'ADA', 'SOL', 'MANA', 'SAND', 'AAVE')):
-                                    print(f"   ⏭️ Skipping crypto analysis for {symbol} (different quote structure)")
-                                    continue
+                                # Handle crypto symbols with adapted quote structure
+                                is_crypto = symbol.endswith('USD') and symbol.startswith(('BTC', 'ETH', 'ADA', 'SOL', 'MANA', 'SAND', 'AAVE', 'UNI', 'COMP', 'DOT', 'LINK', 'MATIC', 'AVAX'))
                                 
-                                # Get current market data for the position
-                                quote = self.api.get_latest_quote(symbol)
-                                if not quote or not quote.bid_price:
-                                    print(f"   ⚠️ No quote available for {symbol}")
-                                    continue
+                                if is_crypto:
+                                    print(f"   ₿ CRYPTO EXIT ANALYSIS: {symbol}")
+                                else:
+                                    print(f"   📊 STOCK EXIT ANALYSIS: {symbol}")
                                 
-                                current_price = float(quote.bid_price)
+                                # Get current market data for the position (handle crypto differently)
+                                if is_crypto:
+                                    # For crypto, try to get price data
+                                    try:
+                                        quote = self.api.get_latest_quote(symbol)
+                                        if quote and hasattr(quote, 'bid_price') and quote.bid_price:
+                                            current_price = float(quote.bid_price)
+                                        elif quote and hasattr(quote, 'ask_price') and quote.ask_price:
+                                            current_price = float(quote.ask_price)
+                                        else:
+                                            # Fallback to position market value calculation
+                                            current_price = float(position.market_value) / float(position.qty) if float(position.qty) != 0 else 0
+                                            print(f"   ₿ Using position market value for {symbol}: ${current_price:.2f}")
+                                    except Exception as crypto_quote_error:
+                                        print(f"   ⚠️ Crypto quote error for {symbol}: {crypto_quote_error}")
+                                        continue
+                                else:
+                                    # Standard stock quote handling
+                                    quote = self.api.get_latest_quote(symbol)
+                                    if not quote or not quote.bid_price:
+                                        print(f"   ⚠️ No quote available for {symbol}")
+                                        continue
+                                    current_price = float(quote.bid_price)
                                 # QA.md Rule 5: Fix data contract - use correct Alpaca Position attribute
                                 # Try common Alpaca Position attributes for entry price
                                 try:
@@ -811,13 +830,23 @@ class Phase3Trader(Phase2Trader):
                                     print(f"   ⚠️ Could not get entry price for {symbol}: {attr_error}")
                                     continue
                                 
-                                # Prepare market data for analysis
-                                market_data = {
-                                    'current_price': current_price,
-                                    'volume': getattr(quote, 'volume', 0),
-                                    'bid': float(quote.bid_price),
-                                    'ask': float(quote.ask_price)
-                                }
+                                # Prepare market data for analysis (crypto-aware)
+                                if is_crypto:
+                                    market_data = {
+                                        'current_price': current_price,
+                                        'volume': getattr(quote, 'volume', 0) if quote else 0,
+                                        'bid': float(quote.bid_price) if quote and hasattr(quote, 'bid_price') and quote.bid_price else current_price,
+                                        'ask': float(quote.ask_price) if quote and hasattr(quote, 'ask_price') and quote.ask_price else current_price,
+                                        'is_crypto': True
+                                    }
+                                else:
+                                    market_data = {
+                                        'current_price': current_price,
+                                        'volume': getattr(quote, 'volume', 0),
+                                        'bid': float(quote.bid_price),
+                                        'ask': float(quote.ask_price),
+                                        'is_crypto': False
+                                    }
                                 
                                 # Prepare position info
                                 position_info = {
