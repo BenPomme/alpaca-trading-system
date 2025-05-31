@@ -457,7 +457,7 @@ class CryptoModule(TradingModule):
     # Execution methods
     
     def _execute_crypto_trade(self, opportunity: TradeOpportunity) -> TradeResult:
-        """Execute cryptocurrency trade"""
+        """Execute cryptocurrency trade with ML-critical parameter data collection"""
         try:
             # Prepare order data for crypto
             order_data = {
@@ -471,10 +471,12 @@ class CryptoModule(TradingModule):
             # Execute via injected order executor
             execution_result = self.order_executor.execute_order(order_data)
             
+            # Create trade result
+            result = None
             if execution_result.get('success'):
                 current_price = opportunity.metadata.get('current_price', 0)
                 
-                return TradeResult(
+                result = TradeResult(
                     opportunity=opportunity,
                     status=TradeStatus.EXECUTED,
                     order_id=execution_result.get('order_id'),
@@ -482,11 +484,17 @@ class CryptoModule(TradingModule):
                     execution_time=datetime.now()
                 )
             else:
-                return TradeResult(
+                result = TradeResult(
                     opportunity=opportunity,
                     status=TradeStatus.FAILED,
                     error_message=execution_result.get('error', 'Unknown crypto execution error')
                 )
+            
+            # 🧠 ML DATA COLLECTION: Save trade with enhanced parameter context
+            if result.success:
+                self._save_ml_enhanced_crypto_trade(opportunity, result)
+            
+            return result
                 
         except Exception as e:
             return TradeResult(
@@ -494,6 +502,105 @@ class CryptoModule(TradingModule):
                 status=TradeStatus.FAILED,
                 error_message=f"Crypto execution error: {e}"
             )
+    
+    def _save_ml_enhanced_crypto_trade(self, opportunity: TradeOpportunity, result: TradeResult):
+        """Save crypto trade with ML-critical parameter data for optimization"""
+        try:
+            # Get current session context for ML analysis
+            current_session = self._get_current_trading_session()
+            session_config = self.session_configs[current_session]
+            
+            # Create entry parameters for ML learning
+            entry_parameters = self.ml_data_collector.create_entry_parameters(
+                confidence_threshold_used=session_config.min_confidence,
+                position_size_multiplier=session_config.position_size_multiplier * self.leverage_multiplier,
+                regime_confidence=opportunity.regime_score,
+                technical_confidence=opportunity.technical_score,
+                pattern_confidence=opportunity.pattern_score,
+                ml_strategy_selection=True,
+                leverage_applied=self.leverage_multiplier,
+                session_strategy=session_config.strategy.value
+            )
+            
+            # Create crypto-specific module parameters
+            module_specific_params = self.ml_data_collector.create_crypto_module_params(
+                crypto_session=current_session.value,
+                volatility_score=opportunity.metadata.get('volatility_score', 0),
+                momentum_score=opportunity.metadata.get('momentum_score', 0),
+                volume_score=opportunity.metadata.get('volume_score', 0),
+                session_multiplier=session_config.position_size_multiplier,
+                analysis_weights=self.analysis_weights,
+                strategy_applied=session_config.strategy.value,
+                focus_category=session_config.symbol_focus,
+                base_allocation_pct=2.0,  # 2% base allocation
+                max_crypto_allocation_pct=self.max_crypto_allocation * 100
+            )
+            
+            # Create market context
+            market_context = self.ml_data_collector.create_market_context(
+                us_market_open=False,  # Crypto trades 24/7
+                crypto_session=current_session.value,
+                cycle_delay_used=600 if current_session != TradingSession.US_PRIME else 120,
+                global_trading_active=True,
+                market_hours_type="crypto_24_7"
+            )
+            
+            # Create parameter performance context
+            parameter_performance = self.ml_data_collector.create_parameter_performance(
+                confidence_accuracy=opportunity.confidence,
+                threshold_effectiveness=1.0 if opportunity.confidence >= session_config.min_confidence else 0.0,
+                regime_multiplier_success=True,  # Session multiplier was applied
+                alternative_outcomes={
+                    'threshold_0_40': 'would_have_triggered' if opportunity.confidence >= 0.40 else 'would_not_have_triggered',
+                    'threshold_0_50': 'would_have_triggered' if opportunity.confidence >= 0.50 else 'would_not_have_triggered',
+                    'threshold_0_60': 'would_have_triggered' if opportunity.confidence >= 0.60 else 'would_not_have_triggered'
+                },
+                parameter_attribution={
+                    'session_threshold_contribution': session_config.min_confidence,
+                    'leverage_contribution': self.leverage_multiplier,
+                    'momentum_weight_contribution': self.analysis_weights['momentum'],
+                    'volatility_weight_contribution': self.analysis_weights['volatility'],
+                    'volume_weight_contribution': self.analysis_weights['volume']
+                }
+            )
+            
+            # Create complete ML trade data
+            ml_trade_data = self.ml_data_collector.create_ml_trade_data(
+                symbol=opportunity.symbol,
+                side='BUY' if opportunity.action == TradeAction.BUY else 'SELL',
+                quantity=opportunity.quantity,
+                price=result.execution_price or opportunity.metadata.get('current_price', 0),
+                strategy=opportunity.strategy,
+                confidence=opportunity.confidence,
+                entry_parameters=entry_parameters,
+                module_specific_params=module_specific_params,
+                market_context=market_context,
+                parameter_performance=parameter_performance,
+                profit_loss=0.0,  # Will be updated on exit
+                exit_reason=None  # Entry trade
+            )
+            
+            # Save to Firebase with ML enhancements
+            trade_id = self.save_ml_enhanced_trade(ml_trade_data.to_dict())
+            
+            # Record parameter effectiveness for ML optimization
+            self.record_parameter_effectiveness(
+                parameter_type='crypto_confidence_threshold',
+                parameter_value=session_config.min_confidence,
+                trade_outcome={
+                    'symbol': opportunity.symbol,
+                    'strategy': opportunity.strategy,
+                    'session': current_session.value,
+                    'executed': result.success
+                },
+                success=result.success,
+                profit_loss=0.0  # Will be updated on exit
+            )
+            
+            self.logger.info(f"💾 Crypto ML data saved: {opportunity.symbol} ({current_session.value}) - {trade_id}")
+            
+        except Exception as e:
+            self.logger.error(f"Error saving ML crypto trade data: {e}")
     
     # Position monitoring methods
     
@@ -557,7 +664,7 @@ class CryptoModule(TradingModule):
             return None
     
     def _execute_crypto_exit(self, position: Dict, exit_reason: str) -> Optional[TradeResult]:
-        """Execute crypto position exit"""
+        """Execute crypto position exit with ML-enhanced exit analysis"""
         try:
             symbol = position.get('symbol', '')
             qty = abs(position.get('qty', 0))
@@ -574,22 +681,136 @@ class CryptoModule(TradingModule):
                 strategy='crypto_exit'
             )
             
-            # Execute exit
-            result = self._execute_crypto_trade(exit_opportunity)
+            # Execute exit (without saving ML data for exit trades - handled separately)
+            order_data = {
+                'symbol': symbol,
+                'qty': qty,
+                'side': 'sell' if position.get('qty', 0) > 0 else 'buy',
+                'type': 'market',
+                'time_in_force': 'gtc'
+            }
             
-            if result.success:
-                # Update with exit information
-                result.pnl = position.get('unrealized_pl', 0)
-                result.pnl_pct = position.get('unrealized_pl', 0) / max(abs(position.get('market_value', 1)), 1)
-                result.exit_reason = self._get_exit_reason_enum(exit_reason)
+            execution_result = self.order_executor.execute_order(order_data)
+            
+            if execution_result.get('success'):
+                # Create exit result with P&L information
+                result = TradeResult(
+                    opportunity=exit_opportunity,
+                    status=TradeStatus.EXECUTED,
+                    order_id=execution_result.get('order_id'),
+                    execution_price=self._get_crypto_price(symbol),
+                    execution_time=datetime.now(),
+                    pnl=position.get('unrealized_pl', 0),
+                    pnl_pct=position.get('unrealized_pl', 0) / max(abs(position.get('market_value', 1)), 1),
+                    exit_reason=self._get_exit_reason_enum(exit_reason)
+                )
                 
-                self.logger.info(f"Crypto exit: {symbol} {exit_reason} P&L: ${result.pnl:.2f} ({result.pnl_pct:.1%})")
-            
-            return result
+                # 🧠 ML DATA COLLECTION: Save exit analysis for parameter optimization
+                self._save_ml_enhanced_crypto_exit(position, result, exit_reason)
+                
+                self.logger.info(f"💰 Crypto exit: {symbol} {exit_reason} P&L: ${result.pnl:.2f} ({result.pnl_pct:.1%})")
+                return result
+            else:
+                return TradeResult(
+                    opportunity=exit_opportunity,
+                    status=TradeStatus.FAILED,
+                    error_message=execution_result.get('error', 'Exit execution failed')
+                )
             
         except Exception as e:
             self.logger.error(f"Error executing crypto exit: {e}")
             return None
+    
+    def _save_ml_enhanced_crypto_exit(self, position: Dict, result: TradeResult, exit_reason: str):
+        """Save crypto exit with ML-critical exit analysis data"""
+        try:
+            symbol = position.get('symbol', '')
+            current_session = self._get_current_trading_session()
+            
+            # Calculate hold duration (simplified - would track entry time in production)
+            hold_duration_hours = 4.0  # Estimated crypto hold time
+            
+            # Create exit analysis data
+            exit_analysis = self.ml_data_collector.create_exit_analysis(
+                hold_duration_hours=hold_duration_hours,
+                exit_signals_count=1,  # Single exit signal for crypto
+                final_decision_reason=exit_reason,
+                ml_confidence_decay=None,  # Not applicable for crypto exits
+                reversal_probability=0.5,  # Neutral for crypto
+                regime_adjusted_target=0.25,  # 25% crypto profit target
+                exit_signals_details=[f"crypto_{exit_reason}"]
+            )
+            
+            # Get market context at exit time
+            market_context = self.ml_data_collector.create_market_context(
+                us_market_open=False,
+                crypto_session=current_session.value,
+                market_hours_type="crypto_24_7_exit"
+            )
+            
+            # Create parameter performance assessment
+            pnl_pct = result.pnl_pct or 0.0
+            success = pnl_pct > 0.0
+            
+            parameter_performance = self.ml_data_collector.create_parameter_performance(
+                confidence_accuracy=0.6,  # Exit confidence
+                threshold_effectiveness=1.0 if success else 0.0,
+                regime_multiplier_success=success,
+                alternative_outcomes={
+                    'exit_reason_effectiveness': exit_reason,
+                    'would_profit_at_10pct': 'yes' if pnl_pct >= 0.10 else 'no',
+                    'would_profit_at_15pct': 'yes' if pnl_pct >= 0.15 else 'no',
+                    'would_profit_at_25pct': 'yes' if pnl_pct >= 0.25 else 'no'
+                },
+                parameter_attribution={
+                    'exit_trigger_contribution': exit_reason,
+                    'session_exit_timing': current_session.value,
+                    'crypto_volatility_factor': 'high'
+                }
+            )
+            
+            # Create ML trade data for exit
+            ml_exit_data = self.ml_data_collector.create_ml_trade_data(
+                symbol=symbol,
+                side='SELL' if position.get('qty', 0) > 0 else 'BUY',
+                quantity=abs(position.get('qty', 0)),
+                price=result.execution_price or 0,
+                strategy='crypto_exit',
+                confidence=0.6,
+                entry_parameters={},  # Exit trade
+                module_specific_params={
+                    'exit_reason': exit_reason,
+                    'session_at_exit': current_session.value,
+                    'position_hold_duration': hold_duration_hours
+                },
+                market_context=market_context,
+                exit_analysis=exit_analysis,
+                parameter_performance=parameter_performance,
+                profit_loss=result.pnl or 0.0,
+                exit_reason=exit_reason
+            )
+            
+            # Save to Firebase
+            trade_id = self.save_ml_enhanced_trade(ml_exit_data.to_dict())
+            
+            # Record exit parameter effectiveness
+            self.record_parameter_effectiveness(
+                parameter_type='crypto_exit_threshold',
+                parameter_value=exit_reason,
+                trade_outcome={
+                    'symbol': symbol,
+                    'exit_reason': exit_reason,
+                    'session': current_session.value,
+                    'hold_hours': hold_duration_hours
+                },
+                success=success,
+                profit_loss=result.pnl or 0.0
+            )
+            
+            self.logger.info(f"💾 Crypto exit ML data saved: {symbol} ({exit_reason}) - {trade_id}")
+            
+        except Exception as e:
+            self.logger.error(f"Error saving ML crypto exit data: {e}")
     
     # Utility methods
     

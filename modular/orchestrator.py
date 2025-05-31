@@ -49,8 +49,19 @@ class ModularOrchestrator:
         self.firebase_db = firebase_db
         self.risk_manager = risk_manager
         self.order_executor = order_executor
-        self.ml_optimizer = ml_optimizer
         self.logger = logger or logging.getLogger(self.__class__.__name__)
+        
+        # Initialize ML optimizer if not provided
+        if ml_optimizer is None and firebase_db:
+            try:
+                from .ml_optimizer import MLParameterOptimizationEngine
+                self.ml_optimizer = MLParameterOptimizationEngine(firebase_db, self, self.logger)
+                self.logger.info("Auto-created ML optimization engine")
+            except Exception as e:
+                self.logger.warning(f"Could not create ML optimizer: {e}")
+                self.ml_optimizer = None
+        else:
+            self.ml_optimizer = ml_optimizer
         
         # Module management
         self.registry = ModuleRegistry()
@@ -138,6 +149,9 @@ class ModularOrchestrator:
         try:
             results = self._run_trading_cycle()
             cycle_duration = time.time() - cycle_start
+            
+            # Update orchestrator metrics after cycle completion
+            self._update_orchestrator_metrics()
             
             results['cycle_info'] = {
                 'cycle_number': self._cycle_count,
@@ -388,29 +402,17 @@ class ModularOrchestrator:
             if not self.ml_optimizer:
                 return
                 
-            self.logger.info("Running ML optimization")
+            self.logger.info("Running ML parameter optimization")
             
-            # Get performance data from all modules
-            module_performance = {}
-            for module in self.registry._modules.values():
-                try:
-                    module_performance[module.module_name] = module.get_performance_summary()
-                except Exception as e:
-                    self.logger.error(f"Error getting performance for {module.module_name}: {e}")
+            # Run optimization cycle using new ML optimization engine
+            optimization_summary = self.ml_optimizer.run_optimization_cycle()
             
-            # Run optimization
-            optimization_results = self.ml_optimizer.optimize_parameters(module_performance)
-            
-            # Apply optimized parameters
-            for module_name, optimized_params in optimization_results.items():
-                try:
-                    module = self.registry.get_module(module_name)
-                    if module:
-                        # Update module configuration with optimized parameters
-                        module.config.custom_params.update(optimized_params)
-                        self.logger.info(f"Applied ML optimization to {module_name}")
-                except Exception as e:
-                    self.logger.error(f"Error applying optimization to {module_name}: {e}")
+            # Log optimization results
+            if optimization_summary.get('optimizations_applied', 0) > 0:
+                self.logger.info(f"ML Optimization Applied: {optimization_summary['optimizations_applied']} parameters updated, "
+                               f"expected improvement: {optimization_summary.get('total_expected_improvement', 0):.1%}")
+            else:
+                self.logger.debug("ML Optimization: No parameter changes applied this cycle")
                     
         except Exception as e:
             self.logger.error(f"Error running ML optimization: {e}")

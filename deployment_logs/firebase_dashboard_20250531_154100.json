@@ -1,0 +1,21 @@
+{
+  "timestamp": "2025-05-31T15:41:00.845373",
+  "project_id": "alpaca-12fab",
+  "hosting_url": "https://alpaca-12fab.web.app",
+  "dashboard_type": "modular_ml_optimization",
+  "features": [
+    "Real-time Firebase data integration",
+    "ML parameter optimization monitoring",
+    "Multi-module performance tracking",
+    "Orchestrator status monitoring",
+    "Interactive charts and visualizations",
+    "Mobile-responsive design"
+  ],
+  "collections_used": [
+    "orchestrator_cycles",
+    "modular_trades",
+    "ml_optimization_data",
+    "parameter_effectiveness",
+    "dashboard_summary"
+  ]
+}

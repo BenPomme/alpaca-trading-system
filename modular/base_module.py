@@ -13,6 +13,9 @@ from datetime import datetime
 import logging
 from enum import Enum
 
+# Import ML data collection helpers
+from .ml_data_helpers import MLDataCollector, ParameterEffectivenessTracker, MLLearningEventLogger
+
 
 class TradeAction(Enum):
     BUY = "buy"
@@ -136,7 +139,12 @@ class TradingModule(ABC):
         self._pending_opportunities: List[TradeOpportunity] = []
         self._performance_metrics: Dict[str, Any] = {}
         
-        self.logger.info(f"Initialized {self.module_name} module")
+        # ML data collection tools
+        self.ml_data_collector = MLDataCollector(self.module_name)
+        self.parameter_tracker = ParameterEffectivenessTracker(firebase_db, self.module_name)
+        self.ml_event_logger = MLLearningEventLogger(firebase_db, f"{self.module_name}_module")
+        
+        self.logger.info(f"Initialized {self.module_name} module with ML data collection enabled")
     
     @property
     @abstractmethod
@@ -319,6 +327,86 @@ class TradingModule(ABC):
                 self._performance_metrics['avg_hold_time'] = (
                     (current_avg * (total_trades - 1) + result.hold_duration) / total_trades
                 )
+    
+    # ML Data Collection Helper Methods
+    
+    def save_ml_enhanced_trade(self, trade_data: Dict[str, Any]) -> str:
+        """Save trade with ML-critical data to Firebase"""
+        try:
+            if self.firebase_db and self.firebase_db.is_connected():
+                trade_id = self.firebase_db.save_trade(trade_data)
+                self.logger.debug(f"Saved ML-enhanced trade: {trade_data.get('symbol')} - {trade_id}")
+                return trade_id
+            else:
+                self.logger.warning("Firebase not connected - ML data not saved")
+                return "no_firebase"
+        except Exception as e:
+            self.logger.error(f"Error saving ML trade data: {e}")
+            return "error"
+    
+    def record_parameter_effectiveness(self, 
+                                     parameter_type: str,
+                                     parameter_value: Any,
+                                     trade_outcome: Dict[str, Any],
+                                     success: bool,
+                                     profit_loss: float):
+        """Record parameter effectiveness for ML optimization"""
+        try:
+            self.parameter_tracker.record_parameter_outcome(
+                parameter_type=parameter_type,
+                parameter_value=parameter_value,
+                trade_outcome=trade_outcome,
+                success=success,
+                profit_loss=profit_loss
+            )
+            self.logger.debug(f"Recorded parameter effectiveness: {parameter_type}={parameter_value}, success={success}")
+        except Exception as e:
+            self.logger.error(f"Error recording parameter effectiveness: {e}")
+    
+    def log_ml_parameter_change(self,
+                              parameters_before: Dict[str, Any],
+                              parameters_after: Dict[str, Any],
+                              performance_impact: float = None,
+                              learning_trigger: str = None):
+        """Log ML parameter changes for audit trail"""
+        try:
+            self.ml_event_logger.log_parameter_change(
+                parameters_before=parameters_before,
+                parameters_after=parameters_after,
+                performance_impact=performance_impact,
+                learning_trigger=learning_trigger
+            )
+            self.logger.info(f"Logged ML parameter change: {len(parameters_after)} parameters updated")
+        except Exception as e:
+            self.logger.error(f"Error logging ML parameter change: {e}")
+    
+    def get_ml_optimized_parameters(self) -> Dict[str, Any]:
+        """Get ML-optimized parameters from Firebase"""
+        try:
+            if self.firebase_db and self.firebase_db.is_connected():
+                optimization_data = self.firebase_db.get_ml_optimization_data(self.module_name)
+                if optimization_data:
+                    return optimization_data[0].get('optimized_parameters', {})
+            return {}
+        except Exception as e:
+            self.logger.error(f"Error getting ML optimized parameters: {e}")
+            return {}
+    
+    def update_ml_optimized_parameters(self, optimized_parameters: Dict[str, Any]):
+        """Update ML-optimized parameters in Firebase"""
+        try:
+            if self.firebase_db and self.firebase_db.is_connected():
+                optimization_data = {
+                    'optimized_parameters': optimized_parameters,
+                    'optimization_generation': getattr(self, '_optimization_generation', 0) + 1,
+                    'last_optimization': datetime.now(),
+                    'module_version': "1.0"
+                }
+                self.firebase_db.save_ml_optimization_data(self.module_name, optimization_data)
+                self._optimization_generation = optimization_data['optimization_generation']
+                self.logger.info(f"Updated ML parameters for {self.module_name}: generation {self._optimization_generation}")
+        except Exception as e:
+            self.logger.error(f"Error updating ML parameters: {e}")
 
 
 class ModuleHealthStatus(Enum):

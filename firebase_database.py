@@ -123,25 +123,54 @@ class FirebaseDatabase:
             print(f"❌ Error getting trading cycles: {e}")
             return []
     
-    # TRADES COLLECTION
+    # TRADES COLLECTION (Enhanced for ML Optimization)
     def save_trade(self, trade_data: Dict[str, Any]) -> str:
-        """Save trade execution to Firebase"""
+        """Save trade execution to Firebase with ML-critical parameter data"""
         try:
             if not self.is_connected():
                 return "mock_trade_id"
             
-            trade_data['timestamp'] = datetime.now()
-            trade_data['created_at'] = firestore.SERVER_TIMESTAMP
+            # Validate and enhance trade data for ML optimization
+            enhanced_trade_data = self._enhance_trade_data_for_ml(trade_data)
             
-            doc_ref = self.db.collection('trades').add(trade_data)
+            enhanced_trade_data['timestamp'] = datetime.now()
+            enhanced_trade_data['created_at'] = firestore.SERVER_TIMESTAMP
+            
+            doc_ref = self.db.collection('trades').add(enhanced_trade_data)
             trade_id = doc_ref[1].id
             
-            print(f"✅ Trade saved to Firebase: {trade_data['symbol']} - {trade_id}")
+            print(f"✅ Enhanced trade saved to Firebase: {trade_data['symbol']} - {trade_id}")
             return trade_id
             
         except Exception as e:
             print(f"❌ Error saving trade: {e}")
             return "error_trade_id"
+    
+    def _enhance_trade_data_for_ml(self, trade_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Enhance trade data with ML-critical fields and validation"""
+        enhanced_data = trade_data.copy()
+        
+        # Ensure required ML fields exist with defaults
+        if 'entry_parameters' not in enhanced_data:
+            enhanced_data['entry_parameters'] = {}
+        
+        if 'module_specific_params' not in enhanced_data:
+            enhanced_data['module_specific_params'] = {}
+            
+        if 'exit_analysis' not in enhanced_data:
+            enhanced_data['exit_analysis'] = {}
+            
+        if 'market_context' not in enhanced_data:
+            enhanced_data['market_context'] = {}
+            
+        if 'parameter_performance' not in enhanced_data:
+            enhanced_data['parameter_performance'] = {}
+        
+        # Add ML tracking metadata
+        enhanced_data['ml_data_version'] = "1.0"
+        enhanced_data['ml_enhanced'] = True
+        
+        return enhanced_data
     
     def get_trades(self, limit: int = 500, days_back: int = 30) -> List[Dict[str, Any]]:
         """Get recent trades from Firebase"""
@@ -420,7 +449,8 @@ class FirebaseDatabase:
             if not self.is_connected():
                 return {"status": "disconnected"}
             
-            collections = ['trading_cycles', 'trades', 'market_quotes', 'ml_models', 'performance_metrics']
+            collections = ['trading_cycles', 'trades', 'market_quotes', 'ml_models', 'performance_metrics', 
+                          'parameter_effectiveness', 'ml_learning_events', 'ml_optimization_data']
             stats = {"status": "connected", "collections": {}}
             
             for collection_name in collections:
@@ -463,6 +493,193 @@ class FirebaseDatabase:
             
         except Exception as e:
             print(f"❌ Error clearing old data: {e}")
+    
+    # ML OPTIMIZATION COLLECTIONS
+    def save_parameter_effectiveness(self, param_data: Dict[str, Any]) -> str:
+        """Save parameter effectiveness data for ML optimization"""
+        try:
+            if not self.is_connected():
+                return "mock_param_id"
+            
+            param_data['timestamp'] = datetime.now()
+            param_data['created_at'] = firestore.SERVER_TIMESTAMP
+            
+            # Use parameter type and value as document ID for easy retrieval
+            doc_id = f"{param_data['module_name']}_{param_data['parameter_type']}_{param_data['parameter_value']}"
+            doc_ref = self.db.collection('parameter_effectiveness').document(doc_id)
+            doc_ref.set(param_data)
+            
+            return doc_id
+            
+        except Exception as e:
+            print(f"❌ Error saving parameter effectiveness: {e}")
+            return "error_param_id"
+    
+    def get_parameter_effectiveness(self, module_name: str = None, parameter_type: str = None) -> List[Dict[str, Any]]:
+        """Get parameter effectiveness data for analysis"""
+        try:
+            if not self.is_connected():
+                return []
+            
+            params_ref = self.db.collection('parameter_effectiveness')
+            
+            # Apply filters if provided
+            query = params_ref
+            if module_name:
+                query = query.where(filter=FieldFilter('module_name', '==', module_name))
+            if parameter_type:
+                query = query.where(filter=FieldFilter('parameter_type', '==', parameter_type))
+            
+            query = query.order_by('timestamp', direction=firestore.Query.DESCENDING).limit(100)
+            docs = query.stream()
+            
+            params = []
+            for doc in docs:
+                param_data = doc.to_dict()
+                param_data['id'] = doc.id
+                params.append(param_data)
+            
+            return params
+            
+        except Exception as e:
+            print(f"❌ Error getting parameter effectiveness: {e}")
+            return []
+    
+    def save_ml_learning_event(self, event_data: Dict[str, Any]) -> str:
+        """Save ML learning event for audit trail"""
+        try:
+            if not self.is_connected():
+                return "mock_event_id"
+            
+            event_data['timestamp'] = datetime.now()
+            event_data['created_at'] = firestore.SERVER_TIMESTAMP
+            
+            doc_ref = self.db.collection('ml_learning_events').add(event_data)
+            event_id = doc_ref[1].id
+            
+            return event_id
+            
+        except Exception as e:
+            print(f"❌ Error saving ML learning event: {e}")
+            return "error_event_id"
+    
+    def get_ml_learning_events(self, model_name: str = None, limit: int = 100) -> List[Dict[str, Any]]:
+        """Get ML learning events for analysis"""
+        try:
+            if not self.is_connected():
+                return []
+            
+            events_ref = self.db.collection('ml_learning_events')
+            
+            query = events_ref
+            if model_name:
+                query = query.where(filter=FieldFilter('model_name', '==', model_name))
+            
+            query = query.order_by('timestamp', direction=firestore.Query.DESCENDING).limit(limit)
+            docs = query.stream()
+            
+            events = []
+            for doc in docs:
+                event_data = doc.to_dict()
+                event_data['id'] = doc.id
+                events.append(event_data)
+            
+            return events
+            
+        except Exception as e:
+            print(f"❌ Error getting ML learning events: {e}")
+            return []
+    
+    def save_ml_optimization_data(self, module_name: str, optimization_data: Dict[str, Any]) -> str:
+        """Save ML optimization data for a module"""
+        try:
+            if not self.is_connected():
+                return "mock_optimization_id"
+            
+            optimization_data['module_name'] = module_name
+            optimization_data['timestamp'] = datetime.now()
+            optimization_data['created_at'] = firestore.SERVER_TIMESTAMP
+            
+            # Use module name as document ID
+            doc_ref = self.db.collection('ml_optimization_data').document(module_name)
+            doc_ref.set(optimization_data)
+            
+            print(f"✅ ML optimization data saved for {module_name}")
+            return module_name
+            
+        except Exception as e:
+            print(f"❌ Error saving ML optimization data: {e}")
+            return "error_optimization_id"
+    
+    def get_ml_optimization_data(self, module_name: str = None) -> List[Dict[str, Any]]:
+        """Get ML optimization data"""
+        try:
+            if not self.is_connected():
+                return []
+            
+            if module_name:
+                # Get specific module optimization data
+                doc_ref = self.db.collection('ml_optimization_data').document(module_name)
+                doc = doc_ref.get()
+                
+                if doc.exists:
+                    data = doc.to_dict()
+                    data['id'] = doc.id
+                    return [data]
+                else:
+                    return []
+            else:
+                # Get all optimization data
+                docs = self.db.collection('ml_optimization_data').stream()
+                
+                optimization_data = []
+                for doc in docs:
+                    data = doc.to_dict()
+                    data['id'] = doc.id
+                    optimization_data.append(data)
+                
+                return optimization_data
+            
+        except Exception as e:
+            print(f"❌ Error getting ML optimization data: {e}")
+            return []
+    
+    def get_trades_for_ml_analysis(self, module_name: str = None, days_back: int = 30, limit: int = 1000) -> List[Dict[str, Any]]:
+        """Get trades with ML-enhanced data for parameter analysis"""
+        try:
+            if not self.is_connected():
+                return []
+            
+            # Calculate date filter
+            cutoff_date = datetime.now() - timedelta(days=days_back)
+            
+            trades_ref = self.db.collection('trades')
+            query = trades_ref.where(filter=FieldFilter('timestamp', '>=', cutoff_date)) \
+                             .where(filter=FieldFilter('ml_enhanced', '==', True))
+            
+            if module_name:
+                # Filter by module (inferred from strategy or asset_type)
+                if module_name == 'crypto':
+                    query = query.where(filter=FieldFilter('asset_type', '==', 'crypto'))
+                elif module_name == 'options':
+                    query = query.where(filter=FieldFilter('options_trade', '==', True))
+                elif module_name == 'stocks':
+                    query = query.where(filter=FieldFilter('asset_type', '==', 'stock'))
+            
+            query = query.order_by('timestamp', direction=firestore.Query.DESCENDING).limit(limit)
+            docs = query.stream()
+            
+            trades = []
+            for doc in docs:
+                trade_data = doc.to_dict()
+                trade_data['id'] = doc.id
+                trades.append(trade_data)
+            
+            return trades
+            
+        except Exception as e:
+            print(f"❌ Error getting ML trades: {e}")
+            return []
 
 def main():
     """Test Firebase database connection and basic operations"""

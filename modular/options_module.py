@@ -627,7 +627,7 @@ class OptionsModule(TradingModule):
     # Trade execution methods
     
     def _execute_options_trade(self, opportunity: TradeOpportunity) -> TradeResult:
-        """Execute options trade based on opportunity"""
+        """Execute options trade with ML-critical parameter data collection"""
         try:
             strategy_details = opportunity.metadata.get('strategy_details', {})
             contracts = strategy_details.get('contracts', [])
@@ -644,6 +644,10 @@ class OptionsModule(TradingModule):
                 result = self._execute_multi_leg_order(opportunity, strategy_details)
             else:
                 result = self._execute_single_leg_order(opportunity, strategy_details)
+            
+            # 🧠 ML DATA COLLECTION: Save trade with enhanced parameter context
+            if result.success:
+                self._save_ml_enhanced_options_trade(opportunity, result, strategy_details)
             
             return result
             
@@ -723,6 +727,154 @@ class OptionsModule(TradingModule):
                 error_message=f"Multi-leg execution error: {e}"
             )
     
+    def _save_ml_enhanced_options_trade(self, opportunity: TradeOpportunity, result: TradeResult, strategy_details: Dict):
+        """Save options trade with ML-critical parameter data for optimization"""
+        try:
+            # Extract key strategy information
+            strategy_name = opportunity.strategy
+            contracts = strategy_details.get('contracts', [])
+            underlying_symbol = opportunity.symbol.replace('_option', '') if '_option' in opportunity.symbol else opportunity.symbol
+            
+            # Get underlying price and contract details
+            underlying_price = strategy_details.get('underlying_price', 0)
+            net_premium = strategy_details.get('net_premium', 0)
+            leverage = strategy_details.get('leverage', 0)
+            
+            # Extract first contract details for strike/expiration analysis
+            primary_contract = contracts[0] if contracts else {'strike': 0, 'expiration': 'unknown', 'implied_volatility': 0}
+            strike_selected = primary_contract.get('strike', 0)
+            expiration_date = primary_contract.get('expiration', 'unknown')
+            implied_volatility = primary_contract.get('implied_volatility', 0.25)  # Default IV
+            
+            # Calculate days to expiration
+            try:
+                if expiration_date != 'unknown':
+                    exp_date = datetime.strptime(expiration_date, '%Y-%m-%d')
+                    expiration_days = (exp_date - datetime.now()).days
+                else:
+                    expiration_days = 30  # Default
+            except:
+                expiration_days = 30
+            
+            # Create entry parameters for ML learning
+            entry_parameters = self.ml_data_collector.create_entry_parameters(
+                confidence_threshold_used=opportunity.confidence,
+                position_size_multiplier=opportunity.quantity / max(1, underlying_price / 1000),  # Normalize position size
+                regime_confidence=opportunity.regime_score,
+                technical_confidence=opportunity.technical_score,
+                pattern_confidence=opportunity.pattern_score,
+                ml_strategy_selection=True,
+                leverage_applied=leverage,
+                options_strategy=strategy_name
+            )
+            
+            # Create options-specific module parameters
+            module_specific_params = self.ml_data_collector.create_options_module_params(
+                underlying_price=underlying_price,
+                strike_selected=strike_selected,
+                expiration_days=expiration_days,
+                implied_volatility=implied_volatility,
+                option_strategy=strategy_name,
+                contracts_multiplier=opportunity.quantity,
+                greeks={
+                    'delta': primary_contract.get('delta', 0.5),
+                    'gamma': primary_contract.get('gamma', 0.1),
+                    'theta': primary_contract.get('theta', -0.05),
+                    'vega': primary_contract.get('vega', 0.2)
+                },
+                net_premium_paid=net_premium,
+                max_risk=strategy_details.get('max_risk', net_premium),
+                max_reward=strategy_details.get('max_reward', 0),
+                breakeven_price=strategy_details.get('breakeven', 0),
+                strategy_leverage=leverage,
+                contract_count=len(contracts)
+            )
+            
+            # Create market context
+            market_context = self.ml_data_collector.create_market_context(
+                us_market_open=True,  # Options trade during market hours
+                crypto_session=None,
+                market_hours_type="options_trading_hours"
+            )
+            
+            # Create parameter performance context
+            parameter_performance = self.ml_data_collector.create_parameter_performance(
+                confidence_accuracy=opportunity.confidence,
+                threshold_effectiveness=1.0 if opportunity.confidence >= self.config.min_confidence else 0.0,
+                regime_multiplier_success=True,  # Strategy was selected
+                alternative_outcomes={
+                    'strategy_long_calls': 'would_have_triggered' if opportunity.confidence >= 0.75 else 'would_not_have_triggered',
+                    'strategy_bull_spreads': 'would_have_triggered' if 0.60 <= opportunity.confidence < 0.75 else 'would_not_have_triggered',
+                    'strategy_protective_puts': 'would_have_triggered' if opportunity.confidence < 0.40 else 'would_not_have_triggered'
+                },
+                parameter_attribution={
+                    'strike_selection_impact': abs(strike_selected - underlying_price) / underlying_price if underlying_price > 0 else 0,
+                    'expiration_timing_impact': expiration_days,
+                    'volatility_environment': implied_volatility,
+                    'leverage_contribution': leverage,
+                    'premium_efficiency': net_premium / underlying_price if underlying_price > 0 else 0
+                }
+            )
+            
+            # Create complete ML trade data
+            ml_trade_data = self.ml_data_collector.create_ml_trade_data(
+                symbol=underlying_symbol,  # Use underlying for better grouping
+                side='BUY' if opportunity.action == TradeAction.BUY else 'SELL',
+                quantity=opportunity.quantity,
+                price=result.execution_price or net_premium,
+                strategy=opportunity.strategy,
+                confidence=opportunity.confidence,
+                entry_parameters=entry_parameters,
+                module_specific_params=module_specific_params,
+                market_context=market_context,
+                parameter_performance=parameter_performance,
+                profit_loss=0.0,  # Will be updated on exit
+                exit_reason=None  # Entry trade
+            )
+            
+            # Add options-specific fields
+            ml_trade_data_dict = ml_trade_data.to_dict()
+            ml_trade_data_dict['options_trade'] = True
+            ml_trade_data_dict['underlying_symbol'] = underlying_symbol
+            ml_trade_data_dict['contract_symbols'] = [c.get('symbol', '') for c in contracts]
+            ml_trade_data_dict['asset_type'] = 'options'
+            
+            # Save to Firebase with ML enhancements
+            trade_id = self.save_ml_enhanced_trade(ml_trade_data_dict)
+            
+            # Record parameter effectiveness for ML optimization
+            self.record_parameter_effectiveness(
+                parameter_type='options_strategy_selection',
+                parameter_value=strategy_name,
+                trade_outcome={
+                    'underlying_symbol': underlying_symbol,
+                    'strategy': strategy_name,
+                    'confidence': opportunity.confidence,
+                    'executed': result.success
+                },
+                success=result.success,
+                profit_loss=0.0  # Will be updated on exit
+            )
+            
+            # Record confidence threshold effectiveness
+            self.record_parameter_effectiveness(
+                parameter_type='options_confidence_threshold',
+                parameter_value=opportunity.confidence,
+                trade_outcome={
+                    'underlying_symbol': underlying_symbol,
+                    'strategy': strategy_name,
+                    'leverage': leverage,
+                    'executed': result.success
+                },
+                success=result.success,
+                profit_loss=0.0
+            )
+            
+            self.logger.info(f"💾 Options ML data saved: {underlying_symbol} ({strategy_name}) - {trade_id}")
+            
+        except Exception as e:
+            self.logger.error(f"Error saving ML options trade data: {e}")
+    
     # Position monitoring methods
     
     def _get_options_positions(self) -> List[Dict]:
@@ -782,7 +934,7 @@ class OptionsModule(TradingModule):
             return None
     
     def _execute_position_exit(self, position: Dict, exit_reason: str) -> Optional[TradeResult]:
-        """Execute position exit"""
+        """Execute position exit with ML-enhanced exit analysis"""
         try:
             # Create exit trade result
             # This is simplified - in production would execute actual closing order
@@ -795,7 +947,7 @@ class OptionsModule(TradingModule):
                 strategy='position_exit'
             )
             
-            return TradeResult(
+            result = TradeResult(
                 opportunity=fake_opportunity,
                 status=TradeStatus.EXECUTED,
                 order_id=f"exit_{datetime.now().timestamp()}",
@@ -806,9 +958,145 @@ class OptionsModule(TradingModule):
                 exit_reason=ExitReason.PROFIT_TARGET if exit_reason == 'profit_target' else ExitReason.STOP_LOSS
             )
             
+            # 🧠 ML DATA COLLECTION: Save exit analysis for parameter optimization
+            if result.success:
+                self._save_ml_enhanced_options_exit(position, result, exit_reason)
+            
+            return result
+            
         except Exception as e:
             self.logger.error(f"Error executing position exit: {e}")
             return None
+    
+    def _save_ml_enhanced_options_exit(self, position: Dict, result: TradeResult, exit_reason: str):
+        """Save options exit with ML-critical exit analysis data"""
+        try:
+            symbol = position.get('symbol', '')
+            underlying_symbol = self._extract_underlying_from_options_symbol(symbol)
+            
+            # Calculate hold duration (simplified - would track entry time in production)
+            hold_duration_hours = 24.0  # Estimated options hold time
+            
+            # Create exit analysis data
+            exit_analysis = self.ml_data_collector.create_exit_analysis(
+                hold_duration_hours=hold_duration_hours,
+                exit_signals_count=1,  # Single exit signal for options
+                final_decision_reason=exit_reason,
+                ml_confidence_decay=None,  # Not applicable for options exits
+                reversal_probability=0.5,  # Neutral for options
+                regime_adjusted_target=1.0 if exit_reason == 'profit_target' else -0.5,  # Target achievement
+                exit_signals_details=[f"options_{exit_reason}"]
+            )
+            
+            # Get market context at exit time
+            market_context = self.ml_data_collector.create_market_context(
+                us_market_open=True,
+                market_hours_type="options_exit_during_hours"
+            )
+            
+            # Create parameter performance assessment
+            pnl_pct = result.pnl_pct or 0.0
+            success = pnl_pct > 0.0
+            
+            # Determine if this was an effective exit strategy
+            exit_effectiveness = self._assess_exit_effectiveness(pnl_pct, exit_reason)
+            
+            parameter_performance = self.ml_data_collector.create_parameter_performance(
+                confidence_accuracy=0.5,  # Exit confidence
+                threshold_effectiveness=exit_effectiveness,
+                regime_multiplier_success=success,
+                alternative_outcomes={
+                    'exit_timing_effectiveness': exit_reason,
+                    'would_profit_at_50pct': 'yes' if pnl_pct >= 0.50 else 'no',
+                    'would_profit_at_100pct': 'yes' if pnl_pct >= 1.00 else 'no',
+                    'expiration_risk_managed': 'yes' if exit_reason == 'expiration' else 'no'
+                },
+                parameter_attribution={
+                    'exit_trigger_contribution': exit_reason,
+                    'options_theta_decay_factor': 'high' if 'expiration' in exit_reason else 'medium',
+                    'volatility_environment': 'unknown',  # Would be calculated from IV
+                    'leverage_impact': 'high'  # Options inherently leveraged
+                }
+            )
+            
+            # Create ML trade data for exit
+            ml_exit_data = self.ml_data_collector.create_ml_trade_data(
+                symbol=underlying_symbol,
+                side='SELL' if position.get('qty', 0) > 0 else 'BUY',
+                quantity=abs(position.get('qty', 0)),
+                price=result.execution_price or 0,
+                strategy='options_exit',
+                confidence=0.5,
+                entry_parameters={},  # Exit trade
+                module_specific_params={
+                    'exit_reason': exit_reason,
+                    'options_symbol': symbol,
+                    'underlying_symbol': underlying_symbol,
+                    'position_hold_duration': hold_duration_hours,
+                    'expiration_related': 'expiration' in exit_reason,
+                    'profit_related': 'profit' in exit_reason,
+                    'stop_loss_related': 'stop' in exit_reason
+                },
+                market_context=market_context,
+                exit_analysis=exit_analysis,
+                parameter_performance=parameter_performance,
+                profit_loss=result.pnl or 0.0,
+                exit_reason=exit_reason
+            )
+            
+            # Add options-specific fields for exit
+            ml_exit_data_dict = ml_exit_data.to_dict()
+            ml_exit_data_dict['options_trade'] = True
+            ml_exit_data_dict['underlying_symbol'] = underlying_symbol
+            ml_exit_data_dict['options_symbol'] = symbol
+            ml_exit_data_dict['asset_type'] = 'options'
+            ml_exit_data_dict['exit_trade'] = True
+            
+            # Save to Firebase
+            trade_id = self.save_ml_enhanced_trade(ml_exit_data_dict)
+            
+            # Record exit parameter effectiveness
+            self.record_parameter_effectiveness(
+                parameter_type='options_exit_strategy',
+                parameter_value=exit_reason,
+                trade_outcome={
+                    'underlying_symbol': underlying_symbol,
+                    'exit_reason': exit_reason,
+                    'hold_hours': hold_duration_hours,
+                    'pnl_pct': pnl_pct
+                },
+                success=success,
+                profit_loss=result.pnl or 0.0
+            )
+            
+            self.logger.info(f"💾 Options exit ML data saved: {underlying_symbol} ({exit_reason}) - {trade_id}")
+            
+        except Exception as e:
+            self.logger.error(f"Error saving ML options exit data: {e}")
+    
+    def _extract_underlying_from_options_symbol(self, options_symbol: str) -> str:
+        """Extract underlying symbol from options contract symbol"""
+        try:
+            # Options symbols typically have format like AAPL210319C00125000
+            # Extract the alphabetic part at the beginning
+            underlying = ''.join(c for c in options_symbol if c.isalpha())
+            return underlying if underlying else options_symbol
+        except:
+            return options_symbol
+    
+    def _assess_exit_effectiveness(self, pnl_pct: float, exit_reason: str) -> float:
+        """Assess how effective the exit strategy was"""
+        try:
+            if exit_reason == 'profit_target':
+                return 1.0 if pnl_pct >= 0.5 else 0.7  # Good if hit profit target
+            elif exit_reason == 'stop_loss':
+                return 0.6 if pnl_pct >= -0.6 else 0.3  # Better if loss was limited
+            elif exit_reason == 'expiration':
+                return 0.8 if pnl_pct > 0 else 0.4  # Good if profitable before expiration
+            else:
+                return 0.5  # Neutral for other reasons
+        except:
+            return 0.5
     
     # Utility methods
     

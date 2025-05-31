@@ -1,0 +1,148 @@
+{
+  "portfolio": {
+    "value": 99500.0,
+    "cash": 25000.0,
+    "equity": 99500.0,
+    "buying_power": 50000.0,
+    "daily_pl": -500.0,
+    "daily_pl_percent": -0.5
+  },
+  "positions": [
+    {
+      "symbol": "AAPL",
+      "quantity": 15,
+      "entry_price": 195.5,
+      "current_price": 198.75,
+      "unrealized_pl": 48.75,
+      "unrealized_pl_percent": 1.66,
+      "hold_time": "3h 25m",
+      "strategy": "momentum",
+      "type": "stock",
+      "module": "stocks"
+    },
+    {
+      "symbol": "BTCUSD",
+      "quantity": 0.15,
+      "entry_price": 45000.0,
+      "current_price": 45850.0,
+      "unrealized_pl": 127.5,
+      "unrealized_pl_percent": 1.89,
+      "hold_time": "1h 45m",
+      "strategy": "crypto_momentum",
+      "type": "crypto",
+      "module": "crypto"
+    }
+  ],
+  "trades": [
+    {
+      "timestamp": "2025-05-31T13:33:18.889310",
+      "symbol": "SPY",
+      "action": "SELL",
+      "strategy": "momentum",
+      "module_name": "stocks",
+      "pnl": 25.5,
+      "confidence": 0.75
+    }
+  ],
+  "performance": {
+    "total_trades": 1,
+    "winning_trades": 1,
+    "losing_trades": 0,
+    "win_rate": 100.0,
+    "total_pnl": 25.5,
+    "avg_pnl_per_trade": 25.5,
+    "best_trade": 25.5,
+    "worst_trade": 25.5,
+    "avg_hold_time_hours": 0.0,
+    "daily_roi": 0.0,
+    "weekly_roi": 0.0,
+    "monthly_roi": 0.0,
+    "sharpe_ratio": 0.0,
+    "max_drawdown": 0.0
+  },
+  "modules": {
+    "options": {
+      "total_trades": 12,
+      "win_rate": 58.3,
+      "total_pnl": 125.5
+    },
+    "crypto": {
+      "total_trades": 8,
+      "win_rate": 62.5,
+      "total_pnl": 89.25
+    },
+    "stocks": {
+      "total_trades": 25,
+      "win_rate": 56.0,
+      "total_pnl": 234.75
+    }
+  },
+  "orchestrator": {
+    "last_cycle_time": "2025-05-31T15:28:18.889401",
+    "cycle_number": 1250,
+    "success_rate": 87.5,
+    "uptime_status": "running"
+  },
+  "ml_optimization": {
+    "optimization_enabled": true,
+    "recent_optimizations": [
+      {
+        "timestamp": "2025-05-31T14:33:18.889409",
+        "module_name": "crypto",
+        "parameter_type": "confidence_threshold",
+        "old_value": 0.6,
+        "new_value": 0.65,
+        "expected_improvement": 0.05,
+        "applied": true
+      }
+    ],
+    "parameter_changes_today": 3
+  },
+  "parameter_effectiveness": {
+    "parameters_tracked": 15,
+    "top_performing_parameters": [
+      {
+        "parameter_type": "confidence_threshold",
+        "win_rate": 68.5,
+        "avg_pnl": 12.5
+      }
+    ],
+    "underperforming_parameters": []
+  },
+  "system_health": {
+    "overall_status": "unknown",
+    "firebase_connection": false,
+    "alpaca_connection": false,
+    "modules_status": {
+      "options": "unknown",
+      "crypto": "unknown",
+      "stocks": "unknown"
+    },
+    "last_activity": null,
+    "error_rate": 0.0,
+    "uptime_hours": 0.0
+  },
+  "market_status": {
+    "is_open": false,
+    "next_open": "Unknown",
+    "next_close": "Unknown"
+  },
+  "strategy_performance": [
+    {
+      "strategy": "momentum",
+      "module": "stocks",
+      "win_rate": 65.0,
+      "total_pnl": 234.5
+    },
+    {
+      "strategy": "crypto_momentum",
+      "module": "crypto",
+      "win_rate": 58.0,
+      "total_pnl": 125.25
+    }
+  ],
+  "generated_at": "2025-05-31T15:33:18.889501",
+  "data_source": "fallback",
+  "firebase_connected": false,
+  "alpaca_connected": false
+}

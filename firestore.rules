@@ -1,7 +1,7 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read access to trading data (dashboard needs to read)
+    // Legacy trading data collections
     match /trading_cycles/{document} {
       allow read: if true;
       allow write: if true; // Allow trading system to write
@@ -30,6 +30,85 @@ service cloud.firestore {
     match /positions/{document} {
       allow read: if true;
       allow write: if true; // Allow trading system to write
+    }
+    
+    // Modular architecture collections
+    match /modular_opportunities/{document} {
+      allow read: if true;
+      allow write: if true; // Allow modular system to write
+    }
+    
+    match /modular_trades/{document} {
+      allow read: if true;
+      allow write: if true; // Allow modular system to write
+    }
+    
+    match /orchestrator_cycles/{document} {
+      allow read: if true;
+      allow write: if true; // Allow orchestrator to write
+    }
+    
+    match /orchestrator_shutdowns/{document} {
+      allow read: if true;
+      allow write: if true; // Allow orchestrator to write
+    }
+    
+    // ML optimization collections
+    match /ml_optimization_data/{document} {
+      allow read: if true;
+      allow write: if true; // Allow ML optimizer to write
+    }
+    
+    match /parameter_effectiveness/{document} {
+      allow read: if true;
+      allow write: if true; // Allow ML system to write
+    }
+    
+    match /ml_learning_events/{document} {
+      allow read: if true;
+      allow write: if true; // Allow ML system to write
+    }
+    
+    // Dashboard-specific collections
+    match /dashboard_summary/{document} {
+      allow read: if true;
+      allow write: if true; // Allow dashboard updater to write
+    }
+    
+    match /dashboard_module_performance/{document} {
+      allow read: if true;
+      allow write: if true; // Allow dashboard updater to write
+    }
+    
+    match /dashboard_orchestrator_status/{document} {
+      allow read: if true;
+      allow write: if true; // Allow dashboard updater to write
+    }
+    
+    match /dashboard_ml_status/{document} {
+      allow read: if true;
+      allow write: if true; // Allow dashboard updater to write
+    }
+    
+    match /dashboard_positions_summary/{document} {
+      allow read: if true;
+      allow write: if true; // Allow dashboard updater to write
+    }
+    
+    match /dashboard_system_health/{document} {
+      allow read: if true;
+      allow write: if true; // Allow dashboard updater to write
+    }
+    
+    match /dashboard_chart_data/{document} {
+      allow read: if true;
+      allow write: if true; // Allow dashboard updater to write
+    }
+    
+    // Migration logs
+    match /migration_logs/{document} {
+      allow read: if true;
+      allow write: if true; // Allow migration system to write
     }
   }
 }

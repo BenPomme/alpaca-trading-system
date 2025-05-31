@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "public": "public",
+    "public": "docs",
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -8,8 +8,35 @@
     ],
     "rewrites": [
       {
-        "source": "**",
+        "source": "/",
+        "destination": "/modular-dashboard.html"
+      },
+      {
+        "source": "/legacy",
         "destination": "/index.html"
+      },
+      {
+        "source": "**",
+        "destination": "/modular-dashboard.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "/api/**",
+        "headers": [
+          {
+            "key": "Access-Control-Allow-Origin",
+            "value": "*"
+          },
+          {
+            "key": "Access-Control-Allow-Headers",
+            "value": "Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control"
+          },
+          {
+            "key": "Access-Control-Allow-Methods",
+            "value": "GET, POST, OPTIONS, PUT, DELETE"
+          }
+        ]
       }
     ]
   },

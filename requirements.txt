@@ -1,5 +1,11 @@
-alpaca-trade-api
-flask==2.3.3
-pytz
-firebase-admin
-google-cloud-firestore
+alpaca-trade-api>=3.0.0
+firebase-admin>=6.2.0
+google-cloud-firestore>=2.12.0
+flask>=2.3.3
+gunicorn>=21.2.0
+pytz>=2023.3
+numpy>=1.24.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+requests>=2.31.0
+psutil>=5.9.0

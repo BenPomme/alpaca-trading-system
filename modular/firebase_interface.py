@@ -507,3 +507,65 @@ class ModularFirebaseInterface:
             'timestamp': legacy_trade.get('timestamp'),
             'migrated_from': 'legacy_phase5'
         }
+    
+    # ML Data Collection Methods (for compatibility with enhanced modules)
+    
+    def save_trade(self, trade_data: Dict[str, Any]) -> str:
+        """Save ML-enhanced trade data to Firebase"""
+        try:
+            if not self.is_connected():
+                return "mock_trade_id"
+            
+            return self.firebase_db.save_trade(trade_data)
+            
+        except Exception as e:
+            self.logger.error(f"Error saving ML trade data: {e}")
+            return "error_trade_id"
+    
+    def save_parameter_effectiveness(self, param_data: Dict[str, Any]) -> str:
+        """Save parameter effectiveness data for ML optimization"""
+        try:
+            if not self.is_connected():
+                return "mock_param_id"
+            
+            return self.firebase_db.save_parameter_effectiveness(param_data)
+            
+        except Exception as e:
+            self.logger.error(f"Error saving parameter effectiveness: {e}")
+            return "error_param_id"
+    
+    def save_ml_learning_event(self, event_data: Dict[str, Any]) -> str:
+        """Save ML learning event for audit trail"""
+        try:
+            if not self.is_connected():
+                return "mock_event_id"
+            
+            return self.firebase_db.save_ml_learning_event(event_data)
+            
+        except Exception as e:
+            self.logger.error(f"Error saving ML learning event: {e}")
+            return "error_event_id"
+    
+    def get_ml_optimization_data(self, module_name: str = None) -> List[Dict[str, Any]]:
+        """Get ML optimization data"""
+        try:
+            if not self.is_connected():
+                return []
+            
+            return self.firebase_db.get_ml_optimization_data(module_name)
+            
+        except Exception as e:
+            self.logger.error(f"Error getting ML optimization data: {e}")
+            return []
+    
+    def save_ml_optimization_data(self, module_name: str, optimization_data: Dict[str, Any]) -> str:
+        """Save ML optimization data for a module"""
+        try:
+            if not self.is_connected():
+                return "mock_optimization_id"
+            
+            return self.firebase_db.save_ml_optimization_data(module_name, optimization_data)
+            
+        except Exception as e:
+            self.logger.error(f"Error saving ML optimization data: {e}")
+            return "error_optimization_id"
