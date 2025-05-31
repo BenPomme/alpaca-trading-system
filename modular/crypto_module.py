@@ -177,17 +177,35 @@ class CryptoModule(TradingModule):
             # Use unified 24/7 config instead of session-specific configs
             crypto_config = self.crypto_trading_config
             self.logger.info(f"Analyzing {len(active_symbols)} cryptos for 24/7 opportunities")
+            self.logger.info(f"🎯 Confidence threshold: {crypto_config['min_confidence']:.2f}, Session: {current_session.value}")
             
             # Analyze each active symbol
             for symbol in active_symbols:
                 try:
                     analysis = self._analyze_crypto_symbol(symbol, current_session)
-                    if analysis and analysis.is_tradeable:
-                        # Check 24/7 confidence threshold (no session restrictions)
-                        if analysis.overall_confidence >= crypto_config['min_confidence']:
-                            opportunity = self._create_crypto_opportunity(analysis, crypto_config)
-                            if opportunity:
-                                opportunities.append(opportunity)
+                    
+                    if analysis:
+                        # Log detailed analysis results for debugging
+                        self.logger.info(f"📊 {symbol}: confidence={analysis.overall_confidence:.2f}, "
+                                       f"tradeable={analysis.is_tradeable}, "
+                                       f"momentum={analysis.momentum_score:.2f}, "
+                                       f"volatility={analysis.volatility_score:.2f}")
+                        
+                        if analysis.is_tradeable:
+                            # Check 24/7 confidence threshold (no session restrictions)
+                            if analysis.overall_confidence >= crypto_config['min_confidence']:
+                                opportunity = self._create_crypto_opportunity(analysis, crypto_config)
+                                if opportunity:
+                                    opportunities.append(opportunity)
+                                    self.logger.info(f"✅ {symbol}: OPPORTUNITY CREATED (confidence={analysis.overall_confidence:.2f})")
+                                else:
+                                    self.logger.info(f"⚠️ {symbol}: opportunity creation failed despite good confidence")
+                            else:
+                                self.logger.info(f"❌ {symbol}: confidence {analysis.overall_confidence:.2f} < threshold {crypto_config['min_confidence']}")
+                        else:
+                            self.logger.info(f"❌ {symbol}: not tradeable (confidence={analysis.overall_confidence:.2f})")
+                    else:
+                        self.logger.error(f"❌ {symbol}: analysis returned None")
                 
                 except Exception as e:
                     self.logger.error(f"Error analyzing crypto {symbol}: {e}")
