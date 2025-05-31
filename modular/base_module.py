@@ -212,10 +212,14 @@ class TradingModule(ABC):
             
             # Portfolio allocation check
             if self.config.max_allocation_pct > 0:
-                current_allocation = self._calculate_current_allocation()
-                if current_allocation >= self.config.max_allocation_pct:
-                    self.logger.debug(f"Opportunity rejected: allocation limit {current_allocation}% >= {self.config.max_allocation_pct}%")
-                    return False
+                try:
+                    current_allocation = self._calculate_current_allocation()
+                    if current_allocation >= self.config.max_allocation_pct:
+                        self.logger.debug(f"Opportunity rejected: allocation limit {current_allocation}% >= {self.config.max_allocation_pct}%")
+                        return False
+                except Exception as e:
+                    self.logger.debug(f"Error checking allocation limit: {e}")
+                    # Continue validation if allocation check fails
             
             # Position limit check  
             if self.config.max_positions > 0:
