@@ -442,6 +442,43 @@ class FirebaseDatabase:
             print(f"❌ Error getting performance history: {e}")
             return []
     
+    # ORCHESTRATOR CYCLE COLLECTION
+    def save_orchestrator_cycle(self, cycle_data: Dict[str, Any]) -> str:
+        """Save orchestrator cycle data to Firebase"""
+        try:
+            if not self.is_connected():
+                return "mock_orchestrator_cycle_id"
+            
+            cycle_data['timestamp'] = datetime.now()
+            cycle_data['created_at'] = firestore.SERVER_TIMESTAMP
+            
+            doc_ref = self.db.collection('orchestrator_cycles').add(cycle_data)
+            cycle_id = doc_ref[1].id
+            
+            return cycle_id
+            
+        except Exception as e:
+            print(f"❌ Error saving orchestrator cycle: {e}")
+            return "error_orchestrator_cycle_id"
+    
+    def save_orchestrator_shutdown(self, shutdown_data: Dict[str, Any]) -> str:
+        """Save orchestrator shutdown data to Firebase"""
+        try:
+            if not self.is_connected():
+                return "mock_shutdown_id"
+            
+            shutdown_data['timestamp'] = datetime.now()
+            shutdown_data['created_at'] = firestore.SERVER_TIMESTAMP
+            
+            doc_ref = self.db.collection('orchestrator_shutdowns').add(shutdown_data)
+            shutdown_id = doc_ref[1].id
+            
+            return shutdown_id
+            
+        except Exception as e:
+            print(f"❌ Error saving orchestrator shutdown: {e}")
+            return "error_shutdown_id"
+
     # UTILITY METHODS
     def get_database_stats(self) -> Dict[str, Any]:
         """Get Firebase database statistics"""
