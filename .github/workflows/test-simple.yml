@@ -1,9 +1,10 @@
-name: Test Simple Dashboard Update
+# DISABLED: This GitHub Action was interfering with Railway deployments
+# name: Test Simple Dashboard Update
 
-on:
-  workflow_dispatch:
-  push:
-    branches: [ main ]
+# on:
+#   workflow_dispatch:
+#   push:
+#     branches: [ main ]
 
 permissions:
   contents: write
