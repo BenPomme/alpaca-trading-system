@@ -167,6 +167,128 @@
                 </div>
             </section>
 
+            <!-- ML Audit Trail -->            
+            <section class="card ml-audit-trail">
+                <h2>🧠 ML Engine Audit Trail</h2>
+                <div class="ml-tabs">
+                    <button class="ml-tab-btn active" data-tab="decisions">ML Decisions</button>
+                    <button class="ml-tab-btn" data-tab="learning">Learning Events</button>
+                    <button class="ml-tab-btn" data-tab="parameters">Parameter Evolution</button>
+                    <button class="ml-tab-btn" data-tab="performance">ML Performance</button>
+                </div>
+                
+                <div class="ml-tab-content active" id="ml-decisions">
+                    <h3>Recent ML Decisions</h3>
+                    <div class="ml-decisions-list" id="ml-decisions-list">
+                        <!-- ML decisions will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <div class="ml-tab-content" id="ml-learning">
+                    <h3>ML Learning Events</h3>
+                    <div class="ml-learning-list" id="ml-learning-list">
+                        <!-- Learning events will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <div class="ml-tab-content" id="ml-parameters">
+                    <h3>Parameter Optimization History</h3>
+                    <canvas id="ml-parameters-chart"></canvas>
+                    <div class="parameter-details" id="parameter-details">
+                        <!-- Parameter details will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <div class="ml-tab-content" id="ml-performance">
+                    <h3>ML vs Traditional Performance</h3>
+                    <div class="ml-performance-grid">
+                        <div class="ml-perf-card">
+                            <h4>ML-Driven Trades</h4>
+                            <div class="ml-perf-stats">
+                                <div class="stat">
+                                    <label>Total Trades:</label>
+                                    <span id="ml-total-trades">0</span>
+                                </div>
+                                <div class="stat">
+                                    <label>Win Rate:</label>
+                                    <span id="ml-win-rate">0%</span>
+                                </div>
+                                <div class="stat">
+                                    <label>Avg Return:</label>
+                                    <span id="ml-avg-return">0%</span>
+                                </div>
+                                <div class="stat">
+                                    <label>Total P&L:</label>
+                                    <span id="ml-total-pl">$0</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="ml-perf-card">
+                            <h4>Traditional Trades</h4>
+                            <div class="ml-perf-stats">
+                                <div class="stat">
+                                    <label>Total Trades:</label>
+                                    <span id="traditional-total-trades">0</span>
+                                </div>
+                                <div class="stat">
+                                    <label>Win Rate:</label>
+                                    <span id="traditional-win-rate">0%</span>
+                                </div>
+                                <div class="stat">
+                                    <label>Avg Return:</label>
+                                    <span id="traditional-avg-return">0%</span>
+                                </div>
+                                <div class="stat">
+                                    <label>Total P&L:</label>
+                                    <span id="traditional-total-pl">$0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="ml-effectiveness-chart">
+                        <canvas id="ml-effectiveness-chart"></canvas>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- ML Model Status -->
+            <section class="card ml-model-status">
+                <h2>🔬 ML Model Status</h2>
+                <div class="model-grid">
+                    <div class="model-card">
+                        <h4>Strategy Selector</h4>
+                        <div class="model-status online" id="strategy-selector-status"></div>
+                        <div class="model-metrics">
+                            <span>Accuracy: <span id="strategy-accuracy">0%</span></span>
+                            <span>Confidence: <span id="strategy-confidence">0%</span></span>
+                            <span>Last Update: <span id="strategy-last-update">Never</span></span>
+                        </div>
+                    </div>
+                    
+                    <div class="model-card">
+                        <h4>Risk Predictor</h4>
+                        <div class="model-status online" id="risk-predictor-status"></div>
+                        <div class="model-metrics">
+                            <span>Accuracy: <span id="risk-accuracy">0%</span></span>
+                            <span>Confidence: <span id="risk-confidence">0%</span></span>
+                            <span>Last Update: <span id="risk-last-update">Never</span></span>
+                        </div>
+                    </div>
+                    
+                    <div class="model-card">
+                        <h4>Regime Detector</h4>
+                        <div class="model-status online" id="regime-detector-status"></div>
+                        <div class="model-metrics">
+                            <span>Current Regime: <span id="current-regime">Unknown</span></span>
+                            <span>Confidence: <span id="regime-confidence">0%</span></span>
+                            <span>Last Update: <span id="regime-last-update">Never</span></span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
         </main>
 
         <!-- Footer -->

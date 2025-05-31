@@ -170,11 +170,10 @@ class CryptoModule(TradingModule):
             
             # Get ALL crypto symbols for 24/7 analysis
             active_symbols = self._get_active_crypto_symbols()
-            current_session = self._get_current_trading_session()  # For logging only
             
             # Use unified 24/7 config instead of session-specific configs
             crypto_config = self.crypto_trading_config
-            self.logger.info(f"Analyzing {len(active_symbols)} cryptos for 24/7 opportunities (currently {current_session.value})")
+            self.logger.info(f"Analyzing {len(active_symbols)} cryptos for 24/7 opportunities")
             
             # Analyze each active symbol
             for symbol in active_symbols:
