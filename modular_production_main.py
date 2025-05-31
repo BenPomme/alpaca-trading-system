@@ -188,16 +188,32 @@ class ProductionTradingSystem:
             # Module configuration from environment
             modules_config = self.config.get_module_config()
             
-            # Create Firebase interface for modules
-            firebase_interface = ModularFirebaseInterface(self.firebase_db, logger)
+            # Import module configuration
+            from modular.base_module import ModuleConfig
             
             # Register Options Module
             if modules_config.get('options', True):
                 try:
                     logger.info("🎯 Initializing Options module...")
+                    
+                    options_config = ModuleConfig(
+                        module_name="options",
+                        enabled=True,
+                        confidence_threshold=0.7,
+                        max_position_size=0.1,
+                        custom_params={
+                            'max_allocation_pct': 30.0,
+                            'leverage_target': 2.5,
+                            'hedge_threshold': 15.0
+                        }
+                    )
+                    
                     options_module = OptionsModule(
-                        firebase_interface=firebase_interface,
-                        alpaca_api=self.alpaca_api,
+                        config=options_config,
+                        firebase_db=self.firebase_db,
+                        risk_manager=None,  # Will be provided by orchestrator
+                        order_executor=None,  # Will be provided by orchestrator
+                        api_client=self.alpaca_api,
                         logger=logger
                     )
                     self.orchestrator.register_module(options_module)
@@ -211,9 +227,28 @@ class ProductionTradingSystem:
             if modules_config.get('crypto', True):
                 try:
                     logger.info("₿ Initializing Crypto module...")
+                    
+                    crypto_config = ModuleConfig(
+                        module_name="crypto",
+                        enabled=True,
+                        confidence_threshold=0.6,
+                        max_position_size=0.08,
+                        custom_params={
+                            'max_allocation_pct': 20.0,
+                            'session_thresholds': {
+                                'asia': 0.45,
+                                'europe': 0.50,
+                                'us': 0.40
+                            }
+                        }
+                    )
+                    
                     crypto_module = CryptoModule(
-                        firebase_interface=firebase_interface,
-                        alpaca_api=self.alpaca_api,
+                        config=crypto_config,
+                        firebase_db=self.firebase_db,
+                        risk_manager=None,  # Will be provided by orchestrator
+                        order_executor=None,  # Will be provided by orchestrator
+                        api_client=self.alpaca_api,
                         logger=logger
                     )
                     self.orchestrator.register_module(crypto_module)
@@ -227,9 +262,28 @@ class ProductionTradingSystem:
             if modules_config.get('stocks', True):
                 try:
                     logger.info("📈 Initializing Stocks module...")
+                    
+                    stocks_config = ModuleConfig(
+                        module_name="stocks",
+                        enabled=True,
+                        confidence_threshold=0.65,
+                        max_position_size=0.1,
+                        custom_params={
+                            'max_allocation_pct': 50.0,
+                            'sector_limits': {
+                                'technology': 40.0,
+                                'healthcare': 30.0,
+                                'financials': 25.0
+                            }
+                        }
+                    )
+                    
                     stocks_module = StocksModule(
-                        firebase_interface=firebase_interface,
-                        alpaca_api=self.alpaca_api,
+                        config=stocks_config,
+                        firebase_db=self.firebase_db,
+                        risk_manager=None,  # Will be provided by orchestrator
+                        order_executor=None,  # Will be provided by orchestrator
+                        api_client=self.alpaca_api,
                         logger=logger
                     )
                     self.orchestrator.register_module(stocks_module)
