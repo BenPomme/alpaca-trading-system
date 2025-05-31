@@ -94,25 +94,34 @@ class CryptoModule(TradingModule):
             'gaming': ['MANAUSD', 'SANDUSD']
         }
         
-        # Session-based trading configuration - 24/7 optimized
+        # 24/7 Crypto Trading Configuration - No artificial session restrictions
+        self.crypto_trading_config = {
+            'min_confidence': 0.35,  # Aggressive threshold for 24/7 opportunities
+            'position_size_multiplier': 1.2,  # Consistent aggressive sizing
+            'strategy': CryptoStrategy.MOMENTUM,  # Best performing strategy for crypto
+            'analyze_all_symbols': True,  # Always analyze entire universe
+            'cycle_frequency_seconds': 120  # 2-minute cycles for crypto
+        }
+        
+        # Keep session configs for legacy compatibility but don't use for restrictions
         self.session_configs = {
             TradingSession.ASIA_PRIME: SessionConfig(
                 strategy=CryptoStrategy.MOMENTUM,
-                position_size_multiplier=1.3,  # Higher during volatile Asia hours
-                min_confidence=0.40,  # Lower threshold for 24/7 opportunities
-                symbol_focus='volatile'  # High volatility during Asia
+                position_size_multiplier=1.2,
+                min_confidence=0.35,
+                symbol_focus='all'
             ),
             TradingSession.EUROPE_PRIME: SessionConfig(
-                strategy=CryptoStrategy.BREAKOUT,
-                position_size_multiplier=1.0,  # Standard during Europe
-                min_confidence=0.45,  # Balanced threshold
-                symbol_focus='defi'  # DeFi focus during Europe
+                strategy=CryptoStrategy.MOMENTUM,
+                position_size_multiplier=1.2,
+                min_confidence=0.35,
+                symbol_focus='all'
             ),
             TradingSession.US_PRIME: SessionConfig(
-                strategy=CryptoStrategy.REVERSAL,
-                position_size_multiplier=1.2,  # Higher during US active hours
-                min_confidence=0.35,  # Lower threshold for US evening opportunities
-                symbol_focus='gaming'  # Gaming/metaverse during US
+                strategy=CryptoStrategy.MOMENTUM,
+                position_size_multiplier=1.2,
+                min_confidence=0.35,
+                symbol_focus='all'
             )
         }
         
@@ -159,21 +168,22 @@ class CryptoModule(TradingModule):
                 self.logger.info(f"Crypto allocation limit reached: {current_allocation:.1%}")
                 return opportunities
             
-            # Get current session and active symbols
-            current_session = self._get_current_trading_session()
-            active_symbols = self._get_active_crypto_symbols(current_session)
+            # Get ALL crypto symbols for 24/7 analysis
+            active_symbols = self._get_active_crypto_symbols()
+            current_session = self._get_current_trading_session()  # For logging only
             
-            session_config = self.session_configs[current_session]
-            self.logger.info(f"Analyzing {len(active_symbols)} cryptos for {current_session.value} session")
+            # Use unified 24/7 config instead of session-specific configs
+            crypto_config = self.crypto_trading_config
+            self.logger.info(f"Analyzing {len(active_symbols)} cryptos for 24/7 opportunities (currently {current_session.value})")
             
             # Analyze each active symbol
             for symbol in active_symbols:
                 try:
                     analysis = self._analyze_crypto_symbol(symbol, current_session)
                     if analysis and analysis.is_tradeable:
-                        # Check session-specific confidence threshold
-                        if analysis.overall_confidence >= session_config.min_confidence:
-                            opportunity = self._create_crypto_opportunity(analysis, session_config)
+                        # Check 24/7 confidence threshold (no session restrictions)
+                        if analysis.overall_confidence >= crypto_config['min_confidence']:
+                            opportunity = self._create_crypto_opportunity(analysis, crypto_config)
                             if opportunity:
                                 opportunities.append(opportunity)
                 
@@ -181,7 +191,7 @@ class CryptoModule(TradingModule):
                     self.logger.error(f"Error analyzing crypto {symbol}: {e}")
                     continue
             
-            self.logger.info(f"Found {len(opportunities)} crypto opportunities in {current_session.value}")
+            self.logger.info(f"Found {len(opportunities)} crypto opportunities (24/7 analysis)")
             return opportunities
             
         except Exception as e:
@@ -268,26 +278,21 @@ class CryptoModule(TradingModule):
         else:
             return TradingSession.US_PRIME
     
-    def _get_active_crypto_symbols(self, session: TradingSession) -> List[str]:
-        """Get crypto symbols to trade - 24/7 trading with session-based prioritization"""
-        # 24/7 CRYPTO TRADING: Always analyze ALL cryptocurrencies
+    def _get_active_crypto_symbols(self, session: TradingSession = None) -> List[str]:
+        """Get ALL crypto symbols for 24/7 trading - no artificial session restrictions"""
+        # TRUE 24/7 CRYPTO TRADING: Always analyze ENTIRE universe
         symbols = []
         
-        # Include ALL categories since crypto markets are 24/7
+        # Include ALL categories - crypto markets never close
         for category_symbols in self.crypto_universe.values():
             symbols.extend(category_symbols)
         
-        # Session-specific focus symbols get analyzed first (prioritization)
-        session_config = self.session_configs[session]
-        focus_category = session_config.symbol_focus
+        # No session-based filtering - we want maximum opportunities 24/7
+        # Sort by liquidity (major coins first for better execution)
+        major_cryptos = self.crypto_universe['major']
+        other_cryptos = [s for s in symbols if s not in major_cryptos]
         
-        if focus_category in self.crypto_universe:
-            # Move focus symbols to front of list for priority analysis
-            focus_symbols = self.crypto_universe[focus_category]
-            # Remove duplicates and prioritize focus symbols
-            symbols = focus_symbols + [s for s in symbols if s not in focus_symbols]
-        
-        return symbols
+        return major_cryptos + other_cryptos
     
     # Analysis methods
     
@@ -399,15 +404,15 @@ class CryptoModule(TradingModule):
             return 0.4
     
     def _create_crypto_opportunity(self, analysis: CryptoAnalysis, 
-                                 session_config: SessionConfig) -> Optional[TradeOpportunity]:
+                                 crypto_config: Dict[str, Any]) -> Optional[TradeOpportunity]:
         """Create a trade opportunity from crypto analysis"""
         try:
-            # Determine trade direction based on strategy and analysis
-            action = self._determine_crypto_action(analysis, session_config.strategy)
+            # Determine trade direction - use momentum strategy for all crypto
+            action = self._determine_crypto_action(analysis, crypto_config['strategy'])
             
-            # Calculate position size with session multiplier and leverage
+            # Calculate position size with consistent 24/7 multiplier and leverage
             base_quantity = self._calculate_crypto_quantity(analysis.symbol, analysis.current_price)
-            adjusted_quantity = base_quantity * session_config.position_size_multiplier * self.leverage_multiplier
+            adjusted_quantity = base_quantity * crypto_config['position_size_multiplier'] * self.leverage_multiplier
             
             opportunity = TradeOpportunity(
                 symbol=analysis.symbol,
@@ -416,14 +421,15 @@ class CryptoModule(TradingModule):
                 confidence=analysis.overall_confidence,
                 strategy=f"crypto_{analysis.strategy.value}",
                 metadata={
-                    'session': analysis.session.value,
-                    'strategy': analysis.strategy.value,
+                    'session': analysis.session.value,  # For logging only
+                    'strategy': crypto_config['strategy'].value,
                     'current_price': analysis.current_price,
                     'momentum_score': analysis.momentum_score,
                     'volatility_score': analysis.volatility_score,
                     'volume_score': analysis.volume_score,
-                    'position_multiplier': session_config.position_size_multiplier,
-                    'leverage': self.leverage_multiplier
+                    'position_multiplier': crypto_config['position_size_multiplier'],
+                    'leverage': self.leverage_multiplier,
+                    'trading_mode': '24_7_continuous'
                 },
                 technical_score=analysis.momentum_score,
                 regime_score=analysis.volatility_score,
