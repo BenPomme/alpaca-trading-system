@@ -848,24 +848,38 @@ class CryptoModule(TradingModule):
     # Utility methods
     
     def _get_crypto_price(self, symbol: str) -> float:
-        """Get current cryptocurrency price with fallbacks"""
+        """Get current cryptocurrency price - REAL PRICES ONLY"""
         try:
-            # First try: Alpaca crypto bars (most recent price)
+            # First try: Alpaca crypto bars (real-time crypto data)
             try:
                 bars = self.api.get_latest_crypto_bar(symbol)
                 if bars and hasattr(bars, 'c'):  # 'c' is close price
                     price = float(bars.c)
                     if price > 0:
-                        self.logger.info(f"✅ {symbol}: Price from crypto bars: ${price}")
+                        self.logger.info(f"✅ {symbol}: Real price from crypto bars: ${price}")
                         return price
+                else:
+                    self.logger.error(f"❌ {symbol}: get_latest_crypto_bar returned invalid data")
             except Exception as e:
-                self.logger.debug(f"🔍 {symbol}: Crypto bars failed: {e}")
+                self.logger.error(f"❌ {symbol}: get_latest_crypto_bar failed: {e}")
             
-            # Second try: Standard get_latest_quote (for compatibility)
+            # Second try: Alpaca crypto trades (latest trade price)
+            try:
+                trade = self.api.get_latest_crypto_trade(symbol)
+                if trade and hasattr(trade, 'p'):  # 'p' is trade price
+                    price = float(trade.p)
+                    if price > 0:
+                        self.logger.info(f"✅ {symbol}: Real price from crypto trades: ${price}")
+                        return price
+                else:
+                    self.logger.error(f"❌ {symbol}: get_latest_crypto_trade returned invalid data")
+            except Exception as e:
+                self.logger.error(f"❌ {symbol}: get_latest_crypto_trade failed: {e}")
+            
+            # Third try: Standard quotes (shouldn't work for crypto but try anyway)
             try:
                 quote = self.api.get_latest_quote(symbol)
                 if quote:
-                    # Try different price attributes
                     for attr in ['ask_price', 'bid_price', 'close', 'price']:
                         if hasattr(quote, attr):
                             price_value = getattr(quote, attr)
@@ -873,39 +887,19 @@ class CryptoModule(TradingModule):
                                 if price_value is not None:
                                     price_float = float(price_value)
                                     if price_float > 0:
-                                        self.logger.info(f"✅ {symbol}: Price from quotes: ${price_float}")
+                                        self.logger.info(f"✅ {symbol}: Real price from quotes: ${price_float}")
                                         return price_float
                             except (ValueError, TypeError):
                                 continue
             except Exception as e:
-                self.logger.debug(f"🔍 {symbol}: Quote method failed: {e}")
+                self.logger.debug(f"🔍 {symbol}: Quote method failed as expected: {e}")
             
-            # Third try: Use simplified simulation for paper trading
-            # This ensures crypto analysis can proceed with realistic test data
-            import hashlib
-            import time
-            
-            # Create stable but varying prices based on symbol and time
-            hash_input = f"{symbol}{int(time.time() / 3600)}"  # Changes hourly
-            price_seed = int(hashlib.md5(hash_input.encode()).hexdigest()[:8], 16)
-            
-            # Base prices for major cryptos (realistic 2024 ranges)
-            base_prices = {
-                'BTCUSD': 67000, 'ETHUSD': 3200, 'ADAUSD': 0.45, 'SOLUSD': 140,
-                'DOTUSD': 6.5, 'LINKUSD': 14, 'MATICUSD': 0.72, 'AVAXUSD': 26,
-                'UNIUSD': 7.5, 'AAVEUSD': 95, 'COMPUSD': 58, 'MANAUSD': 0.38, 'SANDUSD': 0.31
-            }
-            
-            base_price = base_prices.get(symbol, 100)
-            # Add 5% random variation
-            variation = (price_seed % 1000) / 10000  # 0-10%
-            simulated_price = base_price * (0.95 + variation)
-            
-            self.logger.info(f"📊 {symbol}: Using simulated price: ${simulated_price:.4f} (paper trading)")
-            return simulated_price
+            # NO FALLBACK TO SIMULATED PRICES - Real data only
+            self.logger.error(f"❌ {symbol}: No real crypto price available from Alpaca API")
+            return 0.0
                 
         except Exception as e:
-            self.logger.error(f"❌ {symbol}: All price methods failed: {e}")
+            self.logger.error(f"❌ {symbol}: All real price methods failed: {e}")
             return 0.0
     
     def _get_crypto_market_data(self, symbol: str) -> Optional[Dict]:
