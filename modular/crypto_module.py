@@ -94,24 +94,24 @@ class CryptoModule(TradingModule):
             'gaming': ['MANAUSD', 'SANDUSD']
         }
         
-        # Session-based trading configuration
+        # Session-based trading configuration - 24/7 optimized
         self.session_configs = {
             TradingSession.ASIA_PRIME: SessionConfig(
                 strategy=CryptoStrategy.MOMENTUM,
-                position_size_multiplier=1.2,
-                min_confidence=0.45,
+                position_size_multiplier=1.3,  # Higher during volatile Asia hours
+                min_confidence=0.40,  # Lower threshold for 24/7 opportunities
                 symbol_focus='volatile'  # High volatility during Asia
             ),
             TradingSession.EUROPE_PRIME: SessionConfig(
                 strategy=CryptoStrategy.BREAKOUT,
-                position_size_multiplier=1.0,
-                min_confidence=0.50,
+                position_size_multiplier=1.0,  # Standard during Europe
+                min_confidence=0.45,  # Balanced threshold
                 symbol_focus='defi'  # DeFi focus during Europe
             ),
             TradingSession.US_PRIME: SessionConfig(
                 strategy=CryptoStrategy.REVERSAL,
-                position_size_multiplier=1.1,
-                min_confidence=0.40,
+                position_size_multiplier=1.2,  # Higher during US active hours
+                min_confidence=0.35,  # Lower threshold for US evening opportunities
                 symbol_focus='gaming'  # Gaming/metaverse during US
             )
         }
@@ -269,16 +269,23 @@ class CryptoModule(TradingModule):
             return TradingSession.US_PRIME
     
     def _get_active_crypto_symbols(self, session: TradingSession) -> List[str]:
-        """Get crypto symbols to trade based on current session"""
-        # Always include major cryptocurrencies
-        symbols = self.crypto_universe['major'].copy()
+        """Get crypto symbols to trade - 24/7 trading with session-based prioritization"""
+        # 24/7 CRYPTO TRADING: Always analyze ALL cryptocurrencies
+        symbols = []
         
-        # Add session-specific focus symbols
+        # Include ALL categories since crypto markets are 24/7
+        for category_symbols in self.crypto_universe.values():
+            symbols.extend(category_symbols)
+        
+        # Session-specific focus symbols get analyzed first (prioritization)
         session_config = self.session_configs[session]
         focus_category = session_config.symbol_focus
         
         if focus_category in self.crypto_universe:
-            symbols.extend(self.crypto_universe[focus_category])
+            # Move focus symbols to front of list for priority analysis
+            focus_symbols = self.crypto_universe[focus_category]
+            # Remove duplicates and prioritize focus symbols
+            symbols = focus_symbols + [s for s in symbols if s not in focus_symbols]
         
         return symbols
     
