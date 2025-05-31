@@ -168,12 +168,72 @@ class ProductionTradingSystem:
                 logger=logger
             )
             
+            # Register trading modules
+            self._register_trading_modules()
+            
             logger.info("✅ Modular orchestrator initialized")
             return True
             
         except Exception as e:
             logger.error(f"❌ Modular system initialization failed: {e}")
             return False
+    
+    def _register_trading_modules(self):
+        """Register trading modules with the orchestrator."""
+        try:
+            logger.info("📋 Registering trading modules...")
+            
+            # Import module classes
+            from modular.options_module import OptionsModule
+            from modular.crypto_module import CryptoModule  
+            from modular.stocks_module import StocksModule
+            
+            # Module configuration from environment
+            modules_config = self.config.get_module_config()
+            
+            # Register Options Module
+            if modules_config.get('options', True):
+                try:
+                    options_module = OptionsModule(
+                        firebase_interface=self.firebase_db,
+                        alpaca_api=self.alpaca_api,
+                        logger=logger
+                    )
+                    self.orchestrator.register_module(options_module)
+                    logger.info("✅ Options module registered")
+                except Exception as e:
+                    logger.error(f"❌ Failed to register options module: {e}")
+            
+            # Register Crypto Module
+            if modules_config.get('crypto', True):
+                try:
+                    crypto_module = CryptoModule(
+                        firebase_interface=self.firebase_db,
+                        alpaca_api=self.alpaca_api,
+                        logger=logger
+                    )
+                    self.orchestrator.register_module(crypto_module)
+                    logger.info("✅ Crypto module registered")
+                except Exception as e:
+                    logger.error(f"❌ Failed to register crypto module: {e}")
+            
+            # Register Stocks Module
+            if modules_config.get('stocks', True):
+                try:
+                    stocks_module = StocksModule(
+                        firebase_interface=self.firebase_db,
+                        alpaca_api=self.alpaca_api,
+                        logger=logger
+                    )
+                    self.orchestrator.register_module(stocks_module)
+                    logger.info("✅ Stocks module registered")
+                except Exception as e:
+                    logger.error(f"❌ Failed to register stocks module: {e}")
+            
+            logger.info("📋 Module registration complete")
+            
+        except Exception as e:
+            logger.error(f"❌ Module registration failed: {e}")
     
     def _initialize_health_monitoring(self):
         """Initialize health monitoring system."""
@@ -232,7 +292,13 @@ class ProductionTradingSystem:
                 import threading
                 port = int(os.environ.get('PORT', 8080))
                 flask_thread = threading.Thread(
-                    target=lambda: self.flask_app.run(host='0.0.0.0', port=port, debug=False)
+                    target=lambda: self.flask_app.run(
+                        host='0.0.0.0', 
+                        port=port, 
+                        debug=False,
+                        use_reloader=False,
+                        threaded=True
+                    )
                 )
                 flask_thread.daemon = True
                 flask_thread.start()
@@ -257,7 +323,7 @@ class ProductionTradingSystem:
                 
                 # Run orchestrator cycle
                 if self.orchestrator:
-                    cycle_results = self.orchestrator.run_cycle()
+                    cycle_results = self.orchestrator.run_single_cycle()
                     self.cycle_count += 1
                     
                     # Update health status
