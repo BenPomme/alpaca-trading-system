@@ -13,6 +13,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 6. **Follow defensive programming** - Use .get() methods and provide defaults (QA Rule 5)
 7. **Update QA.md with new lessons** - Document any new bugs/fixes for future prevention
 
+## Branch Strategy & Development Workflow
+
+### Production Branch (main)
+- **Current System**: Phase 5 inheritance-based architecture
+- **Stability**: Production-ready system targeting 5-10% monthly returns
+- **Changes**: Only critical bug fixes and performance optimizations
+- **Deployment**: Automatic Railway deployment from main branch
+
+### Staging Branch (staging)  
+- **Future System**: Modular architecture development (see MODULAR_ARCHITECTURE.md)
+- **Purpose**: Safe development of new architecture without breaking production
+- **Usage**: All modular architecture work happens here
+- **Testing**: Comprehensive testing before merging to main
+
+### Development Workflow
+```bash
+# Production work (critical fixes only)
+git checkout main
+# Make critical fixes
+git push  # Deploys to Railway
+
+# Modular architecture development  
+git checkout staging
+# Develop new modular components
+git push staging  # No automatic deployment
+
+# When ready to migrate
+git checkout main
+git merge staging  # After thorough testing
+```
+
 ## Project Overview
 
 This is a sophisticated multi-phase algorithmic trading system designed for Railway cloud deployment with **Firebase cloud database persistence**. The system has evolved from simple market monitoring into a comprehensive trading execution engine targeting **5-10% monthly returns** with advanced risk management. Built for paper trading with Alpaca Markets API, featuring **real options trading**, 24/7 cryptocurrency trading, enhanced stock strategies, unlimited position scaling, and **persistent ML learning across deployments**.
