@@ -36,6 +36,7 @@ class ExitReason(Enum):
     STRATEGY_SIGNAL = "strategy_signal"
     RISK_MANAGEMENT = "risk_management"
     ML_OPTIMIZATION = "ml_optimization"
+    END_OF_DAY = "end_of_day"
 
 
 @dataclass

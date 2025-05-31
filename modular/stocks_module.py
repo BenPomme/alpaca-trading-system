@@ -147,42 +147,105 @@ class StocksModule(TradingModule):
             'pattern': 0.20       # Breakouts, support/resistance
         }
         
-        # Strategy configuration
+        # Strategy configuration - Optimized for intraday trading
         self.strategy_configs = {
             StockStrategy.LEVERAGED_ETFS: {
-                'min_confidence': 0.70,
-                'position_multiplier': 2.5,
-                'max_allocation': 0.15  # 15% max in leveraged ETFs
+                'min_confidence': 0.65,  # Lowered for intraday opportunities
+                'position_multiplier': 3.0,  # Increased for intraday leverage
+                'max_allocation': 0.20,  # Increased for day trading
+                'intraday_stop_loss': 0.02,  # 2% tight stop for intraday
+                'intraday_profit_target': 0.025,  # 2.5% quick profit
+                'min_hold_minutes': 5  # Minimum 5 minute hold
             },
             StockStrategy.SECTOR_ROTATION: {
-                'min_confidence': 0.60,
-                'position_multiplier': 1.5,
-                'max_allocation': 0.25
+                'min_confidence': 0.55,  # Lowered for more opportunities
+                'position_multiplier': 2.0,  # Increased for intraday
+                'max_allocation': 0.30,  # Increased allocation
+                'intraday_stop_loss': 0.025,
+                'intraday_profit_target': 0.03,
+                'min_hold_minutes': 10
             },
             StockStrategy.MOMENTUM_AMPLIFICATION: {
-                'min_confidence': 0.75,
-                'position_multiplier': 2.0,
-                'max_allocation': 0.20
+                'min_confidence': 0.70,  # Slightly lowered
+                'position_multiplier': 2.5,  # Increased for momentum
+                'max_allocation': 0.25,  # Increased for momentum plays
+                'intraday_stop_loss': 0.015,  # Tight stop for momentum
+                'intraday_profit_target': 0.04,  # Higher target for momentum
+                'min_hold_minutes': 3  # Very short hold for momentum
             },
             StockStrategy.VOLATILITY_TRADING: {
-                'min_confidence': 0.55,
-                'position_multiplier': 1.8,
-                'max_allocation': 0.10
+                'min_confidence': 0.50,  # Lowered for volatility opportunities
+                'position_multiplier': 2.2,  # Increased for vol trading
+                'max_allocation': 0.15,
+                'intraday_stop_loss': 0.03,
+                'intraday_profit_target': 0.035,
+                'min_hold_minutes': 8
             },
             StockStrategy.CORE_EQUITY: {
-                'min_confidence': 0.55,
-                'position_multiplier': 1.0,
-                'max_allocation': 0.30
+                'min_confidence': 0.50,  # Lowered for more opportunities
+                'position_multiplier': 1.5,  # Increased for intraday
+                'max_allocation': 0.35,  # Increased base allocation
+                'intraday_stop_loss': 0.025,
+                'intraday_profit_target': 0.03,
+                'min_hold_minutes': 8
+            }
+        }
+        
+        # Intraday trading configuration
+        self.intraday_config = {
+            'cycle_frequency_seconds': 60,  # 1-minute cycles for intraday
+            'max_daily_trades': 25,  # Increased for intraday
+            'daily_loss_limit': 0.03,  # 3% daily loss limit
+            'heat_adjustment': True,  # Dynamic sizing based on daily P&L
+            'time_based_strategies': True  # Use different strategies by time of day
+        }
+        
+        # Time-of-day strategy matrix (Eastern Time)
+        self.intraday_time_strategies = {
+            (9.5, 10.5): {  # Opening hour (9:30-10:30 AM)
+                'primary_strategy': StockStrategy.MOMENTUM_AMPLIFICATION,
+                'confidence_adjustment': 0.05,  # Lower threshold for opening moves
+                'volume_requirement': 1.5,  # 150% of average volume
+                'position_multiplier': 1.3  # Larger positions for opening momentum
+            },
+            (10.5, 11.5): {  # Morning continuation (10:30-11:30 AM)
+                'primary_strategy': StockStrategy.LEVERAGED_ETFS,
+                'confidence_adjustment': 0.0,  # Standard confidence
+                'volume_requirement': 1.2,
+                'position_multiplier': 1.2
+            },
+            (11.5, 14.0): {  # Midday doldrums (11:30 AM-2:00 PM)
+                'primary_strategy': StockStrategy.SECTOR_ROTATION,
+                'confidence_adjustment': 0.1,  # Higher threshold for slower period
+                'volume_requirement': 1.0,  # Normal volume OK
+                'position_multiplier': 0.8  # Smaller positions in slow period
+            },
+            (14.0, 15.0): {  # Afternoon acceleration (2:00-3:00 PM)
+                'primary_strategy': StockStrategy.MOMENTUM_AMPLIFICATION,
+                'confidence_adjustment': 0.0,
+                'volume_requirement': 1.3,
+                'position_multiplier': 1.4  # Larger positions for afternoon moves
+            },
+            (15.0, 16.0): {  # Power hour (3:00-4:00 PM)
+                'primary_strategy': StockStrategy.VOLATILITY_TRADING,
+                'confidence_adjustment': -0.05,  # Lower threshold for power hour
+                'volume_requirement': 1.8,  # High volume requirement
+                'position_multiplier': 1.5  # Largest positions for power hour
             }
         }
         
         # Performance tracking
         self._strategy_performance = {strategy: {'trades': 0, 'wins': 0, 'total_pnl': 0.0} 
                                     for strategy in StockStrategy}
+        self._daily_pnl = 0.0
+        self._daily_trade_count = 0
+        self._last_reset_date = datetime.now().date()
         
         total_symbols = sum(len(tier.symbols) for tier in self.symbol_tiers.values())
         self.logger.info(f"Stocks module initialized with {total_symbols} symbols across {len(self.symbol_tiers)} tiers")
         self.logger.info(f"Market tier: {self.market_tier}, Aggressive multiplier: {self.aggressive_multiplier}x")
+        self.logger.info(f"Intraday trading optimized: {self.intraday_config['cycle_frequency_seconds']}s cycles, "
+                        f"max {self.intraday_config['max_daily_trades']} trades/day")
     
     @property
     def module_name(self) -> str:
@@ -200,6 +263,7 @@ class StocksModule(TradingModule):
     def analyze_opportunities(self) -> List[TradeOpportunity]:
         """
         Analyze stock opportunities using real market data and intelligence.
+        Optimized for intraday trading with time-based strategy selection.
         
         Returns:
             List of stock trade opportunities
@@ -212,28 +276,45 @@ class StocksModule(TradingModule):
                 self.logger.info("US market closed - no stock opportunities")
                 return opportunities
             
+            # Reset daily counters if new trading day
+            self._reset_daily_counters_if_needed()
+            
+            # Check daily limits for intraday trading
+            if not self._check_intraday_trading_limits():
+                return opportunities
+            
             # Check current allocation
             current_allocation = self._get_current_stock_allocation()
             if current_allocation >= self.max_stock_allocation:
                 self.logger.info(f"Stock allocation limit reached: {current_allocation:.1%}")
                 return opportunities
             
-            # Get current market regime
+            # Get intraday strategy and market regime
+            intraday_strategy_info = self._get_intraday_strategy_for_current_time()
             market_regime = self._get_market_regime()
             
-            # Analyze symbols based on current tier
+            # Get heat adjustment factor for position sizing
+            heat_factor = self._get_heat_adjustment_factor()
+            
+            # Analyze symbols based on current tier and intraday strategy
             active_symbols = self._get_active_symbols()
             
-            self.logger.info(f"Analyzing {len(active_symbols)} stocks for opportunities (regime: {market_regime})")
+            self.logger.info(f"Analyzing {len(active_symbols)} stocks for intraday opportunities "
+                           f"(regime: {market_regime}, strategy: {intraday_strategy_info['primary_strategy'].value}, "
+                           f"heat: {heat_factor:.2f})")
             
             for symbol in active_symbols:
                 try:
-                    analysis = self._analyze_stock_symbol(symbol, market_regime)
+                    analysis = self._analyze_stock_symbol_intraday(symbol, market_regime, intraday_strategy_info)
                     if analysis and analysis.is_tradeable:
-                        # Check strategy-specific confidence threshold
-                        strategy_config = self.strategy_configs[analysis.recommended_strategy]
-                        if analysis.combined_confidence >= strategy_config['min_confidence']:
-                            opportunity = self._create_stock_opportunity(analysis)
+                        # Apply intraday confidence threshold with time adjustment
+                        adjusted_confidence_threshold = (
+                            self.strategy_configs[analysis.recommended_strategy]['min_confidence'] - 
+                            intraday_strategy_info['confidence_adjustment']
+                        )
+                        
+                        if analysis.combined_confidence >= adjusted_confidence_threshold:
+                            opportunity = self._create_intraday_stock_opportunity(analysis, heat_factor, intraday_strategy_info)
                             if opportunity:
                                 opportunities.append(opportunity)
                 
@@ -241,11 +322,11 @@ class StocksModule(TradingModule):
                     self.logger.error(f"Error analyzing stock {symbol}: {e}")
                     continue
             
-            self.logger.info(f"Found {len(opportunities)} stock opportunities")
+            self.logger.info(f"Found {len(opportunities)} intraday stock opportunities")
             return opportunities
             
         except Exception as e:
-            self.logger.error(f"Error in stock opportunity analysis: {e}")
+            self.logger.error(f"Error in intraday stock opportunity analysis: {e}")
             return opportunities
     
     def execute_trades(self, opportunities: List[TradeOpportunity]) -> List[TradeResult]:
@@ -295,6 +376,7 @@ class StocksModule(TradingModule):
     def monitor_positions(self) -> List[TradeResult]:
         """
         Monitor existing stock positions for exit opportunities.
+        Implements day trading logic - all positions closed before market close.
         
         Returns:
             List of exit trade results
@@ -302,13 +384,32 @@ class StocksModule(TradingModule):
         exit_results = []
         
         try:
-            # Only monitor during market hours
-            if not self._is_market_open():
-                return exit_results
-            
             # Get current stock positions
             positions = self._get_stock_positions()
             
+            # Check if market is open
+            if not self._is_market_open():
+                return exit_results
+            
+            # Day Trading Logic: Check if we're near market close
+            market_close_minutes = self._minutes_until_market_close()
+            if market_close_minutes <= 30:  # Close all positions 30 minutes before market close
+                self.logger.info(f"Day trading: Market closes in {market_close_minutes} minutes, closing all stock positions")
+                for position in positions:
+                    try:
+                        # Force close position for day trading
+                        exit_result = self._execute_stock_exit(position, {
+                            'reason': ExitReason.END_OF_DAY,
+                            'confidence': 1.0,
+                            'exit_type': 'market_close'
+                        })
+                        if exit_result:
+                            exit_results.append(exit_result)
+                    except Exception as e:
+                        self.logger.error(f"Error closing day trading position {position.get('symbol', 'unknown')}: {e}")
+                return exit_results
+            
+            # Normal position monitoring during trading hours
             for position in positions:
                 try:
                     exit_signal = self._analyze_stock_exit(position)
@@ -845,35 +946,58 @@ class StocksModule(TradingModule):
             return []
     
     def _analyze_stock_exit(self, position: Dict) -> Optional[str]:
-        """Analyze if stock position should be exited"""
+        """Analyze if stock position should be exited with intraday optimization"""
         try:
             unrealized_pl = position.get('unrealized_pl', 0)
             market_value = abs(position.get('market_value', 1))
+            symbol = position.get('symbol', '')
             
             if market_value == 0:
                 return None
             
             unrealized_pl_pct = unrealized_pl / market_value
             
-            # Stock-specific exit conditions
+            # Get position age (simplified - would track actual entry time)
+            position_age_minutes = 30  # Estimate position age
+            
+            # Determine if this is an intraday position (all stocks are now intraday)
+            is_intraday = True
+            
+            if is_intraday:
+                # Use intraday exit parameters
+                strategy = self._infer_position_strategy(symbol)
+                strategy_config = self.strategy_configs.get(strategy)
+                
+                if strategy_config:
+                    min_hold_minutes = strategy_config.get('min_hold_minutes', 8)
+                    intraday_stop = strategy_config.get('intraday_stop_loss', 0.025)
+                    intraday_target = strategy_config.get('intraday_profit_target', 0.03)
+                    
+                    # Check minimum hold time
+                    if position_age_minutes < min_hold_minutes:
+                        # Only exit on extreme moves before minimum hold
+                        if unrealized_pl_pct <= -intraday_stop * 2:  # 2x stop loss
+                            return 'emergency_stop'
+                        elif unrealized_pl_pct >= intraday_target * 1.5:  # 1.5x target
+                            return 'quick_profit'
+                        return None
+                    
+                    # Normal intraday exits after minimum hold
+                    if unrealized_pl_pct >= intraday_target:
+                        return 'intraday_profit'
+                    elif unrealized_pl_pct <= -intraday_stop:
+                        return 'intraday_stop'
+            
+            # Legacy exit conditions (fallback)
             if unrealized_pl_pct >= 0.15:  # 15% profit target
                 return 'profit_target'
             elif unrealized_pl_pct <= -0.08:  # 8% stop loss
                 return 'stop_loss'
             
-            # Strategy-specific exits
-            symbol = position.get('symbol', '')
-            if symbol in sum(self.strategy_symbols['leveraged_etfs'].values(), []):
-                # More aggressive exits for leveraged ETFs
-                if unrealized_pl_pct >= 0.12:  # 12% profit for 3x ETFs
-                    return 'leveraged_profit'
-                elif unrealized_pl_pct <= -0.06:  # 6% stop loss for 3x ETFs
-                    return 'leveraged_stop'
-            
             return None
             
         except Exception as e:
-            self.logger.error(f"Error analyzing stock exit: {e}")
+            self.logger.error(f"Error analyzing intraday stock exit: {e}")
             return None
     
     def _execute_stock_exit(self, position: Dict, exit_reason: str) -> Optional[TradeResult]:
@@ -903,6 +1027,11 @@ class StocksModule(TradingModule):
                 result.pnl_pct = position.get('unrealized_pl', 0) / max(abs(position.get('market_value', 1)), 1)
                 result.exit_reason = self._get_exit_reason_enum(exit_reason)
                 
+                # Update daily P&L tracking for intraday trading
+                if result.pnl:
+                    self._daily_pnl += result.pnl_pct or 0.0
+                    self._daily_trade_count += 1
+                
                 # Update strategy performance
                 strategy = self._infer_position_strategy(symbol)
                 if strategy in self._strategy_performance:
@@ -910,7 +1039,8 @@ class StocksModule(TradingModule):
                         self._strategy_performance[strategy]['wins'] += 1
                     self._strategy_performance[strategy]['total_pnl'] += result.pnl or 0
                 
-                self.logger.info(f"Stock exit: {symbol} {exit_reason} P&L: ${result.pnl:.2f} ({result.pnl_pct:.1%})")
+                self.logger.info(f"Intraday stock exit: {symbol} {exit_reason} P&L: ${result.pnl:.2f} ({result.pnl_pct:.1%}) "
+                               f"Daily P&L: {self._daily_pnl:.1%} Trades: {self._daily_trade_count}")
             
             return result
             
@@ -928,6 +1058,27 @@ class StocksModule(TradingModule):
         except Exception as e:
             self.logger.debug(f"Error checking market hours: {e}")
             return False  # Assume closed if unable to check
+    
+    def _minutes_until_market_close(self) -> int:
+        """Get minutes until market close for day trading logic"""
+        try:
+            clock = self.api.get_clock()
+            if hasattr(clock, 'next_close'):
+                from datetime import datetime
+                import pytz
+                
+                # Convert to timezone-aware datetime
+                now = datetime.now(pytz.timezone('America/New_York'))
+                close_time = clock.next_close.replace(tzinfo=pytz.timezone('America/New_York'))
+                
+                time_diff = close_time - now
+                minutes_until_close = int(time_diff.total_seconds() / 60)
+                
+                return max(0, minutes_until_close)
+            return 240  # Default 4 hours if unable to determine
+        except Exception as e:
+            self.logger.debug(f"Error calculating time until market close: {e}")
+            return 240  # Default to 4 hours
     
     def _get_market_regime(self) -> str:
         """Get current market regime"""
@@ -955,21 +1106,38 @@ class StocksModule(TradingModule):
             return self.symbol_tiers[1].symbols  # Fallback to core ETFs
     
     def _calculate_stock_quantity(self, symbol: str, price: float) -> float:
-        """Calculate stock quantity based on portfolio allocation"""
+        """Calculate stock quantity with day trading leverage"""
         try:
             account = self.api.get_account()
-            portfolio_value = float(getattr(account, 'portfolio_value', 100000))
             
-            # Base allocation per stock trade (1.5% for stocks)
-            base_allocation = 0.015
-            max_position_value = portfolio_value * base_allocation * self.aggressive_multiplier
+            # Use day trading buying power for leverage
+            if hasattr(account, 'daytrading_buying_power'):
+                buying_power = float(getattr(account, 'daytrading_buying_power', 0))
+                self.logger.debug(f"Using day trading buying power: ${buying_power:,.2f}")
+            elif hasattr(account, 'regt_buying_power'):
+                buying_power = float(getattr(account, 'regt_buying_power', 0))
+                self.logger.debug(f"Using RegT buying power: ${buying_power:,.2f}")
+            else:
+                portfolio_value = float(getattr(account, 'portfolio_value', 100000))
+                buying_power = portfolio_value * 2.0  # Assume 2x leverage
+                self.logger.debug(f"Using estimated buying power: ${buying_power:,.2f}")
             
-            # Calculate whole share quantity for stocks
+            # Day trading allocation per trade (2.5% of buying power for aggressive leverage)
+            leverage_allocation = 0.025
+            max_position_value = buying_power * leverage_allocation * self.aggressive_multiplier
+            
+            # Calculate whole share quantity leveraging available buying power
             quantity = max_position_value / price if price > 0 else 0
-            return int(quantity)  # Whole shares only for stocks
+            calculated_shares = int(quantity)
+            
+            self.logger.debug(f"Day trading calculation for {symbol}: buying_power=${buying_power:,.2f}, "
+                            f"allocation={leverage_allocation:.1%}, position_value=${max_position_value:,.2f}, "
+                            f"shares={calculated_shares}")
+            
+            return calculated_shares
             
         except Exception as e:
-            self.logger.error(f"Error calculating stock quantity: {e}")
+            self.logger.error(f"Error calculating leveraged stock quantity: {e}")
             return 0
     
     def _get_current_stock_allocation(self) -> float:
@@ -1040,6 +1208,9 @@ class StocksModule(TradingModule):
             'market_open': self._is_market_open(),
             'current_regime': self._get_market_regime(),
             'strategy_performance': dict(self._strategy_performance),
+            'daily_pnl': self._daily_pnl,
+            'daily_trade_count': self._daily_trade_count,
+            'intraday_config': self.intraday_config,
             'enhanced_strategies': {
                 'leveraged_etfs': len(sum(self.strategy_symbols['leveraged_etfs'].values(), [])),
                 'sector_etfs': len(sum(self.strategy_symbols['sector_etfs'].values(), [])),
@@ -1047,3 +1218,172 @@ class StocksModule(TradingModule):
                 'volatility_symbols': len(sum(self.strategy_symbols['volatility_symbols'].values(), []))
             }
         }
+    
+    # Intraday Trading Optimization Methods
+    
+    def _reset_daily_counters_if_needed(self):
+        """Reset daily counters if it's a new trading day"""
+        try:
+            current_date = datetime.now().date()
+            if current_date != self._last_reset_date:
+                self._daily_pnl = 0.0
+                self._daily_trade_count = 0
+                self._last_reset_date = current_date
+                self.logger.info(f"🔄 Daily counters reset for {current_date}")
+        except Exception as e:
+            self.logger.error(f"Error resetting daily counters: {e}")
+    
+    def _check_intraday_trading_limits(self) -> bool:
+        """Check if we can continue trading based on daily limits"""
+        try:
+            # Check daily trade limit
+            if self._daily_trade_count >= self.intraday_config['max_daily_trades']:
+                self.logger.info(f"Daily trade limit reached: {self._daily_trade_count}/{self.intraday_config['max_daily_trades']}")
+                return False
+            
+            # Check daily loss limit
+            if self._daily_pnl <= -self.intraday_config['daily_loss_limit']:
+                self.logger.warning(f"Daily loss limit reached: {self._daily_pnl:.1%} <= -{self.intraday_config['daily_loss_limit']:.1%}")
+                return False
+            
+            return True
+        except Exception as e:
+            self.logger.error(f"Error checking intraday limits: {e}")
+            return True  # Allow trading if check fails
+    
+    def _get_intraday_strategy_for_current_time(self) -> Dict[str, Any]:
+        """Get optimal strategy based on current time of day"""
+        try:
+            import pytz
+            
+            # Get current ET time
+            et_tz = pytz.timezone('America/New_York')
+            current_et = datetime.now(et_tz)
+            current_hour_decimal = current_et.hour + (current_et.minute / 60.0)
+            
+            # Find matching time strategy
+            for (start_hour, end_hour), strategy_info in self.intraday_time_strategies.items():
+                if start_hour <= current_hour_decimal < end_hour:
+                    self.logger.debug(f"Using {strategy_info['primary_strategy'].value} strategy for time {current_hour_decimal:.1f}")
+                    return strategy_info.copy()
+            
+            # Default to core equity during off-hours or edge cases
+            return {
+                'primary_strategy': StockStrategy.CORE_EQUITY,
+                'confidence_adjustment': 0.1,  # Higher threshold during off-hours
+                'volume_requirement': 1.0,
+                'position_multiplier': 0.5  # Smaller positions during off-hours
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error getting intraday strategy: {e}")
+            return {
+                'primary_strategy': StockStrategy.CORE_EQUITY,
+                'confidence_adjustment': 0.0,
+                'volume_requirement': 1.0,
+                'position_multiplier': 1.0
+            }
+    
+    def _get_heat_adjustment_factor(self) -> float:
+        """Get position sizing adjustment based on daily P&L performance"""
+        try:
+            if not self.intraday_config['heat_adjustment']:
+                return 1.0
+            
+            daily_pnl_pct = self._daily_pnl
+            
+            # Reduce size after losses
+            if daily_pnl_pct <= -0.02:  # Down 2%
+                return 0.5  # Half size
+            elif daily_pnl_pct <= -0.01:  # Down 1%
+                return 0.75  # 75% size
+            # Increase size after wins (ride the hot hand)
+            elif daily_pnl_pct >= 0.02:  # Up 2%
+                return 1.5  # 150% size
+            elif daily_pnl_pct >= 0.01:  # Up 1%
+                return 1.25  # 125% size
+            else:
+                return 1.0  # Normal size
+                
+        except Exception as e:
+            self.logger.error(f"Error calculating heat adjustment: {e}")
+            return 1.0
+    
+    def _analyze_stock_symbol_intraday(self, symbol: str, market_regime: str, strategy_info: Dict[str, Any]) -> Optional[StockAnalysis]:
+        """Analyze stock symbol with intraday optimizations"""
+        try:
+            # Get basic analysis first
+            analysis = self._analyze_stock_symbol(symbol, market_regime)
+            if not analysis:
+                return None
+            
+            # Apply intraday strategy preference
+            preferred_strategy = strategy_info['primary_strategy']
+            if self._symbol_fits_strategy(symbol, preferred_strategy):
+                analysis.recommended_strategy = preferred_strategy
+                # Boost confidence for preferred strategy match
+                analysis.combined_confidence = min(0.95, analysis.combined_confidence + 0.05)
+            
+            # Check volume requirement (simplified - would use real volume data)
+            volume_requirement = strategy_info['volume_requirement']
+            if volume_requirement > 1.0:
+                # For now, assume all symbols meet volume requirements
+                # In production, this would check actual volume vs average
+                pass
+            
+            return analysis
+            
+        except Exception as e:
+            self.logger.error(f"Error in intraday analysis for {symbol}: {e}")
+            return None
+    
+    def _symbol_fits_strategy(self, symbol: str, strategy: StockStrategy) -> bool:
+        """Check if symbol fits the given strategy"""
+        try:
+            if strategy == StockStrategy.LEVERAGED_ETFS:
+                return any(symbol in etfs for etfs in self.strategy_symbols['leveraged_etfs'].values())
+            elif strategy == StockStrategy.SECTOR_ROTATION:
+                return any(symbol in sectors for sectors in self.strategy_symbols['sector_etfs'].values())
+            elif strategy == StockStrategy.MOMENTUM_AMPLIFICATION:
+                return any(symbol in momentum for momentum in self.strategy_symbols['momentum_stocks'].values())
+            elif strategy == StockStrategy.VOLATILITY_TRADING:
+                return any(symbol in vol for vol in self.strategy_symbols['volatility_symbols'].values())
+            else:  # CORE_EQUITY
+                return True  # Any symbol can use core equity strategy
+        except:
+            return False
+    
+    def _create_intraday_stock_opportunity(self, analysis: StockAnalysis, heat_factor: float, strategy_info: Dict[str, Any]) -> Optional[TradeOpportunity]:
+        """Create intraday-optimized trade opportunity"""
+        try:
+            # Get base opportunity
+            opportunity = self._create_stock_opportunity(analysis)
+            if not opportunity:
+                return None
+            
+            # Apply intraday adjustments
+            strategy_config = self.strategy_configs[analysis.recommended_strategy]
+            
+            # Adjust position size with heat factor and time multiplier
+            time_multiplier = strategy_info['position_multiplier']
+            adjusted_quantity = int(opportunity.quantity * heat_factor * time_multiplier)
+            opportunity.quantity = max(1, adjusted_quantity)  # At least 1 share
+            
+            # Use intraday stop loss and profit targets
+            opportunity.stop_loss_pct = strategy_config.get('intraday_stop_loss', 0.025)
+            opportunity.profit_target_pct = strategy_config.get('intraday_profit_target', 0.03)
+            
+            # Add intraday metadata
+            opportunity.metadata.update({
+                'intraday_trading': True,
+                'heat_factor': heat_factor,
+                'time_multiplier': time_multiplier,
+                'min_hold_minutes': strategy_config.get('min_hold_minutes', 8),
+                'strategy_confidence_threshold': strategy_config['min_confidence']
+            })
+            
+            return opportunity
+            
+        except Exception as e:
+            self.logger.error(f"Error creating intraday opportunity: {e}")
+            return None

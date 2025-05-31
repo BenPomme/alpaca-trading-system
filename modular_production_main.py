@@ -411,9 +411,11 @@ class ProductionTradingSystem:
                     if cycle_results:
                         logger.info(f"🎯 Cycle {self.cycle_count} completed: {cycle_results.get('summary', 'No summary')}")
                 
-                # Calculate cycle delay
+                # Calculate cycle delay - optimized for intraday trading
                 cycle_duration = time.time() - cycle_start
-                cycle_delay = max(0, self.config.get_int('ORCHESTRATOR_CYCLE_DELAY', 120) - cycle_duration)
+                # Use 60-second cycles for intraday trading (instead of 120 seconds)
+                intraday_cycle_delay = self.config.get_int('INTRADAY_CYCLE_DELAY', 60)
+                cycle_delay = max(0, intraday_cycle_delay - cycle_duration)
                 
                 if cycle_delay > 0:
                     time.sleep(cycle_delay)

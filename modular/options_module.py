@@ -124,6 +124,16 @@ class OptionsModule(TradingModule):
         opportunities = []
         
         try:
+            # Check if US market is open (options follow stock market hours)
+            try:
+                market_clock = self.api.get_clock()
+                if not market_clock.is_open:
+                    self.logger.info("US market closed - no options opportunities")
+                    return opportunities
+            except Exception as e:
+                self.logger.warning(f"Could not check market status: {e}")
+                return opportunities
+            
             # Check current allocation to avoid over-allocation
             current_allocation = self._calculate_options_allocation()
             if current_allocation >= self.max_options_allocation:
