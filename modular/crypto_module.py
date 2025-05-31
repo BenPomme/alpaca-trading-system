@@ -854,22 +854,32 @@ class CryptoModule(TradingModule):
             quote = self.api.get_latest_quote(symbol)
             
             if quote:
+                self.logger.info(f"🔍 {symbol}: Got quote object, checking attributes...")
                 # Try different price attributes
                 for attr in ['ask_price', 'bid_price', 'close', 'price']:
                     if hasattr(quote, attr):
                         price_value = getattr(quote, attr)
+                        self.logger.info(f"🔍 {symbol}: {attr}={price_value}")
                         try:
                             if price_value is not None:
                                 price_float = float(price_value)
                                 if price_float > 0:
+                                    self.logger.info(f"✅ {symbol}: Price found: ${price_float}")
                                     return price_float
-                        except (ValueError, TypeError):
+                        except (ValueError, TypeError) as ve:
+                            self.logger.error(f"❌ {symbol}: Could not convert {attr}={price_value} to float: {ve}")
                             continue
+                
+                self.logger.error(f"❌ {symbol}: Quote object exists but no valid price attributes found")
+            else:
+                self.logger.error(f"❌ {symbol}: get_latest_quote returned None")
             
             return 0.0
                 
         except Exception as e:
-            self.logger.debug(f"Error getting crypto price for {symbol}: {e}")
+            self.logger.error(f"❌ {symbol}: Exception getting crypto price: {e}")
+            import traceback
+            self.logger.error(f"❌ {symbol}: Traceback: {traceback.format_exc()}")
             return 0.0
     
     def _get_crypto_market_data(self, symbol: str) -> Optional[Dict]:
