@@ -199,10 +199,12 @@ class ProductionTradingSystem:
                     options_config = ModuleConfig(
                         module_name="options",
                         enabled=True,
-                        confidence_threshold=0.7,
-                        max_position_size=0.1,
+                        max_allocation_pct=30.0,
+                        min_confidence=0.7,
+                        max_positions=5,
+                        default_stop_loss_pct=0.08,
+                        default_profit_target_pct=0.15,
                         custom_params={
-                            'max_allocation_pct': 30.0,
                             'leverage_target': 2.5,
                             'hedge_threshold': 15.0
                         }
@@ -231,10 +233,12 @@ class ProductionTradingSystem:
                     crypto_config = ModuleConfig(
                         module_name="crypto",
                         enabled=True,
-                        confidence_threshold=0.6,
-                        max_position_size=0.08,
+                        max_allocation_pct=20.0,
+                        min_confidence=0.6,
+                        max_positions=8,
+                        default_stop_loss_pct=0.10,
+                        default_profit_target_pct=0.20,
                         custom_params={
-                            'max_allocation_pct': 20.0,
                             'session_thresholds': {
                                 'asia': 0.45,
                                 'europe': 0.50,
@@ -266,10 +270,12 @@ class ProductionTradingSystem:
                     stocks_config = ModuleConfig(
                         module_name="stocks",
                         enabled=True,
-                        confidence_threshold=0.65,
-                        max_position_size=0.1,
+                        max_allocation_pct=50.0,
+                        min_confidence=0.65,
+                        max_positions=10,
+                        default_stop_loss_pct=0.08,
+                        default_profit_target_pct=0.15,
                         custom_params={
-                            'max_allocation_pct': 50.0,
                             'sector_limits': {
                                 'technology': 40.0,
                                 'healthcare': 30.0,
