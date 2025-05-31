@@ -26,5 +26,10 @@ service cloud.firestore {
       allow read: if true;
       allow write: if true; // Allow trading system to write
     }
+    
+    match /positions/{document} {
+      allow read: if true;
+      allow write: if true; // Allow trading system to write
+    }
   }
 }

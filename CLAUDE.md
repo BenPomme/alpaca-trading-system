@@ -241,7 +241,7 @@ The system evolved through systematic phases while maintaining Railway deploymen
 
 #### **Procfile**
 ```
-web: python start_phase3.py
+web: python railway_deploy.py
 ```
 
 #### **Requirements**
@@ -249,7 +249,8 @@ web: python start_phase3.py
 alpaca-trade-api
 flask==2.3.3
 pytz
-requests
+firebase-admin
+google-cloud-firestore
 ```
 
 #### **Environment Variables (Railway Phase 4)**
@@ -719,3 +720,158 @@ Once Firebase is fully deployed and connected:
 - **Scalable Architecture**: Support for multiple trading instances
 - **Data Backup**: Automatic cloud backup of all trading data
 - **Enhanced Debugging**: Persistent logs for troubleshooting across restarts
+
+## Common Development Workflows
+
+### Quick System Health Check
+```bash
+# 1. Check git status and recent commits
+git status && git log --oneline -3
+
+# 2. Verify Railway deployment status
+railway status
+
+# 3. Check recent Railway logs for errors
+railway logs | tail -20
+
+# 4. If logs truncated, run local debug
+python debug_cycle.py 2>&1 | head -50 | grep -E "(ERROR|❌|CRITICAL|Exception)"
+```
+
+### Pre-Deployment Testing Workflow
+```bash
+# 1. Test Firebase connection
+python -c "from firebase_database import FirebaseDatabase; db = FirebaseDatabase(); print('🔥 Connected:', db.is_connected())"
+
+# 2. Test core ML integration
+python test_ml_integration.py
+
+# 3. Run single debug cycle locally
+python debug_cycle.py | head -100
+
+# 4. Check for any critical errors
+python debug_cycle.py 2>&1 | grep -E "(ERROR|Exception|Failed|❌)"
+
+# 5. Verify performance tracking
+python analyze_trading_performance.py | head -20
+```
+
+### Debugging Railway Deployment Issues
+```bash
+# 1. Force Railway to sync latest commits (common issue)
+git log --oneline -1 && railway logs | head -5
+
+# 2. If commit hashes don't match, force sync
+echo "# Force sync $(date)" >> README.md
+git add README.md && git commit -m "🚀 Force Railway deployment sync"
+git push
+
+# 3. Monitor build logs for dependency issues
+railway logs --build
+
+# 4. Check environment variables
+railway env | grep -E "(ALPACA|FIREBASE|EXECUTION)"
+```
+
+### Firebase Troubleshooting
+```bash
+# 1. Test Firebase environment variables
+python -c "import os; fb_vars = {k:v[:20]+'...' for k,v in os.environ.items() if 'FIREBASE' in k}; print('Firebase vars:', fb_vars)"
+
+# 2. Test Firebase during system startup
+python start_phase3.py | grep -E "🔥|Firebase" | head -10
+
+# 3. Check Firebase data migration
+python -c "from firebase_database import FirebaseDatabase; db = FirebaseDatabase(); cycles = db.get_recent_trading_cycles(limit=3); print(f'Recent cycles: {len(cycles)}')"
+```
+
+## Critical File Dependencies
+
+### Core Inheritance Chain
+Understanding the class hierarchy is essential for debugging:
+```
+start_phase3.py (entry point)
+    └── imports Phase3Trader from phase3_trader.py
+        └── inherits from Phase2Trader (phase2_trader.py)
+            └── inherits from EnhancedTraderV2 (enhanced_trader_v2.py)
+                └── inherits from EnhancedTrader (enhanced_trader.py)
+```
+
+### Key Configuration Files
+- **`railway.json`**: Railway deployment configuration
+- **`Procfile`**: Entry point specification (python railway_deploy.py)
+- **`requirements.txt`**: Python dependencies including Firebase
+- **`firestore.rules`**: Firebase security rules
+- **`firebase.json`**: Firebase project configuration
+
+### Data Persistence Files
+- **`data/trading_system.db`**: Local SQLite database (ephemeral on Railway)
+- **`data/trading_log.json`**: Legacy JSON logging (backward compatibility)
+- **`data/cloud_trading_data.json`**: Firebase data cache
+
+### ML Model States
+ML models persist in Firebase collections:
+- **`ml_models/strategy_selector`**: Strategy selection model state
+- **`ml_models/risk_predictor`**: Risk assessment model state
+- **`ml_models/regime_detector`**: Market regime detection state
+
+## Architectural Patterns & Key Gotchas
+
+### Railway Deployment Patterns
+**Known Issue**: Railway sometimes deploys old commits even after new pushes
+**Detection**: Compare `git log --oneline -1` locally vs `railway logs | head -5` 
+**Solution**: Force sync with empty commit: `git commit --allow-empty -m "🚀 Force sync" && git push`
+
+### Firebase Integration Patterns
+**Critical**: Always check Firebase connection before relying on persistent data
+**Pattern**: Dual persistence (SQLite local + Firebase cloud) with Firebase priority
+**Fallback**: System continues with SQLite if Firebase unavailable
+**Migration**: Automatic SQLite → Firebase migration on first Firebase connection
+
+### Railway Log Truncation Workaround
+**Issue**: Railway logs truncate, hiding critical system details (ML, exits, etc.)
+**Detection**: Logs show only basic trade counts, missing detailed analysis
+**Solution**: Use `python debug_cycle.py` locally to see full system operation
+**Pattern**: Always debug locally when Railway logs seem incomplete
+
+### ML Framework Initialization Order
+**Critical**: ML components must initialize AFTER all parent class attributes
+**Pattern**: Initialize complex systems at END of `__init__` method
+**Verification**: Use `hasattr()` checks before creating dependent objects
+**Error**: Silent failures occur if dependencies not available during initialization
+
+### Alpaca API Object Contracts
+**Gotcha**: Position objects use different attribute names than expected
+**Safe Pattern**: Use `hasattr()` checks for all external API object attributes
+**Example**: `position.avg_entry_price` vs `position.avg_cost` vs `position.cost_basis`
+**Rule**: Never assume API object attribute names - always verify with fallbacks
+
+### Data Structure Contracts
+**Pattern**: Intelligence modules must ALWAYS return complete data structures
+**Rule**: Provide sensible defaults when insufficient data available
+**Example**: Market regime analysis returns neutral/0.5 confidence during startup
+**Debugging**: Use `.get()` method with defaults for optional fields
+
+### Performance Monitoring Requirements
+**Critical**: System requires regular performance analysis to detect issues
+**Command**: `python analyze_trading_performance.py` (weekly mandatory)
+**Alert Thresholds**: Win rate <30%, hold time <2 hours, negative P&L trend
+**Action**: Adjust exit system parameters if performance degrades
+
+### Environment Variable Dependencies
+**Railway Required**: All ALPACA_*, FIREBASE_*, EXECUTION_ENABLED, *_TRADING flags
+**Local Testing**: Export variables manually or use Railway CLI (`railway run`)
+**Verification**: Check `railway env` output matches expected configuration
+**Pattern**: System gracefully degrades when optional features disabled
+
+### Phase Evolution Compatibility
+**Backward Compatibility**: Each phase maintains compatibility with previous systems
+**Legacy Support**: JSON logging maintained alongside Firebase for monitoring tools
+**Entry Point**: `start_phase3.py` is current production entry (not phase2 or phase4)
+**Testing**: Use phase-specific test files (`test_phase3_standalone.py`, etc.)
+
+### Session-Aware Trading
+**Multi-Asset Logic**: Different confidence thresholds by asset class and session
+**Timing**: US market hours (2min) vs crypto-only (10min) vs monitoring (30min)
+**Global Coordination**: Symbol selection matches open exchange hours
+**Resource Optimization**: 80% reduction in processing during off-hours
