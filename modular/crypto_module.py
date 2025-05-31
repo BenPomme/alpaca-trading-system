@@ -848,58 +848,72 @@ class CryptoModule(TradingModule):
     # Utility methods
     
     def _get_crypto_price(self, symbol: str) -> float:
-        """Get current cryptocurrency price - REAL PRICES ONLY"""
+        """Get current cryptocurrency price using correct Alpaca API methods"""
         try:
-            # First try: Alpaca crypto bars (real-time crypto data)
-            try:
-                bars = self.api.get_latest_crypto_bar(symbol)
-                if bars and hasattr(bars, 'c'):  # 'c' is close price
-                    price = float(bars.c)
-                    if price > 0:
-                        self.logger.info(f"✅ {symbol}: Real price from crypto bars: ${price}")
-                        return price
-                else:
-                    self.logger.error(f"❌ {symbol}: get_latest_crypto_bar returned invalid data")
-            except Exception as e:
-                self.logger.error(f"❌ {symbol}: get_latest_crypto_bar failed: {e}")
+            # Convert symbol format: BTCUSD -> BTC/USD (Alpaca crypto format)
+            if '/' not in symbol and 'USD' in symbol:
+                base_symbol = symbol.replace('USD', '')
+                formatted_symbol = f"{base_symbol}/USD"
+            else:
+                formatted_symbol = symbol
             
-            # Second try: Alpaca crypto trades (latest trade price)
-            try:
-                trade = self.api.get_latest_crypto_trade(symbol)
-                if trade and hasattr(trade, 'p'):  # 'p' is trade price
-                    price = float(trade.p)
-                    if price > 0:
-                        self.logger.info(f"✅ {symbol}: Real price from crypto trades: ${price}")
-                        return price
-                else:
-                    self.logger.error(f"❌ {symbol}: get_latest_crypto_trade returned invalid data")
-            except Exception as e:
-                self.logger.error(f"❌ {symbol}: get_latest_crypto_trade failed: {e}")
+            self.logger.info(f"🔍 {symbol}: Trying formatted symbol: {formatted_symbol}")
             
-            # Third try: Standard quotes (shouldn't work for crypto but try anyway)
+            # First try: get_latest_crypto_bars (documented method)
             try:
-                quote = self.api.get_latest_quote(symbol)
-                if quote:
-                    for attr in ['ask_price', 'bid_price', 'close', 'price']:
+                bars = self.api.get_latest_crypto_bars(formatted_symbol)
+                if bars and formatted_symbol in bars:
+                    bar = bars[formatted_symbol]
+                    if hasattr(bar, 'c'):  # 'c' is close price
+                        price = float(bar.c)
+                        if price > 0:
+                            self.logger.info(f"✅ {symbol}: Real price from crypto bars: ${price}")
+                            return price
+                self.logger.error(f"❌ {symbol}: get_latest_crypto_bars returned no valid data")
+            except Exception as e:
+                self.logger.error(f"❌ {symbol}: get_latest_crypto_bars failed: {e}")
+            
+            # Second try: get_latest_crypto_trades (documented method)
+            try:
+                trades = self.api.get_latest_crypto_trades(formatted_symbol)
+                if trades and formatted_symbol in trades:
+                    trade = trades[formatted_symbol]
+                    if hasattr(trade, 'p'):  # 'p' is trade price
+                        price = float(trade.p)
+                        if price > 0:
+                            self.logger.info(f"✅ {symbol}: Real price from crypto trades: ${price}")
+                            return price
+                self.logger.error(f"❌ {symbol}: get_latest_crypto_trades returned no valid data")
+            except Exception as e:
+                self.logger.error(f"❌ {symbol}: get_latest_crypto_trades failed: {e}")
+            
+            # Third try: get_latest_crypto_quotes (documented method)
+            try:
+                quotes = self.api.get_latest_crypto_quotes(formatted_symbol)
+                if quotes and formatted_symbol in quotes:
+                    quote = quotes[formatted_symbol]
+                    # Try ask price first, then bid
+                    for attr in ['ap', 'bp']:  # ap = ask price, bp = bid price
                         if hasattr(quote, attr):
                             price_value = getattr(quote, attr)
                             try:
                                 if price_value is not None:
                                     price_float = float(price_value)
                                     if price_float > 0:
-                                        self.logger.info(f"✅ {symbol}: Real price from quotes: ${price_float}")
+                                        self.logger.info(f"✅ {symbol}: Real price from crypto quotes: ${price_float}")
                                         return price_float
                             except (ValueError, TypeError):
                                 continue
+                self.logger.error(f"❌ {symbol}: get_latest_crypto_quotes returned no valid data")
             except Exception as e:
-                self.logger.debug(f"🔍 {symbol}: Quote method failed as expected: {e}")
+                self.logger.error(f"❌ {symbol}: get_latest_crypto_quotes failed: {e}")
             
             # NO FALLBACK TO SIMULATED PRICES - Real data only
             self.logger.error(f"❌ {symbol}: No real crypto price available from Alpaca API")
             return 0.0
                 
         except Exception as e:
-            self.logger.error(f"❌ {symbol}: All real price methods failed: {e}")
+            self.logger.error(f"❌ {symbol}: All real crypto price methods failed: {e}")
             return 0.0
     
     def _get_crypto_market_data(self, symbol: str) -> Optional[Dict]:
