@@ -482,3 +482,34 @@ class ModularOrchestrator:
         if module:
             return module.get_performance_summary()
         return None
+    
+    def shutdown(self):
+        """Gracefully shutdown the orchestrator and all modules"""
+        try:
+            self.logger.info("🛑 Shutting down modular orchestrator...")
+            
+            # Stop any running cycles or background tasks
+            if hasattr(self, '_running'):
+                self._running = False
+            
+            # Shutdown all modules
+            for module_name, module in self.registry._modules.items():
+                try:
+                    if hasattr(module, 'shutdown'):
+                        module.shutdown()
+                    self.logger.info(f"✅ Shutdown module: {module_name}")
+                except Exception as e:
+                    self.logger.error(f"❌ Error shutting down module {module_name}: {e}")
+            
+            # Shutdown ML optimizer
+            if self.ml_optimizer and hasattr(self.ml_optimizer, 'shutdown'):
+                try:
+                    self.ml_optimizer.shutdown()
+                    self.logger.info("✅ ML optimizer shutdown complete")
+                except Exception as e:
+                    self.logger.error(f"❌ ML optimizer shutdown error: {e}")
+            
+            self.logger.info("✅ Modular orchestrator shutdown complete")
+            
+        except Exception as e:
+            self.logger.error(f"❌ Error during orchestrator shutdown: {e}")
