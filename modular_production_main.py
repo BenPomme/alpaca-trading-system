@@ -156,9 +156,6 @@ class ProductionTradingSystem:
         try:
             logger.info("🎼 Initializing modular orchestrator...")
             
-            # Create Firebase interface for modules
-            firebase_interface = ModularFirebaseInterface(self.firebase_db, logger)
-            
             # Initialize orchestrator
             self.orchestrator = ModularOrchestrator(
                 firebase_db=self.firebase_db,
@@ -191,11 +188,15 @@ class ProductionTradingSystem:
             # Module configuration from environment
             modules_config = self.config.get_module_config()
             
+            # Create Firebase interface for modules
+            firebase_interface = ModularFirebaseInterface(self.firebase_db, logger)
+            
             # Register Options Module
             if modules_config.get('options', True):
                 try:
+                    logger.info("🎯 Initializing Options module...")
                     options_module = OptionsModule(
-                        firebase_interface=self.firebase_db,
+                        firebase_interface=firebase_interface,
                         alpaca_api=self.alpaca_api,
                         logger=logger
                     )
@@ -203,12 +204,15 @@ class ProductionTradingSystem:
                     logger.info("✅ Options module registered")
                 except Exception as e:
                     logger.error(f"❌ Failed to register options module: {e}")
+                    import traceback
+                    logger.error(f"Options module error details: {traceback.format_exc()}")
             
             # Register Crypto Module
             if modules_config.get('crypto', True):
                 try:
+                    logger.info("₿ Initializing Crypto module...")
                     crypto_module = CryptoModule(
-                        firebase_interface=self.firebase_db,
+                        firebase_interface=firebase_interface,
                         alpaca_api=self.alpaca_api,
                         logger=logger
                     )
@@ -216,12 +220,15 @@ class ProductionTradingSystem:
                     logger.info("✅ Crypto module registered")
                 except Exception as e:
                     logger.error(f"❌ Failed to register crypto module: {e}")
+                    import traceback
+                    logger.error(f"Crypto module error details: {traceback.format_exc()}")
             
             # Register Stocks Module
             if modules_config.get('stocks', True):
                 try:
+                    logger.info("📈 Initializing Stocks module...")
                     stocks_module = StocksModule(
-                        firebase_interface=self.firebase_db,
+                        firebase_interface=firebase_interface,
                         alpaca_api=self.alpaca_api,
                         logger=logger
                     )
@@ -229,11 +236,22 @@ class ProductionTradingSystem:
                     logger.info("✅ Stocks module registered")
                 except Exception as e:
                     logger.error(f"❌ Failed to register stocks module: {e}")
+                    import traceback
+                    logger.error(f"Stocks module error details: {traceback.format_exc()}")
             
             logger.info("📋 Module registration complete")
             
+            # Log registered modules for verification
+            active_modules = self.orchestrator.registry.get_active_modules()
+            if active_modules:
+                logger.info(f"✅ Active modules: {[m.module_name for m in active_modules]}")
+            else:
+                logger.warning("⚠️ No active modules found after registration")
+            
         except Exception as e:
             logger.error(f"❌ Module registration failed: {e}")
+            import traceback
+            logger.error(f"Module registration error details: {traceback.format_exc()}")
     
     def _initialize_health_monitoring(self):
         """Initialize health monitoring system."""
