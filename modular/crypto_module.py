@@ -946,10 +946,22 @@ class CryptoModule(TradingModule):
                 bars = self.api.get_latest_crypto_bars(formatted_symbol)
                 if bars and formatted_symbol in bars:
                     bar = bars[formatted_symbol]
-                    if hasattr(bar, 'c'):  # 'c' is close price
+                    if hasattr(bar, 'c') and hasattr(bar, 't'):  # 'c' is close price, 't' is timestamp
                         price = float(bar.c)
+                        
+                        # Validate data freshness for minute-level trading
+                        if hasattr(bar, 't') and bar.t:
+                            from datetime import datetime, timezone
+                            bar_time = bar.t.replace(tzinfo=timezone.utc) if bar.t.tzinfo is None else bar.t
+                            age_seconds = (datetime.now(timezone.utc) - bar_time).total_seconds()
+                            
+                            if age_seconds > 300:  # Warn if data is older than 5 minutes
+                                self.logger.warning(f"⚠️ {symbol}: Quote data is {age_seconds:.0f}s old (may impact trading accuracy)")
+                            elif age_seconds > 60:  # Info if older than 1 minute
+                                self.logger.info(f"🕐 {symbol}: Quote data is {age_seconds:.0f}s old")
+                        
                         if price > 0:
-                            self.logger.info(f"✅ {symbol}: Real price from crypto bars: ${price}")
+                            self.logger.info(f"✅ {symbol}: Real-time price from crypto bars: ${price}")
                             return price
                 self.logger.error(f"❌ {symbol}: get_latest_crypto_bars returned no valid data")
             except Exception as e:

@@ -163,11 +163,21 @@ class ModularOrderExecutor:
                 else:
                     formatted_symbol = symbol
                 
-                # Try crypto-specific methods
+                # Try crypto-specific methods with data freshness validation
                 try:
                     quotes = self.api.get_latest_crypto_quotes(formatted_symbol)
                     if quotes and formatted_symbol in quotes:
                         quote = quotes[formatted_symbol]
+                        
+                        # Validate data freshness for critical trade execution
+                        if hasattr(quote, 't') and quote.t:
+                            from datetime import datetime, timezone
+                            quote_time = quote.t.replace(tzinfo=timezone.utc) if quote.t.tzinfo is None else quote.t
+                            age_seconds = (datetime.now(timezone.utc) - quote_time).total_seconds()
+                            
+                            if age_seconds > 120:  # Stricter threshold for trade execution
+                                self.logger.warning(f"⚠️ EXECUTION: {symbol} quote is {age_seconds:.0f}s old - execution may be suboptimal")
+                        
                         if hasattr(quote, 'ap') and quote.ap:
                             return float(quote.ap)
                         elif hasattr(quote, 'bp') and quote.bp:
@@ -184,13 +194,23 @@ class ModularOrderExecutor:
                 except Exception:
                     pass
             else:
-                # Stock symbol
+                # Stock symbol with data freshness validation  
                 try:
                     quote = self.api.get_latest_quote(symbol)
-                    if quote and hasattr(quote, 'ask_price') and quote.ask_price:
-                        return float(quote.ask_price)
-                    elif quote and hasattr(quote, 'bid_price') and quote.bid_price:
-                        return float(quote.bid_price)
+                    if quote:
+                        # Validate data freshness for critical trade execution
+                        if hasattr(quote, 'timestamp') and quote.timestamp:
+                            from datetime import datetime, timezone
+                            quote_time = quote.timestamp.replace(tzinfo=timezone.utc) if quote.timestamp.tzinfo is None else quote.timestamp
+                            age_seconds = (datetime.now(timezone.utc) - quote_time).total_seconds()
+                            
+                            if age_seconds > 120:  # Stricter threshold for trade execution
+                                self.logger.warning(f"⚠️ EXECUTION: {symbol} quote is {age_seconds:.0f}s old - execution may be suboptimal")
+                        
+                        if hasattr(quote, 'ask_price') and quote.ask_price:
+                            return float(quote.ask_price)
+                        elif hasattr(quote, 'bid_price') and quote.bid_price:
+                            return float(quote.bid_price)
                 except Exception:
                     pass
             

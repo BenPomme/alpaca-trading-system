@@ -474,11 +474,22 @@ class StocksModule(TradingModule):
             return None
     
     def _get_real_stock_price(self, symbol: str) -> float:
-        """Get real current stock price from Alpaca API - NO MOCK DATA"""
+        """Get real current stock price from Alpaca API with data freshness validation"""
         try:
             quote = self.api.get_latest_quote(symbol)
             
             if quote:
+                # Validate data freshness for minute-level trading
+                if hasattr(quote, 'timestamp') and quote.timestamp:
+                    from datetime import datetime, timezone
+                    quote_time = quote.timestamp.replace(tzinfo=timezone.utc) if quote.timestamp.tzinfo is None else quote.timestamp
+                    age_seconds = (datetime.now(timezone.utc) - quote_time).total_seconds()
+                    
+                    if age_seconds > 300:  # Warn if data is older than 5 minutes  
+                        self.logger.warning(f"⚠️ {symbol}: Quote data is {age_seconds:.0f}s old (may impact trading accuracy)")
+                    elif age_seconds > 60:  # Info if older than 1 minute
+                        self.logger.info(f"🕐 {symbol}: Quote data is {age_seconds:.0f}s old")
+                
                 # Try different real price attributes
                 for attr in ['ask_price', 'bid_price', 'close', 'price']:
                     if hasattr(quote, attr):

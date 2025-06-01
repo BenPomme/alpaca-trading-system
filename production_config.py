@@ -43,6 +43,10 @@ class ProductionConfig:
             'MODULAR_SYSTEM': self._get_bool_env('MODULAR_SYSTEM', True),
             'ML_OPTIMIZATION': self._get_bool_env('ML_OPTIMIZATION', True),
             'RISK_MANAGEMENT': self._get_bool_env('RISK_MANAGEMENT', True),
+            
+            # Data Feed Configuration for real-time trading
+            'ALPACA_DATA_FEED': os.getenv('ALPACA_DATA_FEED', 'sip'),  # sip = real-time, iex = free but delayed
+            'INTRADAY_CYCLE_DELAY': self._get_int_env('INTRADAY_CYCLE_DELAY', 60),  # 60s for minute-level trading
         })
         
         # Module Configuration
@@ -109,6 +113,16 @@ class ProductionConfig:
             logger.warning("⚠️ OPENAI_API_KEY not set - Market Intelligence will be disabled")
         elif self.config.get('OPENAI_API_KEY'):
             logger.info(f"✅ OpenAI API key configured for Market Intelligence (model: {self.config.get('OPENAI_MODEL', 'o4-mini')})")
+        
+        # Data feed validation for algorithmic trading
+        data_feed = self.config.get('ALPACA_DATA_FEED', 'sip')
+        cycle_delay = self.config.get('INTRADAY_CYCLE_DELAY', 60)
+        
+        if data_feed != 'sip' and cycle_delay < 300:
+            logger.warning(f"⚠️ PERFORMANCE RISK: Using {data_feed} data feed with {cycle_delay}s cycles may cause suboptimal trading")
+            logger.warning("⚠️ Consider: ALPACA_DATA_FEED=sip for real-time data OR INTRADAY_CYCLE_DELAY=300 for delayed data")
+        elif data_feed == 'sip':
+            logger.info(f"✅ Real-time trading configuration: {data_feed} data feed with {cycle_delay}s cycles")
         
         # Firebase configuration
         firebase_keys = [
