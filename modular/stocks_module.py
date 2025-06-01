@@ -194,8 +194,8 @@ class StocksModule(TradingModule):
         # Intraday trading configuration
         self.intraday_config = {
             'cycle_frequency_seconds': 60,  # 1-minute cycles for intraday
-            'max_daily_trades': 25,  # Increased for intraday
-            'daily_loss_limit': 0.03,  # 3% daily loss limit
+            'max_daily_trades': 999,  # UNLIMITED profitable trades (was 25)
+            'daily_loss_limit': 0.03,  # 3% daily loss limit (keep this for risk management)
             'heat_adjustment': True,  # Dynamic sizing based on daily P&L
             'time_based_strategies': True  # Use different strategies by time of day
         }
@@ -245,7 +245,7 @@ class StocksModule(TradingModule):
         self.logger.info(f"Stocks module initialized with {total_symbols} symbols across {len(self.symbol_tiers)} tiers")
         self.logger.info(f"Market tier: {self.market_tier}, Aggressive multiplier: {self.aggressive_multiplier}x")
         self.logger.info(f"Intraday trading optimized: {self.intraday_config['cycle_frequency_seconds']}s cycles, "
-                        f"max {self.intraday_config['max_daily_trades']} trades/day")
+                        f"UNLIMITED profitable trades (no daily limit)")
     
     @property
     def module_name(self) -> str:
@@ -1251,17 +1251,15 @@ class StocksModule(TradingModule):
     def _check_intraday_trading_limits(self) -> bool:
         """Check if we can continue trading based on daily limits"""
         try:
-            # Check daily trade limit
-            if self._daily_trade_count >= self.intraday_config['max_daily_trades']:
-                self.logger.info(f"Daily trade limit reached: {self._daily_trade_count}/{self.intraday_config['max_daily_trades']}")
-                return False
+            # NO DAILY TRADE LIMIT - Trade as much as profitable!
+            # (was: daily trade limit check removed for unlimited profitable trading)
             
-            # Check daily loss limit
+            # Check daily loss limit (KEEP THIS for risk management)
             if self._daily_pnl <= -self.intraday_config['daily_loss_limit']:
                 self.logger.warning(f"Daily loss limit reached: {self._daily_pnl:.1%} <= -{self.intraday_config['daily_loss_limit']:.1%}")
                 return False
             
-            return True
+            return True  # No artificial trade limits!
         except Exception as e:
             self.logger.error(f"Error checking intraday limits: {e}")
             return True  # Allow trading if check fails
