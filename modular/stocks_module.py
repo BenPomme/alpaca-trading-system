@@ -286,7 +286,8 @@ class StocksModule(TradingModule):
             # Check current allocation
             current_allocation = self._get_current_stock_allocation()
             if current_allocation >= self.max_stock_allocation:
-                self.logger.info(f"Stock allocation limit reached: {current_allocation:.1%}")
+                self.logger.info(f"Stock allocation limit reached: {current_allocation:.1%} - SKIPPING NEW ENTRIES")
+                self.logger.info("🚨 ALLOCATION LIMIT: Focusing on exit opportunities to free capital")
                 return opportunities
             
             # Get intraday strategy and market regime
@@ -956,6 +957,20 @@ class StocksModule(TradingModule):
                 return None
             
             unrealized_pl_pct = unrealized_pl / market_value
+            
+            # Check if we're over allocation limit - be MORE aggressive with exits
+            current_allocation = self._get_current_stock_allocation()
+            over_allocation = current_allocation >= self.max_stock_allocation
+            
+            if over_allocation:
+                # AGGRESSIVE EXIT MODE when over-allocated
+                if unrealized_pl_pct >= 0.015:  # 1.5% profit when over-allocated (stocks move faster)
+                    return 'over_allocation_profit'
+                elif unrealized_pl_pct <= -0.025:  # 2.5% stop loss when over-allocated
+                    return 'over_allocation_stop_loss'
+                # When severely over-allocated, exit break-even positions
+                elif abs(unrealized_pl_pct) <= 0.003:  # Within 0.3% of break-even
+                    return 'over_allocation_rebalance'
             
             # Get position age (simplified - would track actual entry time)
             position_age_minutes = 30  # Estimate position age

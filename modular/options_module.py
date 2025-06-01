@@ -99,9 +99,20 @@ class OptionsModule(TradingModule):
             'TSLA', 'NVDA', 'META', 'NFLX', 'AMD', 'CRM', 'ADBE'
         ]
         
-        # Performance tracking
+        # Performance tracking - REAL profitability metrics
         self._options_positions = {}
         self._expiration_alerts = []
+        self._options_performance = {
+            'total_trades': 0,
+            'profitable_trades': 0,
+            'total_pnl': 0.0,
+            'total_invested': 0.0,
+            'avg_profit_per_trade': 0.0,
+            'max_drawdown': 0.0,
+            'win_rate': 0.0,
+            'roi': 0.0,
+            'avg_hold_time_hours': 0.0
+        }
         
         self.logger.info(f"Options module initialized with {len(self._supported_symbols)} symbols")
         self.logger.info(f"Max allocation: {self.max_options_allocation:.1%}, Target leverage: {self.leverage_target}x")
@@ -137,7 +148,8 @@ class OptionsModule(TradingModule):
             # Check current allocation to avoid over-allocation
             current_allocation = self._calculate_options_allocation()
             if current_allocation >= self.max_options_allocation:
-                self.logger.info(f"Options allocation limit reached: {current_allocation:.1%}")
+                self.logger.info(f"Options allocation limit reached: {current_allocation:.1%} - SKIPPING NEW ENTRIES")
+                self.logger.info("🚨 ALLOCATION LIMIT: Focusing on exit opportunities to free capital")
                 return opportunities
             
             # Get market regime and confidence from ML/intelligence systems
@@ -180,6 +192,23 @@ class OptionsModule(TradingModule):
             try:
                 result = self._execute_options_trade(opportunity)
                 results.append(result)
+                
+                # Update REAL profitability tracking
+                self._options_performance['total_trades'] += 1
+                
+                if result.success:
+                    # Track actual investment amount
+                    investment_amount = opportunity.quantity * (result.execution_price or opportunity.metadata.get('current_price', 0))
+                    self._options_performance['total_invested'] += investment_amount
+                    
+                    # Store entry data for later exit calculation
+                    self._options_positions[opportunity.symbol] = {
+                        'entry_price': result.execution_price,
+                        'quantity': opportunity.quantity,
+                        'investment': investment_amount,
+                        'entry_time': datetime.now().isoformat(),
+                        'strategy': opportunity.strategy
+                    }
                 
                 # Rate limiting between executions
                 time.sleep(1.0)
@@ -929,7 +958,21 @@ class OptionsModule(TradingModule):
             
             unrealized_pl_pct = unrealized_pl / market_value
             
-            # Exit conditions for options
+            # Check if we're over allocation limit - be MORE aggressive with exits
+            current_allocation = self._calculate_options_allocation()
+            over_allocation = current_allocation >= self.max_options_allocation
+            
+            if over_allocation:
+                # AGGRESSIVE EXIT MODE when over-allocated (options have high volatility)
+                if unrealized_pl_pct >= 0.25:  # 25% profit when over-allocated
+                    return 'over_allocation_profit'
+                elif unrealized_pl_pct <= -0.25:  # 25% stop loss when over-allocated
+                    return 'over_allocation_stop_loss'
+                # When severely over-allocated, exit modest winners
+                elif unrealized_pl_pct >= 0.10:  # Even 10% profit to free capital
+                    return 'over_allocation_modest_profit'
+            
+            # Standard exit conditions for options
             if unrealized_pl_pct >= 1.0:  # 100% profit or more
                 return 'profit_target'
             elif unrealized_pl_pct <= -0.5:  # 50% loss or more
