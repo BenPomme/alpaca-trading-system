@@ -5,6 +5,7 @@ Advanced risk controls and position management
 """
 
 import os
+import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 from database_manager import TradingDatabase
@@ -12,9 +13,10 @@ from database_manager import TradingDatabase
 class RiskManager:
     """Advanced risk management for trading system"""
     
-    def __init__(self, api_client, db: TradingDatabase = None):
+    def __init__(self, api_client, db: TradingDatabase = None, logger=None):
         self.api = api_client
         self.db = db
+        self.logger = logger or logging.getLogger(__name__)
         
         # Risk Parameters (Phase 4.1: Unlimited positions for aggressive strategy)
         self.max_positions = None                 # No limit on concurrent positions
@@ -353,6 +355,37 @@ class RiskManager:
         except Exception as e:
             return False, f"Daily loss check error: {e}"
     
+    def validate_opportunity(self, module_name: str, opportunity) -> bool:
+        """
+        Validate if a trading opportunity meets risk management criteria.
+        
+        Args:
+            module_name: Name of the trading module
+            opportunity: TradeOpportunity object with symbol, confidence, quantity, etc.
+        
+        Returns:
+            bool: True if opportunity passes risk validation
+        """
+        try:
+            # Use existing should_execute_trade logic for validation
+            can_trade, reason = self.should_execute_trade(
+                symbol=opportunity.symbol,
+                strategy=opportunity.strategy,
+                confidence=opportunity.confidence,
+                target_shares=int(opportunity.quantity),
+                entry_price=opportunity.metadata.get('entry_price', 0.0)
+            )
+            
+            if not can_trade:
+                self.logger.debug(f"Risk validation failed for {opportunity.symbol}: {reason}")
+            
+            return can_trade
+            
+        except Exception as e:
+            # Defensive programming - if validation fails, reject the trade
+            self.logger.error(f"Error validating opportunity {opportunity.symbol}: {e}")
+            return False
+
     def should_execute_trade(self, symbol: str, strategy: str, confidence: float,
                            entry_price: float) -> Tuple[bool, str, Dict]:
         """Comprehensive trade approval check"""

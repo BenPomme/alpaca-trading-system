@@ -156,10 +156,14 @@ class ProductionTradingSystem:
         try:
             logger.info("🎼 Initializing modular orchestrator...")
             
+            # Initialize risk manager
+            from risk_manager import RiskManager
+            risk_mgr = RiskManager(api_client=self.alpaca_api, db=None, logger=logger)
+            
             # Initialize orchestrator
             self.orchestrator = ModularOrchestrator(
                 firebase_db=self.firebase_db,
-                risk_manager=None,  # Will be initialized by orchestrator
+                risk_manager=risk_mgr,
                 order_executor=None,  # Will be initialized by orchestrator
                 ml_optimizer=None,  # Will be initialized by orchestrator
                 logger=logger
