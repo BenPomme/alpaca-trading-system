@@ -165,7 +165,10 @@ class CryptoModule(TradingModule):
             # Check current allocation to avoid over-allocation
             current_allocation = self._get_current_crypto_allocation()
             if current_allocation >= self.max_crypto_allocation:
-                self.logger.info(f"Crypto allocation limit reached: {current_allocation:.1%}")
+                self.logger.info(f"Crypto allocation limit reached: {current_allocation:.1%} - SKIPPING NEW ENTRIES")
+                # Still continue with analysis for exit opportunities
+                # This ensures we actively manage exits when over-allocated
+                self.logger.info("🚨 ALLOCATION LIMIT: Focusing on exit opportunities to free capital")
                 return opportunities
             
             # Get ALL crypto symbols for 24/7 analysis
@@ -677,7 +680,20 @@ class CryptoModule(TradingModule):
             
             unrealized_pl_pct = unrealized_pl / market_value
             
-            # Crypto-specific exit conditions (more aggressive than traditional assets)
+            # Check if we're over allocation limit - be MORE aggressive with exits
+            current_allocation = self._get_current_crypto_allocation()
+            over_allocation = current_allocation >= self.max_crypto_allocation
+            
+            if over_allocation:
+                # AGGRESSIVE EXIT MODE when over-allocated
+                if unrealized_pl_pct >= 0.05:  # 5% profit when over-allocated
+                    return 'over_allocation_profit'
+                elif unrealized_pl_pct >= 0.02:  # Even 2% profit to free capital
+                    return 'over_allocation_minimal_profit'
+                elif unrealized_pl_pct <= -0.08:  # Tighter stop loss when over-allocated
+                    return 'over_allocation_stop_loss'
+            
+            # Standard crypto exit conditions
             if unrealized_pl_pct >= 0.25:  # 25% profit target
                 return 'profit_target'
             elif unrealized_pl_pct <= -0.15:  # 15% stop loss
