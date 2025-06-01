@@ -134,7 +134,7 @@ class ProductionTradingSystem:
                 logger.error("❌ Alpaca API credentials not found")
                 return False
             
-            # Initialize Alpaca API - data_feed parameter not supported in current alpaca_trade_api version
+            # Initialize Alpaca API for algorithmic trading
             self.alpaca_api = tradeapi.REST(
                 api_key,
                 secret_key,
@@ -142,9 +142,10 @@ class ProductionTradingSystem:
                 api_version='v2'
             )
             
-            # Note: Real-time data configuration may need to be done via Alpaca dashboard
-            # or through newer SDK versions. Current implementation uses default data feed.
-            logger.info("📊 Alpaca API initialized (using default data feed - configure real-time access via Alpaca dashboard)")
+            # Data quality depends on Alpaca subscription tier:
+            # - Basic Plan (Free): IEX real-time data, 15-min delayed historical
+            # - Algo Trader Plus ($99/month): Full market real-time data, unlimited historical
+            logger.info("📊 Alpaca API initialized - data quality depends on account subscription tier")
             
             # Test connection
             account = self.alpaca_api.get_account()

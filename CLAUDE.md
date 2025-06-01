@@ -5,383 +5,354 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Critical Guidelines
 
 **BEFORE making any changes to this codebase:**
-1. **Read QA.md thoroughly** - Contains critical bug prevention rules and deployment lessons learned from 9+ major bugs
-2. **Apply all 9 QA rules** - Must be followed to prevent recurring bugs (inheritance, data contracts, defensive programming)
-3. **Verify inheritance chains** - Check attribute/method availability before accessing (QA Rule 1 & 6)
-4. **Validate data structures** - Ensure consistent data formats between modules (QA Rule 5)
+1. **Read QA.md thoroughly** - Contains 11 critical bug prevention rules from major production issues
+2. **Apply ALL QA rules** - Essential for preventing inheritance, data contract, and API integration bugs
+3. **Verify inheritance chains** - Check attribute/method availability before accessing (QA Rule 1 & 2)
+4. **Use defensive programming** - Always use .get() methods and provide defaults (QA Rule 5)
 5. **Test with minimal data** - Verify startup behavior when market data is limited (QA Rule 4)
-6. **Follow defensive programming** - Use .get() methods and provide defaults (QA Rule 5)
-7. **Update QA.md with new lessons** - Document any new bugs/fixes for future prevention
+6. **Update QA.md** - Document any new bugs/fixes discovered
 
 ## Project Architecture
 
-### Multi-Asset Trading System
-This is an institutional-grade algorithmic trading system targeting 5-10% monthly returns through:
-- **📊 Real Options Trading**: Alpaca API integration with 5 sophisticated strategies  
-- **₿ 24/7 Cryptocurrency Trading**: 13 cryptocurrencies with session-aware strategies
-- **📈 Enhanced Stock Strategies**: 3x leveraged ETFs, sector rotation, momentum amplification
-- **🧠 Intelligent Exit Management**: ML-powered exit system with 5-component analysis
+### Multi-Asset Algorithmic Trading System
+Production-grade system targeting 5-10% monthly returns through AI-powered trading across:
+- **📊 Options Trading**: Real Alpaca API integration with sophisticated strategies
+- **₿ Cryptocurrency Trading**: 24/7 trading across 9 cryptocurrencies with session awareness
+- **📈 Stock Trading**: 41 symbols across 4 tiers with unlimited profitable trades
+- **🧠 Market Intelligence**: OpenAI o4-mini powered analysis with web search integration
 
-### Core Architecture Stack
+### Core Production Architecture
 ```
-Phase3Trader (Intelligence Layer)
-    ↳ Phase2Trader (Execution Engine)  
-        ↳ EnhancedTraderV2 (Expanded Universe)
-            ↳ EnhancedTrader (Database Foundation)
-```
-
-**Alternative: Modular System** (Production)
-```
-ModularOrchestrator
-    ↳ OptionsModule
-    ↳ CryptoModule  
-    ↳ StocksModule
-    ↳ MarketIntelligenceModule (NEW - OpenAI-powered)
-    ↳ MLOptimizer
-    ↳ RiskManager
+ModularOrchestrator (Production Entry Point)
+├── OptionsModule (30% max allocation)
+├── CryptoModule (20% max allocation, 1.5x leverage)  
+├── StocksModule (unlimited positions, no daily trade limits)
+├── MarketIntelligenceModule (OpenAI-powered analysis)
+├── MLOptimizer (profit-based learning)
+├── RiskManager (portfolio-level controls)
+└── OrderExecutor (real Alpaca API execution)
 ```
 
-### Production Deployment
-- **Primary**: Railway Cloud deployment via `modular_production_main.py`
-- **Legacy**: Phase 3 system via `start_phase3.py`
-- **Procfile**: `web: python modular_production_main.py`
-- **Environment**: Paper trading only (Alpaca Paper API)
-
-## Development Commands
-
-### Essential Commands
-```bash
-# Primary production system test
-python modular_production_main.py
-
-# Legacy intelligence system test  
-python start_phase3.py
-
-# Complete system integration test
-python test_phase4_complete.py
-
-# Debug full trading cycle locally
-python debug_cycle.py
-
-# ML integration verification
-python test_ml_integration.py
-
-# Individual component testing
-python options_manager.py
-python crypto_trader.py
-```
-
-### Performance Analysis (MANDATORY)
-```bash
-# Weekly performance analysis - REQUIRED
-python analyze_trading_performance.py
-
-# Emergency order cancellation
-python emergency_cancel_all_orders.py
-
-# Database functionality test
-python database_manager.py
-```
-
-### Testing Framework
-```bash
-# Complete modular framework test
-python test_modular_framework.py
-
-# Phase 3 standalone test
-python test_phase3_standalone.py
-
-# Global trading test
-python test_global_trading.py
-
-# ML integration test
-python test_ml_integration.py
-
-# ML profit learning system test
-python test_ml_linking.py
-python test_ml_integration_full.py
-
-# Individual module tests
-python tests/modules/test_crypto_module.py
-python tests/modules/test_options_module.py
-python tests/modules/test_stocks_module.py
-```
-
-### Railway Deployment
-```bash
-# Check deployment status
-railway status
-
-# View live logs (may be truncated)
-railway logs
-
-# Deployment verification
-python railway_deploy.py
-
-# Environment variable verification
-python railway_setup_verification.py
-```
-
-## Required Environment Variables
-
-### Core Trading API
-```bash
-ALPACA_PAPER_API_KEY=your_paper_key
-ALPACA_PAPER_SECRET_KEY=your_paper_secret
-ALPACA_BASE_URL=https://paper-api.alpaca.markets
-```
-
-### System Configuration
-```bash
-EXECUTION_ENABLED=true
-GLOBAL_TRADING=true
-OPTIONS_TRADING=true
-CRYPTO_TRADING=true
-MARKET_TIER=2
-MIN_CONFIDENCE=0.6
-MIN_TECHNICAL_CONFIDENCE=0.6
-```
-
-### Modular System
-```bash
-MODULAR_SYSTEM=true
-ML_OPTIMIZATION=true
-INTRADAY_CYCLE_DELAY=60
-```
-
-### Market Intelligence (NEW)
-```bash
-OPENAI_API_KEY=your_openai_api_key
-MARKET_INTELLIGENCE=true
-INTELLIGENCE_CYCLE_HOURS=6
-OPENAI_MODEL=o4-mini  # Recommended: o4-mini (best reasoning), o3-mini (fast), o1-mini (legacy)
-```
-
-### Firebase Integration (Optional)
-```bash
-# Firebase service account JSON (for cloud sync)
-FIREBASE_SERVICE_ACCOUNT={"type":"service_account",...}
-```
-
-## Data Architecture
-
-### ML Profit Learning System (Critical - June 2025)
+### ML Profit Learning System (Critical)
 ```python
-# Entry trades store trade_id for exit linking
-position_data = {
-    'entry_trade_id': trade_id,  # Links to Firebase trade record
+# Entry trades linked to exit trades for complete P&L tracking
+entry_trade = {
+    'entry_trade_id': trade_id,  # Links to Firebase record
     'symbol': 'BTCUSD',
     'entry_price': 50000,
     'quantity': 0.1
 }
 
-# Exit processing updates entry trade with final P&L
+# Exit processing updates entry trade with ACTUAL profit/loss
 exit_outcome = {
-    'profit_loss': 750.50,  # ACTUAL profit/loss
+    'profit_loss': 750.50,  # Real P&L, not execution success
     'exit_reason': 'profit_target',
-    'final_outcome': 'profitable'
-}
-# firebase_db.update_trade_outcome(entry_trade_id, exit_outcome)
-```
-
-### Quote Data Format (Critical - QA Rule 5)
-```python
-# Standard format across all modules
-{
-    'symbol': str,      # Stock symbol (e.g., 'SPY')
-    'bid': float,       # Bid price
-    'ask': float,       # Ask price (use for buying)
-    'timestamp': str    # ISO format timestamp
-    'volume': int       # Optional - use .get() with default
+    'final_outcome': 'profitable'  # Based on actual profit
 }
 ```
 
-### Intelligence Module Response Format
-```python
-# All intelligence modules must return complete structures
-{
-    'timestamp': datetime.now().isoformat(),
-    'status': 'success',  # Always include status
-    'data': {},           # Always include data section
-    'metadata': {},       # Always include metadata
-    'confidence': float,  # 0.0 to 1.0
-    'note': str          # Status/limitations note
-}
-```
+## Essential Development Commands
 
-### Position Data Contracts (QA Rule 9)
-```python
-# Use defensive access for Alpaca Position objects
-try:
-    if hasattr(position, 'avg_entry_price'):
-        entry_price = float(position.avg_entry_price)
-    elif hasattr(position, 'cost_basis'):
-        entry_price = float(position.cost_basis)
-    else:
-        # Calculate fallback
-        entry_price = float(position.market_value) / float(position.qty)
-except Exception as e:
-    # Handle gracefully
-    continue
-```
-
-## File Organization
-
-### Core Trading Components
-- `phase3_trader.py` - Main intelligence trading engine
-- `enhanced_trader_v2.py` - Expanded market universe trader
-- `enhanced_trader.py` - Database foundation trader
-
-### Modular Architecture
-- `modular/orchestrator.py` - Main coordination system with position monitoring
-- `modular/crypto_module.py` - 24/7 crypto trading with allocation-aware exits
-- `modular/options_module.py` - Options trading with aggressive exit logic
-- `modular/stocks_module.py` - Unlimited profitable trading (no 25 trade limit)
-- `modular/ml_optimizer.py` - Profit-based ML optimization
-- `modular/base_module.py` - Common functionality with update_trade_outcome()
-- `modular/firebase_interface.py` - ML trade linking and Firebase delegation
-
-### Asset-Specific Managers
-- `options_manager.py` - Real options trading via Alpaca API
-- `crypto_trader.py` - 24/7 cryptocurrency trading
-- `global_market_manager.py` - Multi-timezone market coordination
-- `intelligent_exit_manager.py` - ML-powered exit system
-
-### Intelligence Components
-- `market_regime_detector.py` - Bull/Bear/Sideways detection
-- `technical_indicators.py` - RSI, MACD, Bollinger Bands
-- `pattern_recognition.py` - Breakouts, support/resistance
-- `ml_adaptive_framework.py` - Strategy selection and optimization
-
-### Database & Analytics
-- `database_manager.py` - SQLite data persistence
-- `firebase_database.py` - Cloud sync capabilities
-- `performance_tracker.py` - Performance analytics
-- `analyze_trading_performance.py` - Comprehensive analysis
-
-### Deployment & Monitoring
-- `modular_production_main.py` - Production entry point
-- `railway_deploy.py` - Railway deployment verification
-- `production_health_check.py` - System health monitoring
-- `debug_cycle.py` - Local debugging tool
-
-## Testing Strategy
-
-### Pre-Deployment Checklist (QA.md)
-- [ ] Test all inheritance chain attributes and methods
-- [ ] Verify method signatures match expected parameters
-- [ ] Verify data structure compatibility between modules
-- [ ] Test startup behavior with minimal/no market data
-- [ ] Validate all expected dictionary keys exist
-- [ ] Test error handling and graceful degradation
-- [ ] Run standalone module tests before integration
-
-### Integration Testing Sequence
-1. `python test_modular_framework.py` - Test modular architecture
-2. `python test_ml_integration.py` - Verify ML components
-3. `python test_phase4_complete.py` - Full system integration
-4. `python debug_cycle.py` - Local cycle verification
-5. `python railway_deploy.py` - Deployment verification
-
-## Performance Monitoring
-
-### Key Metrics to Track
-- **Win Rate**: Target 45-60% (baseline was 13.2%)
-- **Average Hold Time**: Target 2-8 hours (was 6 minutes)
-- **Monthly Returns**: Target 5-10%
-- **Maximum Drawdown**: 20% risk tolerance
-- **Position Scaling**: Unlimited positions (35+ concurrent)
-
-### Health Check Endpoints
-- `/health` - Basic system health
-- `/status` - Detailed system status
-- `/metrics` - Performance metrics
-
-## Debugging Guidelines
-
-### Railway Log Truncation Workaround
-Railway often truncates logs. Use local debug for full output:
+### Primary Entry Points
 ```bash
-# See full system output locally
-python debug_cycle.py | head -200
+# Production system (Railway deployment)
+python modular_production_main.py
 
-# Check specific components
+# Market Intelligence testing (requires OPENAI_API_KEY)
+python test_production_intelligence.py
+
+# Complete system integration test
+python test_phase4_complete.py
+
+# Local debugging with full output
+python debug_cycle.py
+```
+
+### Testing Framework
+```bash
+# Core system tests (run before deployment)
+python test_modular_framework.py
+python test_ml_integration_full.py
+python test_market_intelligence.py
+
+# Individual module tests
+python tests/modules/test_crypto_module.py
+python tests/modules/test_options_module.py
+python tests/modules/test_stocks_module.py
+
+# Performance analysis (mandatory weekly)
+python analyze_trading_performance.py
+```
+
+### Emergency Commands
+```bash
+# Cancel all active orders immediately
+python emergency_cancel_all_orders.py
+
+# Debug specific trading cycles locally
 python debug_cycle.py 2>&1 | grep -A 10 "INTELLIGENT EXIT"
 python debug_cycle.py 2>&1 | grep -A 5 "ML Predictions"
 ```
 
-### Common Error Patterns (From QA.md)
-1. **AttributeError**: Check inheritance chains, verify parent class attributes
-2. **KeyError**: Use defensive `.get()` methods, ensure complete data structures
-3. **Method signature mismatch**: Check existing successful calls for patterns
-4. **Silent initialization failures**: Verify all dependencies before creating objects
+### Railway Deployment
+```bash
+# Monitor deployment logs
+railway logs
+
+# Verify deployment status
+railway status
+
+# Test deployment verification
+python railway_deploy.py
+```
+
+## Critical Environment Variables
+
+### Required for Production
+```bash
+# Alpaca Trading API (Paper Trading)
+ALPACA_PAPER_API_KEY=your_paper_key
+ALPACA_PAPER_SECRET_KEY=your_paper_secret
+ALPACA_BASE_URL=https://paper-api.alpaca.markets
+
+# Market Intelligence (NEW - June 2025)
+OPENAI_API_KEY=your_openai_api_key
+OPENAI_MODEL=o4-mini
+INTELLIGENCE_CYCLE_HOURS=6
+
+# System Configuration
+EXECUTION_ENABLED=true
+MODULAR_SYSTEM=true
+ML_OPTIMIZATION=true
+INTRADAY_CYCLE_DELAY=60
+```
+
+### Alpaca Data Quality & Subscription Tiers
+
+**Data quality depends on Alpaca account subscription:**
+
+**Basic Plan (Free):**
+- IEX real-time data only
+- 15-minute delayed historical data  
+- 30 symbol WebSocket subscriptions
+- 200 historical API calls/minute
+- Suitable for basic algorithmic trading
+
+**Algo Trader Plus ($99/month):**
+- Full market real-time data (all exchanges)
+- Unlimited historical data access
+- Unlimited WebSocket subscriptions  
+- 10,000 historical API calls/minute
+- Optimal for high-frequency algorithmic trading
+
+### Real-Time Data Streaming (WebSocket)
+
+**For optimal algorithmic trading, consider WebSocket streaming instead of REST polling:**
+
+**Stock Data Streaming:**
+```python
+# WebSocket endpoint: wss://stream.data.alpaca.markets/v2/{feed}
+# Feed types: 'iex' (Basic), 'sip' (Algo Trader Plus), 'delayed_sip'
+# Channels: trades, quotes, bars, corrections, status, imbalances
+```
+
+**Crypto Data Streaming:**
+```python
+# WebSocket endpoint: wss://stream.data.alpaca.markets/v1beta3/crypto/us
+# Channels: trades, quotes, bars, orderbooks
+# Symbols: "BTC/USD", "ETH/USD", etc.
+```
+
+**Options Data Streaming:**
+```python
+# WebSocket endpoint: wss://stream.data.alpaca.markets/v1beta1/{feed}
+# Feed types: 'indicative', 'opra' (requires subscription)
+# MsgPack format only, real-time option prices
+```
+
+**News Data Streaming:**
+```python
+# WebSocket endpoint: wss://stream.data.alpaca.markets/v1beta1/news
+# Real-time news with symbol associations for sentiment-based trading
+```
+
+### Optional Configuration
+```bash
+# Trading Modules
+OPTIONS_TRADING=true
+CRYPTO_TRADING=true  
+STOCKS_TRADING=true
+MARKET_INTELLIGENCE=true
+
+# Risk Management
+MARKET_TIER=2
+MIN_CONFIDENCE=0.6
+MIN_TECHNICAL_CONFIDENCE=0.6
+
+# Firebase Integration (for ML learning)
+FIREBASE_SERVICE_ACCOUNT={"type":"service_account",...}
+```
+
+## Data Architecture Patterns
+
+### Trade Success Definition (Critical Fix - June 2025)
+```python
+# FIXED: TradeResult.success now requires ACTUAL PROFIT
+@property
+def success(self) -> bool:
+    return (self.status == TradeStatus.EXECUTED and 
+            self.pnl is not None and 
+            self.pnl > 0)
+```
+
+### Quote Data Freshness Validation
+```python
+# All quote retrieval includes data age validation
+if hasattr(quote, 'timestamp') and quote.timestamp:
+    age_seconds = (datetime.now(timezone.utc) - quote.timestamp).total_seconds()
+    if age_seconds > 300:  # 5-minute threshold
+        self.logger.warning(f"Quote data is {age_seconds:.0f}s old")
+```
+
+### Data Optimization for Algorithmic Trading
+
+**Current Implementation (REST API Polling):**
+- 60-second trading cycles with REST API calls
+- Data freshness validation on each quote
+- Works with both Basic and Algo Trader Plus subscriptions
+
+**Recommended Upgrade (WebSocket Streaming):**
+```python
+# For high-frequency trading, implement WebSocket streaming:
+from alpaca.data.live import StockDataStream
+
+stream = StockDataStream(api_key, secret_key)
+
+@stream.on_quote
+async def on_quote(data):
+    # Real-time quote processing for immediate decisions
+    symbol = data.symbol
+    bid_price = data.bid_price
+    ask_price = data.ask_price
+    # Trigger trading logic immediately
+```
+
+**Performance Comparison:**
+- **REST Polling**: 60-second cycles, potential data age issues
+- **WebSocket Streaming**: Millisecond latency, true real-time responses
+
+### Intelligence Module Response Format
+```python
+# All AI analysis returns standardized format
+{
+    'timestamp': datetime.now().isoformat(),
+    'status': 'success',  # Always include
+    'data': {},           # Analysis results
+    'confidence': float,  # 0.0 to 1.0
+    'reasoning': str      # AI explanation
+}
+```
+
+## QA Rules Summary (From QA.md)
+
+1. **Attribute Consistency**: Verify inheritance chain compatibility
+2. **Method Interface**: Consistent signatures across phases  
+3. **Parameter Validation**: Check parameter counts before method calls
+4. **Data Structure Integrity**: Ensure complete data formats between modules
+5. **Defensive Programming**: Use .get() methods, provide defaults
+6. **Import Dependencies**: Verify module availability before usage
+7. **Exception Handling**: Graceful degradation on failures
+8. **Mock Data Detection**: Distinguish real vs test data
+9. **API Response Validation**: Handle Alpaca API object variations
+10. **Order Executor Implementation**: Proper dependency injection
+11. **Firebase Method Signatures**: Correct parameter passing
+
+## Production Health Monitoring
+
+### Health Check Endpoints (Railway)
+```bash
+# Basic system health
+curl https://your-app.railway.app/health
+
+# Market Intelligence status  
+curl https://your-app.railway.app/intelligence
+
+# Comprehensive debug information
+curl https://your-app.railway.app/intelligence/debug
+
+# Current market signals
+curl https://your-app.railway.app/intelligence/signals
+```
 
 ### Critical Success Indicators
-```
-✅ Trades Executed: X (should be > 0 if market conditions allow)
-🧠 ML Adaptive Framework: ✅ Enabled
-💼 POSITION MONITORING & EXIT MANAGEMENT
-📊 Monitoring X crypto positions for exits
-💰 AAVEUSD: $137.69 P&L (1.2%) - checking exit signals
-🚨 EXIT SIGNAL: SOLUSD - over_allocation_stop_loss
-🔗 Updated entry trade with final P&L: $750.50
-📊 OPTIONS TRADING (if enabled)
-₿ CRYPTO TRADING CYCLE (if enabled)
+```bash
+✅ Alpaca API connected - Account: [account_id]
+✅ Market Intelligence module registered  
+✅ Active modules: ['options', 'crypto', 'stocks', 'market_intelligence']
+🧠 Starting daily market intelligence cycle
+🎯 Cycle X completed: {'total_opportunities': N, 'successful_trades': M}
 ```
 
-## Security & Risk Management
+## Risk Management Configuration
 
-### Portfolio-Level Controls
-- **Options Allocation**: 30% maximum exposure
-- **Crypto Allocation**: 20% maximum with 1.5x leverage
+### Portfolio Allocation Limits
+- **Options**: 30% maximum exposure
+- **Crypto**: 20% maximum with 1.5x leverage  
+- **Stocks**: 50% maximum, unlimited positions
 - **Sector Limits**: 40% maximum per sector
 - **Position Limits**: 15% maximum per symbol
-- **Drawdown Protection**: 20% maximum portfolio drawdown
 
-### API Security
-- **Paper Trading Only**: All operations use Alpaca Paper API
-- **No Credentials in Code**: All keys via environment variables
-- **Defensive Programming**: Extensive error handling and graceful degradation
+### Exit Management (Allocation-Aware)
+- **Over-allocated Crypto**: 2% profit exits (vs 25% normal)
+- **Over-allocated Stocks**: 1.5% profit exits  
+- **Over-allocated Options**: 25% profit exits (vs 100% normal)
 
-## Documentation References
+## Common Error Patterns & Solutions
 
-- **QA.md**: MANDATORY reading - contains 9 critical bug prevention rules
-- **README.md**: High-level system overview and performance targets
-- **MODULAR_ARCHITECTURE.md**: Detailed modular system design
-- **ML_OPTIMIZATION.md**: Machine learning integration details
-- **deployment_logs/**: Firebase deployment history and issues
+### 1. Alpaca API Integration Issues
+```python
+# WRONG: Assuming all position objects have same attributes
+entry_price = position.avg_entry_price
 
-## Development Workflow
+# RIGHT: Defensive attribute access (QA Rule 9)
+if hasattr(position, 'avg_entry_price'):
+    entry_price = float(position.avg_entry_price)
+elif hasattr(position, 'cost_basis'):  
+    entry_price = float(position.cost_basis)
+else:
+    entry_price = float(position.market_value) / float(position.qty)
+```
 
-1. **Before ANY changes**: Read QA.md rules thoroughly
-2. **Inheritance modifications**: Verify all parent class attributes/methods
-3. **Data structure changes**: Ensure consistency across all consumers
-4. **New intelligence modules**: Always return complete, valid data structures
-5. **Testing**: Run full integration tests before deployment
-6. **Documentation**: Update QA.md with any new issues discovered
-7. **Deployment**: Use Railway deployment verification process
+### 2. Module Communication Patterns
+```python
+# All modules inherit from TradingModule base class
+# Common methods: analyze_opportunities(), execute_trades(), monitor_positions()
+# Use ModuleRegistry for registration and health monitoring
+```
 
-Remember: This system has encountered 9+ major bugs during development. The QA.md rules are institutional knowledge that MUST be followed to prevent regression.
+### 3. ML Learning Data Flow
+```python
+# Entry: save_ml_enhanced_trade() returns trade_id
+trade_id = module.save_ml_enhanced_trade(trade_data)
 
-## 🎉 LATEST STATUS (June 1, 2025):
+# Exit: update_ml_trade_outcome() links final P&L  
+module.update_ml_trade_outcome(trade_id, {'profit_loss': actual_pnl})
+```
 
-### ✅ FULLY OPERATIONAL TRADING SYSTEM:
-- ✅ **Live Trade Execution**: 4+ crypto trades with verified Alpaca order IDs
-- ✅ **Real-Time P&L Monitoring**: $98,845 portfolio with position tracking
-- ✅ **ML Profit Learning**: Entry-exit trade linking for optimization
-- ✅ **Unlimited Profitable Trading**: Removed 25 trade/day limits
-- ✅ **Aggressive Exit Management**: Over-allocation triggers smart exits
+## Current Production Status (June 1, 2025)
 
-### Critical ML Learning System (June 2025):
-- **Entry-Exit Linking**: Trades linked via trade_id for complete cycle analysis
-- **Profit Optimization**: ML learns from actual P&L, not just execution success
-- **Firebase Integration**: Complete trade outcome tracking with update_trade_outcome()
-- **Real Performance**: Win rates based on profitability, not order fills
+### ✅ Fully Operational
+- **Live Trading**: Confirmed with real Alpaca order IDs
+- **Portfolio Value**: $98,845 with $258,944 buying power
+- **Market Intelligence**: OpenAI o4-mini integration active
+- **ML Learning**: Entry-exit trade linking for profit optimization
+- **Data Freshness**: Real-time quote validation implemented
+- **Health Monitoring**: Comprehensive debug endpoints deployed
 
-### Allocation-Aware Exit Management:
-- **Crypto**: 2% profit exits when over-allocated (vs 25% normal)
-- **Stocks**: 1.5% profit exits when over-allocated (vs standard targets)
-- **Options**: 25% profit exits when over-allocated (vs 100% normal)
-- **Risk Management**: Tighter stop losses when allocation limits hit
+### Recent Critical Fixes
+- Fixed profit rate calculation bug (was counting execution as profit)
+- Implemented real-time data freshness validation
+- Added OpenAI Market Intelligence with comprehensive debug signals
+- Deployed production-grade health monitoring endpoints
 
-### See CURRENT_STATUS_JUNE2025.md for complete operational details
+This system has encountered 11+ major bugs during development. The QA.md rules represent institutional knowledge that MUST be followed to prevent regression.
