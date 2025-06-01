@@ -1171,7 +1171,7 @@ class CryptoModule(TradingModule):
             
             if session_stats['total_trades'] > 0:
                 self.logger.info(f"Session {current_session.value}: {session_stats['total_trades']} trades, "
-                               f"{session_stats['win_rate']:.1%} PROFIT RATE, "
+                               f"{session_stats['win_rate']:.1%} WIN RATE (execution success), "
                                f"Total P&L: ${session_stats['total_pnl']:.2f}, "
                                f"ROI: {session_stats['roi']:.1%}")
                                

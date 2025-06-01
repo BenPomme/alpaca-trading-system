@@ -68,6 +68,14 @@ class ProductionConfig:
             'CRYPTO_MAX_ALLOCATION': self._get_float_env('CRYPTO_MAX_ALLOCATION', 0.20),
         })
         
+        # Market Intelligence Configuration (NEW)
+        self.config.update({
+            'OPENAI_API_KEY': os.getenv('OPENAI_API_KEY'),
+            'OPENAI_MODEL': os.getenv('OPENAI_MODEL', 'o4-mini'),
+            'INTELLIGENCE_CYCLE_HOURS': self._get_int_env('INTELLIGENCE_CYCLE_HOURS', 6),
+            'MARKET_INTELLIGENCE': self._get_bool_env('MARKET_INTELLIGENCE', True),
+        })
+        
         # Firebase Configuration
         self.config.update({
             'FIREBASE_PRIVATE_KEY_ID': os.getenv('FIREBASE_PRIVATE_KEY_ID'),
@@ -95,6 +103,12 @@ class ProductionConfig:
         
         if not self.config.get('ALPACA_PAPER_SECRET_KEY'):
             logger.warning("⚠️ ALPACA_PAPER_SECRET_KEY not set - trading will be disabled")
+        
+        # Market Intelligence API key
+        if not self.config.get('OPENAI_API_KEY'):
+            logger.warning("⚠️ OPENAI_API_KEY not set - Market Intelligence will be disabled")
+        elif self.config.get('OPENAI_API_KEY'):
+            logger.info(f"✅ OpenAI API key configured for Market Intelligence (model: {self.config.get('OPENAI_MODEL', 'o4-mini')})")
         
         # Firebase configuration
         firebase_keys = [

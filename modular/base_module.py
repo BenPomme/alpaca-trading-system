@@ -83,7 +83,14 @@ class TradeResult:
     
     @property
     def success(self) -> bool:
-        return self.status == TradeStatus.EXECUTED
+        """
+        A trade is successful only if it was executed AND resulted in a profit.
+        CRITICAL FIX: Previously this only checked execution status, causing
+        misleading profit rate calculations.
+        """
+        return (self.status == TradeStatus.EXECUTED and 
+                self.pnl is not None and 
+                self.pnl > 0)
 
 
 @dataclass
