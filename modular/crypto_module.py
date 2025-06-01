@@ -722,13 +722,14 @@ class CryptoModule(TradingModule):
             over_allocation = current_allocation >= self.max_crypto_allocation
             
             if over_allocation:
-                # AGGRESSIVE EXIT MODE when over-allocated
-                if unrealized_pl_pct >= 0.05:  # 5% profit when over-allocated
+                # ULTRA-AGGRESSIVE EXIT MODE when over-allocated (57.8%!)
+                if unrealized_pl_pct >= 0.01:  # ANY 1%+ profit when over-allocated
                     return 'over_allocation_profit'
-                elif unrealized_pl_pct >= 0.02:  # Even 2% profit to free capital
-                    return 'over_allocation_minimal_profit'
-                elif unrealized_pl_pct <= -0.08:  # Tighter stop loss when over-allocated
+                elif unrealized_pl_pct <= -0.05:  # Much tighter 5% stop loss
                     return 'over_allocation_stop_loss'
+                # When severely over-allocated, exit even break-even positions
+                elif abs(unrealized_pl_pct) <= 0.005:  # Within 0.5% of break-even
+                    return 'over_allocation_rebalance'
             
             # Standard crypto exit conditions
             if unrealized_pl_pct >= 0.25:  # 25% profit target
