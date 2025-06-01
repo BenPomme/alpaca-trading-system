@@ -217,7 +217,7 @@ class ProductionTradingSystem:
                     options_module = OptionsModule(
                         config=options_config,
                         firebase_db=self.firebase_db,
-                        risk_manager=None,  # Will be provided by orchestrator
+                        risk_manager=self.orchestrator.risk_manager,  # Use orchestrator's risk manager
                         order_executor=None,  # Will be provided by orchestrator
                         api_client=self.alpaca_api,
                         logger=logger
@@ -254,7 +254,7 @@ class ProductionTradingSystem:
                     crypto_module = CryptoModule(
                         config=crypto_config,
                         firebase_db=self.firebase_db,
-                        risk_manager=None,  # Will be provided by orchestrator
+                        risk_manager=self.orchestrator.risk_manager,  # Use orchestrator's risk manager
                         order_executor=None,  # Will be provided by orchestrator
                         api_client=self.alpaca_api,
                         logger=logger
@@ -291,7 +291,7 @@ class ProductionTradingSystem:
                     stocks_module = StocksModule(
                         config=stocks_config,
                         firebase_db=self.firebase_db,
-                        risk_manager=None,  # Will be provided by orchestrator
+                        risk_manager=self.orchestrator.risk_manager,  # Use orchestrator's risk manager
                         order_executor=None,  # Will be provided by orchestrator
                         api_client=self.alpaca_api,
                         logger=logger
