@@ -387,6 +387,45 @@ class RiskManager:
             self.logger.error(f"Error validating opportunity {opportunity.symbol}: {e}")
             return False
 
+    def get_module_allocation(self, module_name: str) -> float:
+        """
+        Get current allocation percentage for a specific module.
+        
+        Args:
+            module_name: Name of the trading module (e.g., 'crypto', 'options', 'stocks')
+            
+        Returns:
+            float: Current allocation percentage (0.0 to 1.0)
+        """
+        try:
+            account = self.api.get_account()
+            portfolio_value = float(getattr(account, 'portfolio_value', 100000))
+            
+            # Get positions and calculate module allocation
+            positions = self.api.list_positions()
+            module_value = 0.0
+            
+            for position in positions:
+                symbol = position.symbol
+                market_value = abs(float(getattr(position, 'market_value', 0)))
+                
+                # Categorize position by module
+                if module_name == 'crypto' and 'USD' in symbol and len(symbol) <= 7:
+                    module_value += market_value
+                elif module_name == 'options' and len(symbol) > 10:  # Options have longer symbols
+                    module_value += market_value
+                elif module_name == 'stocks' and len(symbol) <= 5 and 'USD' not in symbol:
+                    module_value += market_value
+            
+            allocation_pct = module_value / portfolio_value if portfolio_value > 0 else 0.0
+            self.logger.info(f"📊 {module_name.title()} allocation: ${module_value:,.0f} ({allocation_pct:.1%})")
+            
+            return allocation_pct
+            
+        except Exception as e:
+            self.logger.error(f"Error calculating {module_name} allocation: {e}")
+            return 0.0
+
     def should_execute_trade(self, symbol: str, strategy: str, confidence: float,
                            entry_price: float) -> Tuple[bool, str, Dict]:
         """Comprehensive trade approval check"""

@@ -124,6 +124,56 @@ class FirebaseDatabase:
             return []
     
     # TRADES COLLECTION (Enhanced for ML Optimization)
+    def save_trade_opportunity(self, opportunity_data: Dict[str, Any]) -> str:
+        """Save a trading opportunity to Firebase"""
+        try:
+            if not self.db:
+                return ""
+            
+            # Add timestamp and metadata
+            opportunity_doc = {
+                **opportunity_data,
+                'timestamp': datetime.now(),
+                'type': 'trade_opportunity',
+                'created_at': datetime.now().isoformat()
+            }
+            
+            # Save to opportunities collection
+            doc_ref = self.db.collection('opportunities').add(opportunity_doc)
+            doc_id = doc_ref[1].id
+            
+            logging.info(f"✅ Saved trade opportunity to Firebase: {doc_id}")
+            return doc_id
+            
+        except Exception as e:
+            logging.error(f"❌ Error saving trade opportunity to Firebase: {e}")
+            return ""
+
+    def save_trade_result(self, result_data: Dict[str, Any]) -> str:
+        """Save a trade execution result to Firebase"""
+        try:
+            if not self.db:
+                return ""
+            
+            # Add timestamp and metadata
+            result_doc = {
+                **result_data,
+                'timestamp': datetime.now(),
+                'type': 'trade_result',
+                'created_at': datetime.now().isoformat()
+            }
+            
+            # Save to trade_results collection
+            doc_ref = self.db.collection('trade_results').add(result_doc)
+            doc_id = doc_ref[1].id
+            
+            logging.info(f"✅ Saved trade result to Firebase: {doc_id}")
+            return doc_id
+            
+        except Exception as e:
+            logging.error(f"❌ Error saving trade result to Firebase: {e}")
+            return ""
+
     def save_trade(self, trade_data: Dict[str, Any]) -> str:
         """Save trade execution to Firebase with ML-critical parameter data"""
         try:
