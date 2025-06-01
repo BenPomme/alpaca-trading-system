@@ -574,8 +574,10 @@ def main():
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
     
-    logger.info("🚀 MODULAR TRADING SYSTEM - PRODUCTION STARTUP")
-    logger.info("🔧 Risk Manager + Real Crypto Analysis - v1.2")
+    logger.info("🚀 MODULAR TRADING SYSTEM - PRODUCTION STARTUP") 
+    logger.info("🔧 FORCE REDEPLOY: Risk Manager + Real Crypto Analysis - v1.3")
+    logger.info("🎯 RISK MANAGER SHOULD NOW BE INITIALIZED")
+    logger.info("🎯 CRYPTO ANALYSIS SHOULD USE REAL DATA")
     logger.info("=" * 60)
     logger.info(f"⏰ Start Time: {datetime.now()}")
     logger.info(f"🐍 Python Version: {sys.version}")

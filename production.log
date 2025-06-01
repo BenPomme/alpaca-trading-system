@@ -1,0 +1,10 @@
+2025-05-31 16:24:05,165 - production_config - INFO - ✅ Configuration loaded from environment
+2025-05-31 16:24:05,165 - production_config - WARNING - ⚠️ Firebase keys missing: ['FIREBASE_PRIVATE_KEY_ID', 'FIREBASE_PRIVATE_KEY', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_CLIENT_ID'] - Firebase will be disabled
+2025-05-31 16:24:05,165 - production_config - INFO - ✅ Configuration validation complete
+2025-05-31 16:24:05,165 - production_health_check - INFO - 🏥 Health monitor initialized
+2025-05-31 16:24:05,165 - modular_production_main - INFO - 🚀 Production Trading System initializing...
+2025-05-31 16:25:29,409 - production_config - INFO - ✅ Configuration loaded from environment
+2025-05-31 16:25:29,409 - production_config - WARNING - ⚠️ Firebase keys missing: ['FIREBASE_PRIVATE_KEY_ID', 'FIREBASE_PRIVATE_KEY', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_CLIENT_ID'] - Firebase will be disabled
+2025-05-31 16:25:29,409 - production_config - INFO - ✅ Configuration validation complete
+2025-05-31 16:25:29,409 - production_health_check - INFO - 🏥 Health monitor initialized
+2025-05-31 16:25:29,409 - modular_production_main - INFO - 🚀 Production Trading System initializing...
