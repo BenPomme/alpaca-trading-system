@@ -36,6 +36,7 @@ ModularOrchestrator
     ↳ OptionsModule
     ↳ CryptoModule  
     ↳ StocksModule
+    ↳ MarketIntelligenceModule (NEW - OpenAI-powered)
     ↳ MLOptimizer
     ↳ RiskManager
 ```
@@ -146,6 +147,14 @@ MIN_TECHNICAL_CONFIDENCE=0.6
 MODULAR_SYSTEM=true
 ML_OPTIMIZATION=true
 INTRADAY_CYCLE_DELAY=60
+```
+
+### Market Intelligence (NEW)
+```bash
+OPENAI_API_KEY=your_openai_api_key
+MARKET_INTELLIGENCE=true
+INTELLIGENCE_CYCLE_HOURS=6
+OPENAI_MODEL=o4-mini  # Recommended: o4-mini (best reasoning), o3-mini (fast), o1-mini (legacy)
 ```
 
 ### Firebase Integration (Optional)

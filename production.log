@@ -8,3 +8,113 @@
 2025-05-31 16:25:29,409 - production_config - INFO - ✅ Configuration validation complete
 2025-05-31 16:25:29,409 - production_health_check - INFO - 🏥 Health monitor initialized
 2025-05-31 16:25:29,409 - modular_production_main - INFO - 🚀 Production Trading System initializing...
+2025-06-01 10:58:04,178 - __main__ - INFO - 🚀 MODULAR TRADING SYSTEM - PRODUCTION STARTUP
+2025-06-01 10:58:04,178 - __main__ - INFO - 🔧 CRITICAL FIX: Order Executor Implementation - v1.5
+2025-06-01 10:58:04,179 - __main__ - INFO - 🎯 ORDER EXECUTION SHOULD NOW WORK
+2025-06-01 10:58:04,179 - __main__ - INFO - 🎯 SUCCESSFUL TRADES EXPECTED
+2025-06-01 10:58:04,179 - __main__ - INFO - ============================================================
+2025-06-01 10:58:04,179 - __main__ - INFO - ⏰ Start Time: 2025-06-01 10:58:04.179079
+2025-06-01 10:58:04,179 - __main__ - INFO - 🐍 Python Version: 3.13.3 (main, Apr  8 2025, 13:54:08) [Clang 17.0.0 (clang-1700.0.13.3)]
+2025-06-01 10:58:04,179 - __main__ - INFO - 📁 Working Directory: /Users/benjamin.pommeraud/Desktop/Alpaca
+2025-06-01 10:58:04,179 - __main__ - INFO - 🌍 Environment: local
+2025-06-01 10:58:04,179 - __main__ - INFO - 
+2025-06-01 10:58:04,179 - production_config - INFO - ✅ Configuration loaded from environment
+2025-06-01 10:58:04,179 - production_config - WARNING - ⚠️ ALPACA_PAPER_API_KEY not set - trading will be disabled
+2025-06-01 10:58:04,179 - production_config - WARNING - ⚠️ ALPACA_PAPER_SECRET_KEY not set - trading will be disabled
+2025-06-01 10:58:04,179 - production_config - WARNING - ⚠️ Firebase keys missing: ['FIREBASE_PRIVATE_KEY_ID', 'FIREBASE_PRIVATE_KEY', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_CLIENT_ID'] - Firebase will be disabled
+2025-06-01 10:58:04,179 - production_config - INFO - ✅ Configuration validation complete
+2025-06-01 10:58:04,179 - production_health_check - INFO - 🏥 Health monitor initialized
+2025-06-01 10:58:04,179 - __main__ - INFO - 🚀 Production Trading System initializing...
+2025-06-01 10:58:04,179 - __main__ - INFO - 🚀 Starting production trading system...
+2025-06-01 10:58:04,179 - __main__ - INFO - 🔧 Initializing system components...
+2025-06-01 10:58:04,179 - __main__ - INFO - 🔥 Initializing Firebase database...
+2025-06-01 10:58:04,179 - __main__ - WARNING - ⚠️ Firebase database not connected - using fallback mode
+2025-06-01 10:58:04,179 - __main__ - INFO - 📈 Initializing Alpaca trading API...
+2025-06-01 10:58:04,179 - __main__ - ERROR - ❌ Alpaca API credentials not found
+2025-06-01 10:58:04,179 - __main__ - ERROR - ❌ System initialization failed
+2025-06-01 10:58:04,179 - __main__ - ERROR - ❌ Production system failed to start
+2025-06-01 10:58:04,179 - __main__ - INFO - 🛑 Initiating graceful shutdown...
+2025-06-01 10:58:04,179 - __main__ - INFO - ✅ Firebase connection closed
+2025-06-01 10:58:04,179 - __main__ - INFO - ✅ Graceful shutdown complete
+2025-06-01 16:01:53,781 - __main__ - INFO - 🚀 MODULAR TRADING SYSTEM - PRODUCTION STARTUP
+2025-06-01 16:01:53,781 - __main__ - INFO - 🔧 CRITICAL FIX: Order Executor Implementation - v1.5
+2025-06-01 16:01:53,781 - __main__ - INFO - 🎯 ORDER EXECUTION SHOULD NOW WORK
+2025-06-01 16:01:53,781 - __main__ - INFO - 🎯 SUCCESSFUL TRADES EXPECTED
+2025-06-01 16:01:53,781 - __main__ - INFO - ============================================================
+2025-06-01 16:01:53,781 - __main__ - INFO - ⏰ Start Time: 2025-06-01 16:01:53.781847
+2025-06-01 16:01:53,781 - __main__ - INFO - 🐍 Python Version: 3.13.3 (main, Apr  8 2025, 13:54:08) [Clang 17.0.0 (clang-1700.0.13.3)]
+2025-06-01 16:01:53,781 - __main__ - INFO - 📁 Working Directory: /Users/benjamin.pommeraud/Desktop/Alpaca
+2025-06-01 16:01:53,781 - __main__ - INFO - 🌍 Environment: local
+2025-06-01 16:01:53,781 - __main__ - INFO - 
+2025-06-01 16:01:53,781 - production_config - INFO - ✅ Configuration loaded from environment
+2025-06-01 16:01:53,782 - production_config - WARNING - ⚠️ ALPACA_PAPER_API_KEY not set - trading will be disabled
+2025-06-01 16:01:53,782 - production_config - WARNING - ⚠️ ALPACA_PAPER_SECRET_KEY not set - trading will be disabled
+2025-06-01 16:01:53,782 - production_config - WARNING - ⚠️ Firebase keys missing: ['FIREBASE_PRIVATE_KEY_ID', 'FIREBASE_PRIVATE_KEY', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_CLIENT_ID'] - Firebase will be disabled
+2025-06-01 16:01:53,782 - production_config - INFO - ✅ Configuration validation complete
+2025-06-01 16:01:53,782 - production_health_check - INFO - 🏥 Health monitor initialized
+2025-06-01 16:01:53,782 - __main__ - INFO - 🚀 Production Trading System initializing...
+2025-06-01 16:01:53,782 - __main__ - INFO - 🚀 Starting production trading system...
+2025-06-01 16:01:53,782 - __main__ - INFO - 🔧 Initializing system components...
+2025-06-01 16:01:53,782 - __main__ - INFO - 🔥 Initializing Firebase database...
+2025-06-01 16:01:53,782 - __main__ - WARNING - ⚠️ Firebase database not connected - using fallback mode
+2025-06-01 16:01:53,782 - __main__ - INFO - 📈 Initializing Alpaca trading API...
+2025-06-01 16:01:53,782 - __main__ - ERROR - ❌ Alpaca API credentials not found
+2025-06-01 16:01:53,782 - __main__ - ERROR - ❌ System initialization failed
+2025-06-01 16:01:53,782 - __main__ - ERROR - ❌ Production system failed to start
+2025-06-01 16:01:53,782 - __main__ - INFO - 🛑 Initiating graceful shutdown...
+2025-06-01 16:01:53,782 - __main__ - INFO - ✅ Firebase connection closed
+2025-06-01 16:01:53,782 - __main__ - INFO - ✅ Graceful shutdown complete
+2025-06-01 16:20:03,886 - __main__ - INFO - 🚀 MODULAR TRADING SYSTEM - PRODUCTION STARTUP
+2025-06-01 16:20:03,887 - __main__ - INFO - 🔧 CRITICAL FIX: Order Executor Implementation - v1.5
+2025-06-01 16:20:03,887 - __main__ - INFO - 🎯 ORDER EXECUTION SHOULD NOW WORK
+2025-06-01 16:20:03,887 - __main__ - INFO - 🎯 SUCCESSFUL TRADES EXPECTED
+2025-06-01 16:20:03,887 - __main__ - INFO - ============================================================
+2025-06-01 16:20:03,887 - __main__ - INFO - ⏰ Start Time: 2025-06-01 16:20:03.887241
+2025-06-01 16:20:03,887 - __main__ - INFO - 🐍 Python Version: 3.13.3 (main, Apr  8 2025, 13:54:08) [Clang 17.0.0 (clang-1700.0.13.3)]
+2025-06-01 16:20:03,887 - __main__ - INFO - 📁 Working Directory: /Users/benjamin.pommeraud/Desktop/Alpaca
+2025-06-01 16:20:03,887 - __main__ - INFO - 🌍 Environment: local
+2025-06-01 16:20:03,887 - __main__ - INFO - 
+2025-06-01 16:20:03,887 - production_config - INFO - ✅ Configuration loaded from environment
+2025-06-01 16:20:03,887 - production_config - WARNING - ⚠️ ALPACA_PAPER_API_KEY not set - trading will be disabled
+2025-06-01 16:20:03,887 - production_config - WARNING - ⚠️ ALPACA_PAPER_SECRET_KEY not set - trading will be disabled
+2025-06-01 16:20:03,887 - production_config - WARNING - ⚠️ Firebase keys missing: ['FIREBASE_PRIVATE_KEY_ID', 'FIREBASE_PRIVATE_KEY', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_CLIENT_ID'] - Firebase will be disabled
+2025-06-01 16:20:03,887 - production_config - INFO - ✅ Configuration validation complete
+2025-06-01 16:20:03,887 - production_health_check - INFO - 🏥 Health monitor initialized
+2025-06-01 16:20:03,887 - __main__ - INFO - 🚀 Production Trading System initializing...
+2025-06-01 16:20:03,887 - __main__ - INFO - 🚀 Starting production trading system...
+2025-06-01 16:20:03,887 - __main__ - INFO - 🔧 Initializing system components...
+2025-06-01 16:20:03,887 - __main__ - INFO - 🔥 Initializing Firebase database...
+2025-06-01 16:20:03,887 - __main__ - WARNING - ⚠️ Firebase database not connected - using fallback mode
+2025-06-01 16:20:03,887 - __main__ - INFO - 📈 Initializing Alpaca trading API...
+2025-06-01 16:20:03,887 - __main__ - ERROR - ❌ Alpaca API credentials not found
+2025-06-01 16:20:03,887 - __main__ - ERROR - ❌ System initialization failed
+2025-06-01 16:20:03,887 - __main__ - ERROR - ❌ Production system failed to start
+2025-06-01 16:20:03,887 - __main__ - INFO - 🛑 Initiating graceful shutdown...
+2025-06-01 16:20:03,887 - __main__ - INFO - ✅ Firebase connection closed
+2025-06-01 16:20:03,887 - __main__ - INFO - ✅ Graceful shutdown complete
+2025-06-01 16:20:50,480 - __main__ - INFO - 🚀 MODULAR TRADING SYSTEM - PRODUCTION STARTUP
+2025-06-01 16:20:50,480 - __main__ - INFO - 🔧 CRITICAL FIX: Order Executor Implementation - v1.5
+2025-06-01 16:20:50,480 - __main__ - INFO - 🎯 ORDER EXECUTION SHOULD NOW WORK
+2025-06-01 16:20:50,480 - __main__ - INFO - 🎯 SUCCESSFUL TRADES EXPECTED
+2025-06-01 16:20:50,480 - __main__ - INFO - ============================================================
+2025-06-01 16:20:50,480 - __main__ - INFO - ⏰ Start Time: 2025-06-01 16:20:50.480959
+2025-06-01 16:20:50,480 - __main__ - INFO - 🐍 Python Version: 3.13.3 (main, Apr  8 2025, 13:54:08) [Clang 17.0.0 (clang-1700.0.13.3)]
+2025-06-01 16:20:50,481 - __main__ - INFO - 📁 Working Directory: /Users/benjamin.pommeraud/Desktop/Alpaca
+2025-06-01 16:20:50,481 - __main__ - INFO - 🌍 Environment: local
+2025-06-01 16:20:50,481 - __main__ - INFO - 
+2025-06-01 16:20:50,481 - production_config - INFO - ✅ Configuration loaded from environment
+2025-06-01 16:20:50,481 - production_config - WARNING - ⚠️ Firebase keys missing: ['FIREBASE_PRIVATE_KEY_ID', 'FIREBASE_PRIVATE_KEY', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_CLIENT_ID'] - Firebase will be disabled
+2025-06-01 16:20:50,481 - production_config - INFO - ✅ Configuration validation complete
+2025-06-01 16:20:50,481 - production_health_check - INFO - 🏥 Health monitor initialized
+2025-06-01 16:20:50,481 - __main__ - INFO - 🚀 Production Trading System initializing...
+2025-06-01 16:20:50,481 - __main__ - INFO - 🚀 Starting production trading system...
+2025-06-01 16:20:50,481 - __main__ - INFO - 🔧 Initializing system components...
+2025-06-01 16:20:50,481 - __main__ - INFO - 🔥 Initializing Firebase database...
+2025-06-01 16:20:50,481 - __main__ - WARNING - ⚠️ Firebase database not connected - using fallback mode
+2025-06-01 16:20:50,481 - __main__ - INFO - 📈 Initializing Alpaca trading API...
+2025-06-01 16:20:50,827 - __main__ - ERROR - ❌ Alpaca API initialization failed: forbidden.
+2025-06-01 16:20:50,827 - __main__ - ERROR - ❌ System initialization failed
+2025-06-01 16:20:50,828 - __main__ - ERROR - ❌ Production system failed to start
+2025-06-01 16:20:50,828 - __main__ - INFO - 🛑 Initiating graceful shutdown...
+2025-06-01 16:20:50,828 - __main__ - INFO - ✅ Firebase connection closed
+2025-06-01 16:20:50,828 - __main__ - INFO - ✅ Graceful shutdown complete

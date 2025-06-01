@@ -197,6 +197,7 @@ class ProductionTradingSystem:
             from modular.options_module import OptionsModule
             from modular.crypto_module import CryptoModule  
             from modular.stocks_module import StocksModule
+            from modular.market_intelligence_module import MarketIntelligenceModule
             
             # Module configuration from environment
             modules_config = self.config.get_module_config()
@@ -312,6 +313,43 @@ class ProductionTradingSystem:
                     import traceback
                     logger.error(f"Stocks module error details: {traceback.format_exc()}")
             
+            # Register Market Intelligence Module (NEW)
+            if modules_config.get('market_intelligence', True) and self.config.get('OPENAI_API_KEY'):
+                try:
+                    logger.info("🧠 Initializing Market Intelligence module...")
+                    
+                    intelligence_config = ModuleConfig(
+                        module_name="market_intelligence",
+                        enabled=True,
+                        max_allocation_pct=0.0,  # Intelligence module doesn't trade directly
+                        min_confidence=0.6,
+                        max_positions=0,  # No position limits for intelligence
+                        custom_params={
+                            'intelligence_cycle_hours': int(self.config.get('INTELLIGENCE_CYCLE_HOURS', '6')),
+                            'openai_model': self.config.get('OPENAI_MODEL', 'o4-mini'),
+                            'enable_pre_market': True,
+                            'enable_post_market': True
+                        }
+                    )
+                    
+                    intelligence_module = MarketIntelligenceModule(
+                        config=intelligence_config,
+                        firebase_db=self.firebase_db,
+                        risk_manager=self.orchestrator.risk_manager,
+                        order_executor=self.orchestrator.order_executor,
+                        openai_api_key=self.config.get('OPENAI_API_KEY'),
+                        openai_model=self.config.get('OPENAI_MODEL', 'o4-mini'),
+                        logger=logger
+                    )
+                    self.orchestrator.register_module(intelligence_module)
+                    logger.info("✅ Market Intelligence module registered")
+                except Exception as e:
+                    logger.error(f"❌ Failed to register market intelligence module: {e}")
+                    import traceback
+                    logger.error(f"Market Intelligence module error details: {traceback.format_exc()}")
+            elif not self.config.get('OPENAI_API_KEY'):
+                logger.warning("⚠️ Market Intelligence module disabled - OPENAI_API_KEY not found")
+            
             logger.info("📋 Module registration complete")
             
             # Log registered modules for verification
@@ -362,7 +400,66 @@ class ProductionTradingSystem:
                 """System metrics endpoint."""
                 return jsonify(self.get_system_metrics())
             
-            logger.info("✅ Flask health endpoints initialized")
+            @self.flask_app.route('/intelligence')
+            def intelligence_status():
+                """Market Intelligence module status endpoint."""
+                try:
+                    if self.orchestrator:
+                        intelligence_module = self.orchestrator.registry.get_module('market_intelligence')
+                        if intelligence_module:
+                            return jsonify(intelligence_module.get_performance_summary())
+                        else:
+                            return jsonify({'error': 'Market Intelligence module not found'}), 404
+                    else:
+                        return jsonify({'error': 'Orchestrator not initialized'}), 503
+                except Exception as e:
+                    return jsonify({'error': str(e)}), 500
+            
+            @self.flask_app.route('/intelligence/debug')
+            def intelligence_debug():
+                """Market Intelligence module debug endpoint."""
+                try:
+                    if self.orchestrator:
+                        intelligence_module = self.orchestrator.registry.get_module('market_intelligence')
+                        if intelligence_module:
+                            return jsonify(intelligence_module.get_debug_info())
+                        else:
+                            return jsonify({'error': 'Market Intelligence module not found'}), 404
+                    else:
+                        return jsonify({'error': 'Orchestrator not initialized'}), 503
+                except Exception as e:
+                    return jsonify({'error': str(e)}), 500
+            
+            @self.flask_app.route('/intelligence/signals')
+            def intelligence_signals():
+                """Market Intelligence signals endpoint."""
+                try:
+                    if self.orchestrator:
+                        intelligence_module = self.orchestrator.registry.get_module('market_intelligence')
+                        if intelligence_module:
+                            signals = intelligence_module.get_market_intelligence_signals()
+                            return jsonify({
+                                'signals_count': len(signals),
+                                'signals': [
+                                    {
+                                        'type': s.signal_type,
+                                        'symbol': s.symbol,
+                                        'value': s.value,
+                                        'confidence': s.confidence,
+                                        'reasoning': s.reasoning[:100] + '...' if len(s.reasoning) > 100 else s.reasoning,
+                                        'timestamp': s.timestamp.isoformat(),
+                                        'metadata': s.metadata
+                                    } for s in signals
+                                ]
+                            })
+                        else:
+                            return jsonify({'error': 'Market Intelligence module not found'}), 404
+                    else:
+                        return jsonify({'error': 'Orchestrator not initialized'}), 503
+                except Exception as e:
+                    return jsonify({'error': str(e)}), 500
+            
+            logger.info("✅ Flask health endpoints initialized (including Market Intelligence)")
             
         except Exception as e:
             logger.warning(f"⚠️ Flask app initialization failed: {e}")
