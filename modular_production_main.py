@@ -575,7 +575,7 @@ def main():
     signal.signal(signal.SIGTERM, signal_handler)
     
     logger.info("🚀 MODULAR TRADING SYSTEM - PRODUCTION STARTUP")
-    logger.info("🔍 Enhanced crypto logging deployed - v1.1")
+    logger.info("🔧 Risk Manager + Real Crypto Analysis - v1.2")
     logger.info("=" * 60)
     logger.info(f"⏰ Start Time: {datetime.now()}")
     logger.info(f"🐍 Python Version: {sys.version}")
