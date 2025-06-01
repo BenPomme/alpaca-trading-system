@@ -46,7 +46,7 @@ class ProductionConfig:
             
             # Data Feed Configuration for real-time trading
             'ALPACA_DATA_FEED': os.getenv('ALPACA_DATA_FEED', 'sip'),  # sip = real-time, iex = free but delayed
-            'INTRADAY_CYCLE_DELAY': self._get_int_env('INTRADAY_CYCLE_DELAY', 60),  # 60s for minute-level trading
+            'INTRADAY_CYCLE_DELAY': self._get_int_env('INTRADAY_CYCLE_DELAY', 900),  # 15 minutes - optimized for Basic Plan delayed data
         })
         
         # Module Configuration
@@ -115,12 +115,14 @@ class ProductionConfig:
             logger.info(f"✅ OpenAI API key configured for Market Intelligence (model: {self.config.get('OPENAI_MODEL', 'o4-mini')})")
         
         # Trading cycle configuration
-        cycle_delay = self.config.get('INTRADAY_CYCLE_DELAY', 60)
-        logger.info(f"⚡ Trading cycle configured: {cycle_delay}s intervals for minute-level algorithmic trading")
+        cycle_delay = self.config.get('INTRADAY_CYCLE_DELAY', 900)
+        logger.info(f"⚡ Trading cycle configured: {cycle_delay}s intervals (optimized for Basic Plan)")
         
-        # Note: Real-time data access depends on Alpaca account subscription
-        if cycle_delay < 300:
-            logger.info("💡 For optimal performance with fast cycles, ensure real-time data access via Alpaca account settings")
+        # Data access optimization based on Alpaca subscription
+        if cycle_delay < 900:
+            logger.warning("⚠️ Fast cycles with Basic Plan may waste API calls - consider upgrading to Algo Trader Plus")
+        else:
+            logger.info("✅ Cycle timing optimized for 15-minute delayed data access")
         
         # Firebase configuration
         firebase_keys = [
