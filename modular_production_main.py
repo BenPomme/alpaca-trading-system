@@ -160,11 +160,20 @@ class ProductionTradingSystem:
             from risk_manager import RiskManager
             risk_mgr = RiskManager(api_client=self.alpaca_api, db=None, logger=logger)
             
+            # Initialize order executor
+            from modular.order_executor import ModularOrderExecutor
+            order_executor = ModularOrderExecutor(api_client=self.alpaca_api, logger=logger)
+            
+            # Configure execution mode based on environment
+            execution_enabled = self.config.get_bool('EXECUTION_ENABLED', True)
+            dry_run_mode = self.config.get_bool('DRY_RUN_MODE', False)
+            order_executor.set_execution_mode(execution_enabled, dry_run_mode)
+            
             # Initialize orchestrator
             self.orchestrator = ModularOrchestrator(
                 firebase_db=self.firebase_db,
                 risk_manager=risk_mgr,
-                order_executor=None,  # Will be initialized by orchestrator
+                order_executor=order_executor,  # Now properly initialized
                 ml_optimizer=None,  # Will be initialized by orchestrator
                 logger=logger
             )
@@ -218,7 +227,7 @@ class ProductionTradingSystem:
                         config=options_config,
                         firebase_db=self.firebase_db,
                         risk_manager=self.orchestrator.risk_manager,  # Use orchestrator's risk manager
-                        order_executor=None,  # Will be provided by orchestrator
+                        order_executor=self.orchestrator.order_executor,  # Use orchestrator's order executor
                         api_client=self.alpaca_api,
                         logger=logger
                     )
@@ -255,7 +264,7 @@ class ProductionTradingSystem:
                         config=crypto_config,
                         firebase_db=self.firebase_db,
                         risk_manager=self.orchestrator.risk_manager,  # Use orchestrator's risk manager
-                        order_executor=None,  # Will be provided by orchestrator
+                        order_executor=self.orchestrator.order_executor,  # Use orchestrator's order executor
                         api_client=self.alpaca_api,
                         logger=logger
                     )
@@ -292,7 +301,7 @@ class ProductionTradingSystem:
                         config=stocks_config,
                         firebase_db=self.firebase_db,
                         risk_manager=self.orchestrator.risk_manager,  # Use orchestrator's risk manager
-                        order_executor=None,  # Will be provided by orchestrator
+                        order_executor=self.orchestrator.order_executor,  # Use orchestrator's order executor
                         api_client=self.alpaca_api,
                         logger=logger
                     )
@@ -575,9 +584,9 @@ def main():
     signal.signal(signal.SIGTERM, signal_handler)
     
     logger.info("🚀 MODULAR TRADING SYSTEM - PRODUCTION STARTUP") 
-    logger.info("🔧 FORCE REDEPLOY: Firebase Method Signature Fix - v1.4")
-    logger.info("🎯 FIREBASE INTEGRATION SHOULD NOW WORK")
-    logger.info("🎯 TRADE LOGGING SHOULD COMPLETE SUCCESSFULLY")
+    logger.info("🔧 CRITICAL FIX: Order Executor Implementation - v1.5")
+    logger.info("🎯 ORDER EXECUTION SHOULD NOW WORK")
+    logger.info("🎯 SUCCESSFUL TRADES EXPECTED")
     logger.info("=" * 60)
     logger.info(f"⏰ Start Time: {datetime.now()}")
     logger.info(f"🐍 Python Version: {sys.version}")
