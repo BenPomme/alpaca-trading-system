@@ -522,6 +522,19 @@ class ModularFirebaseInterface:
             self.logger.error(f"Error saving ML trade data: {e}")
             return "error_trade_id"
     
+    def update_trade_outcome(self, trade_id: str, outcome_data: Dict[str, Any]) -> bool:
+        """Update existing trade with final profit/loss outcome - CRITICAL FOR ML LEARNING"""
+        try:
+            if not self.is_connected():
+                self.logger.warning(f"Firebase not connected - cannot update trade {trade_id}")
+                return False
+            
+            return self.firebase_db.update_trade_outcome(trade_id, outcome_data)
+            
+        except Exception as e:
+            self.logger.error(f"Error updating trade outcome {trade_id}: {e}")
+            return False
+    
     def save_parameter_effectiveness(self, param_data: Dict[str, Any]) -> str:
         """Save parameter effectiveness data for ML optimization"""
         try:

@@ -219,6 +219,29 @@ class FirebaseDatabase:
             print(f"❌ Error saving trade: {e}")
             return "error_trade_id"
     
+    def update_trade_outcome(self, trade_id: str, outcome_data: Dict[str, Any]) -> bool:
+        """Update existing trade with final profit/loss outcome - CRITICAL FOR ML LEARNING"""
+        try:
+            if not self.is_connected():
+                print(f"⚠️ Firebase not connected - cannot update trade {trade_id}")
+                return False
+            
+            # Add update metadata
+            update_data = outcome_data.copy()
+            update_data['outcome_updated_at'] = firestore.SERVER_TIMESTAMP
+            update_data['ml_outcome_available'] = True
+            
+            # Update the trade document
+            trade_ref = self.db.collection('trades').document(trade_id)
+            trade_ref.update(update_data)
+            
+            print(f"✅ Trade outcome updated: {trade_id} with P&L: ${outcome_data.get('profit_loss', 0):.2f}")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error updating trade outcome {trade_id}: {e}")
+            return False
+    
     def _enhance_trade_data_for_ml(self, trade_data: Dict[str, Any]) -> Dict[str, Any]:
         """Enhance trade data with ML-critical fields and validation"""
         enhanced_data = trade_data.copy()
