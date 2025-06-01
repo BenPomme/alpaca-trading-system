@@ -114,15 +114,13 @@ class ProductionConfig:
         elif self.config.get('OPENAI_API_KEY'):
             logger.info(f"✅ OpenAI API key configured for Market Intelligence (model: {self.config.get('OPENAI_MODEL', 'o4-mini')})")
         
-        # Data feed validation for algorithmic trading
-        data_feed = self.config.get('ALPACA_DATA_FEED', 'sip')
+        # Trading cycle configuration
         cycle_delay = self.config.get('INTRADAY_CYCLE_DELAY', 60)
+        logger.info(f"⚡ Trading cycle configured: {cycle_delay}s intervals for minute-level algorithmic trading")
         
-        if data_feed != 'sip' and cycle_delay < 300:
-            logger.warning(f"⚠️ PERFORMANCE RISK: Using {data_feed} data feed with {cycle_delay}s cycles may cause suboptimal trading")
-            logger.warning("⚠️ Consider: ALPACA_DATA_FEED=sip for real-time data OR INTRADAY_CYCLE_DELAY=300 for delayed data")
-        elif data_feed == 'sip':
-            logger.info(f"✅ Real-time trading configuration: {data_feed} data feed with {cycle_delay}s cycles")
+        # Note: Real-time data access depends on Alpaca account subscription
+        if cycle_delay < 300:
+            logger.info("💡 For optimal performance with fast cycles, ensure real-time data access via Alpaca account settings")
         
         # Firebase configuration
         firebase_keys = [

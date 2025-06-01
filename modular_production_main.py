@@ -134,17 +134,17 @@ class ProductionTradingSystem:
                 logger.error("❌ Alpaca API credentials not found")
                 return False
             
-            # Initialize Alpaca API with configurable data feed for minute-level trading
-            data_feed = self.config.get('ALPACA_DATA_FEED', 'sip')
+            # Initialize Alpaca API - data_feed parameter not supported in current alpaca_trade_api version
             self.alpaca_api = tradeapi.REST(
                 api_key,
                 secret_key,
                 base_url,
-                api_version='v2',
-                data_feed=data_feed  # Real-time consolidated feed for minute-level accuracy
+                api_version='v2'
             )
             
-            logger.info(f"📊 Alpaca data feed configured: {data_feed} ({'real-time' if data_feed == 'sip' else 'delayed'})")
+            # Note: Real-time data configuration may need to be done via Alpaca dashboard
+            # or through newer SDK versions. Current implementation uses default data feed.
+            logger.info("📊 Alpaca API initialized (using default data feed - configure real-time access via Alpaca dashboard)")
             
             # Test connection
             account = self.alpaca_api.get_account()
