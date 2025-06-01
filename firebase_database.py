@@ -165,17 +165,22 @@ class FirebaseDatabase:
             if not self.db:
                 return ""
             
-            # Convert result object to dict
+            # Convert result object to dict - extract from opportunity object
+            opportunity = result.opportunity
             result_data = {
                 'module_name': module_name,
-                'symbol': result.symbol,
-                'action': result.action.value if hasattr(result.action, 'value') else str(result.action),
-                'quantity': result.quantity,
+                'symbol': opportunity.symbol,
+                'action': opportunity.action.value if hasattr(opportunity.action, 'value') else str(opportunity.action),
+                'quantity': opportunity.quantity,
                 'status': result.status.value if hasattr(result.status, 'value') else str(result.status),
                 'execution_price': getattr(result, 'execution_price', 0.0),
-                'fees': getattr(result, 'fees', 0.0),
-                'metadata': result.metadata if hasattr(result, 'metadata') else {},
+                'execution_time': result.execution_time.isoformat() if result.execution_time else None,
+                'order_id': getattr(result, 'order_id', ''),
                 'error_message': getattr(result, 'error_message', ''),
+                'pnl': getattr(result, 'pnl', 0.0),
+                'pnl_pct': getattr(result, 'pnl_pct', 0.0),
+                'hold_duration': getattr(result, 'hold_duration', 0.0),
+                'exit_reason': result.exit_reason.value if hasattr(result, 'exit_reason') and result.exit_reason else None,
                 'timestamp': datetime.now(),
                 'type': 'trade_result',
                 'created_at': datetime.now().isoformat()
