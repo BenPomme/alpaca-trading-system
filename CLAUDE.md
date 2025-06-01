@@ -95,6 +95,15 @@ python test_global_trading.py
 
 # ML integration test
 python test_ml_integration.py
+
+# ML profit learning system test
+python test_ml_linking.py
+python test_ml_integration_full.py
+
+# Individual module tests
+python tests/modules/test_crypto_module.py
+python tests/modules/test_options_module.py
+python tests/modules/test_stocks_module.py
 ```
 
 ### Railway Deployment
@@ -147,6 +156,25 @@ FIREBASE_SERVICE_ACCOUNT={"type":"service_account",...}
 
 ## Data Architecture
 
+### ML Profit Learning System (Critical - June 2025)
+```python
+# Entry trades store trade_id for exit linking
+position_data = {
+    'entry_trade_id': trade_id,  # Links to Firebase trade record
+    'symbol': 'BTCUSD',
+    'entry_price': 50000,
+    'quantity': 0.1
+}
+
+# Exit processing updates entry trade with final P&L
+exit_outcome = {
+    'profit_loss': 750.50,  # ACTUAL profit/loss
+    'exit_reason': 'profit_target',
+    'final_outcome': 'profitable'
+}
+# firebase_db.update_trade_outcome(entry_trade_id, exit_outcome)
+```
+
 ### Quote Data Format (Critical - QA Rule 5)
 ```python
 # Standard format across all modules
@@ -196,11 +224,13 @@ except Exception as e:
 - `enhanced_trader.py` - Database foundation trader
 
 ### Modular Architecture
-- `modular/orchestrator.py` - Main coordination system
-- `modular/options_module.py` - Options trading module
-- `modular/crypto_module.py` - Cryptocurrency trading
-- `modular/stocks_module.py` - Enhanced stock strategies
-- `modular/ml_optimizer.py` - Machine learning integration
+- `modular/orchestrator.py` - Main coordination system with position monitoring
+- `modular/crypto_module.py` - 24/7 crypto trading with allocation-aware exits
+- `modular/options_module.py` - Options trading with aggressive exit logic
+- `modular/stocks_module.py` - Unlimited profitable trading (no 25 trade limit)
+- `modular/ml_optimizer.py` - Profit-based ML optimization
+- `modular/base_module.py` - Common functionality with update_trade_outcome()
+- `modular/firebase_interface.py` - ML trade linking and Firebase delegation
 
 ### Asset-Specific Managers
 - `options_manager.py` - Real options trading via Alpaca API
@@ -282,6 +312,10 @@ python debug_cycle.py 2>&1 | grep -A 5 "ML Predictions"
 ✅ Trades Executed: X (should be > 0 if market conditions allow)
 🧠 ML Adaptive Framework: ✅ Enabled
 💼 POSITION MONITORING & EXIT MANAGEMENT
+📊 Monitoring X crypto positions for exits
+💰 AAVEUSD: $137.69 P&L (1.2%) - checking exit signals
+🚨 EXIT SIGNAL: SOLUSD - over_allocation_stop_loss
+🔗 Updated entry trade with final P&L: $750.50
 📊 OPTIONS TRADING (if enabled)
 ₿ CRYPTO TRADING CYCLE (if enabled)
 ```
@@ -320,17 +354,25 @@ python debug_cycle.py 2>&1 | grep -A 5 "ML Predictions"
 
 Remember: This system has encountered 9+ major bugs during development. The QA.md rules are institutional knowledge that MUST be followed to prevent regression.
 
-## 🎉 LATEST STATUS (Dec 31, 2024):
+## 🎉 LATEST STATUS (June 1, 2025):
 
-### MAJOR BREAKTHROUGH: Crypto Analysis Fixed!
-- ✅ **Real crypto prices working**: AVAX=$20.99, UNI=$6.16, BTC=$67k+
-- ✅ **9 crypto opportunities found** (vs 0 before fix)
-- ✅ **High confidence scores**: 0.73 > 0.35 threshold
-- ✅ **Correct Alpaca API usage**: get_latest_crypto_bars(), proper BTC/USD format
+### ✅ FULLY OPERATIONAL TRADING SYSTEM:
+- ✅ **Live Trade Execution**: 4+ crypto trades with verified Alpaca order IDs
+- ✅ **Real-Time P&L Monitoring**: $98,845 portfolio with position tracking
+- ✅ **ML Profit Learning**: Entry-exit trade linking for optimization
+- ✅ **Unlimited Profitable Trading**: Removed 25 trade/day limits
+- ✅ **Aggressive Exit Management**: Over-allocation triggers smart exits
 
-### Current Issues to Fix:
-1. **Risk Manager**: `'NoneType' object has no attribute 'validate_opportunity'` 
-2. **Firebase**: Missing `save_trade_opportunity()` method
-3. **Unsupported Cryptos**: 4/13 cryptos not available in Alpaca Paper API
+### Critical ML Learning System (June 2025):
+- **Entry-Exit Linking**: Trades linked via trade_id for complete cycle analysis
+- **Profit Optimization**: ML learns from actual P&L, not just execution success
+- **Firebase Integration**: Complete trade outcome tracking with update_trade_outcome()
+- **Real Performance**: Win rates based on profitability, not order fills
 
-### See CURRENT_STATUS_DEC31.md for detailed action plan
+### Allocation-Aware Exit Management:
+- **Crypto**: 2% profit exits when over-allocated (vs 25% normal)
+- **Stocks**: 1.5% profit exits when over-allocated (vs standard targets)
+- **Options**: 25% profit exits when over-allocated (vs 100% normal)
+- **Risk Management**: Tighter stop losses when allocation limits hit
+
+### See CURRENT_STATUS_JUNE2025.md for complete operational details
