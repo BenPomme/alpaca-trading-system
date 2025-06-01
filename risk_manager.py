@@ -368,16 +368,17 @@ class RiskManager:
         """
         try:
             # Use existing should_execute_trade logic for validation
-            can_trade, reason = self.should_execute_trade(
+            can_trade, reason, _ = self.should_execute_trade(
                 symbol=opportunity.symbol,
                 strategy=opportunity.strategy,
                 confidence=opportunity.confidence,
-                target_shares=int(opportunity.quantity),
-                entry_price=opportunity.metadata.get('entry_price', 0.0)
+                entry_price=opportunity.metadata.get('entry_price', 100.0)  # Default price if missing
             )
             
             if not can_trade:
                 self.logger.debug(f"Risk validation failed for {opportunity.symbol}: {reason}")
+            else:
+                self.logger.info(f"✅ {opportunity.symbol}: Risk validation passed")
             
             return can_trade
             

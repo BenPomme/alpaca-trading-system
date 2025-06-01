@@ -86,12 +86,12 @@ class CryptoModule(TradingModule):
         self.leverage_multiplier = config.custom_params.get('leverage_multiplier', 1.5)
         self.volatility_threshold = config.custom_params.get('volatility_threshold', 5.0) / 100
         
-        # Cryptocurrency universe organized by categories
+        # Cryptocurrency universe organized by categories (only Alpaca-supported cryptos)
         self.crypto_universe = {
-            'major': ['BTCUSD', 'ETHUSD', 'ADAUSD', 'SOLUSD'],
+            'major': ['BTCUSD', 'ETHUSD', 'SOLUSD'],  # Removed ADAUSD (not supported)
             'volatile': ['DOTUSD', 'LINKUSD', 'MATICUSD', 'AVAXUSD'],
-            'defi': ['UNIUSD', 'AAVEUSD', 'COMPUSD'],
-            'gaming': ['MANAUSD', 'SANDUSD']
+            'defi': ['UNIUSD', 'AAVEUSD'],  # Removed COMPUSD (not supported)
+            # Removed 'gaming' category (MANAUSD, SANDUSD not supported by Alpaca Paper API)
         }
         
         # 24/7 Crypto Trading Configuration - No artificial session restrictions
