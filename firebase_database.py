@@ -124,22 +124,32 @@ class FirebaseDatabase:
             return []
     
     # TRADES COLLECTION (Enhanced for ML Optimization)
-    def save_trade_opportunity(self, opportunity_data: Dict[str, Any]) -> str:
+    def save_trade_opportunity(self, module_name: str, opportunity) -> str:
         """Save a trading opportunity to Firebase"""
         try:
             if not self.db:
                 return ""
             
-            # Add timestamp and metadata
-            opportunity_doc = {
-                **opportunity_data,
+            # Convert opportunity object to dict
+            opportunity_data = {
+                'module_name': module_name,
+                'symbol': opportunity.symbol,
+                'action': opportunity.action.value if hasattr(opportunity.action, 'value') else str(opportunity.action),
+                'quantity': opportunity.quantity,
+                'confidence': opportunity.confidence,
+                'strategy': opportunity.strategy,
+                'metadata': opportunity.metadata if hasattr(opportunity, 'metadata') else {},
+                'technical_score': getattr(opportunity, 'technical_score', 0.0),
+                'regime_score': getattr(opportunity, 'regime_score', 0.0),
+                'pattern_score': getattr(opportunity, 'pattern_score', 0.0),
+                'ml_score': getattr(opportunity, 'ml_score', 0.0),
                 'timestamp': datetime.now(),
                 'type': 'trade_opportunity',
                 'created_at': datetime.now().isoformat()
             }
             
             # Save to opportunities collection
-            doc_ref = self.db.collection('opportunities').add(opportunity_doc)
+            doc_ref = self.db.collection('opportunities').add(opportunity_data)
             doc_id = doc_ref[1].id
             
             logging.info(f"✅ Saved trade opportunity to Firebase: {doc_id}")
@@ -149,22 +159,30 @@ class FirebaseDatabase:
             logging.error(f"❌ Error saving trade opportunity to Firebase: {e}")
             return ""
 
-    def save_trade_result(self, result_data: Dict[str, Any]) -> str:
+    def save_trade_result(self, module_name: str, result) -> str:
         """Save a trade execution result to Firebase"""
         try:
             if not self.db:
                 return ""
             
-            # Add timestamp and metadata
-            result_doc = {
-                **result_data,
+            # Convert result object to dict
+            result_data = {
+                'module_name': module_name,
+                'symbol': result.symbol,
+                'action': result.action.value if hasattr(result.action, 'value') else str(result.action),
+                'quantity': result.quantity,
+                'status': result.status.value if hasattr(result.status, 'value') else str(result.status),
+                'execution_price': getattr(result, 'execution_price', 0.0),
+                'fees': getattr(result, 'fees', 0.0),
+                'metadata': result.metadata if hasattr(result, 'metadata') else {},
+                'error_message': getattr(result, 'error_message', ''),
                 'timestamp': datetime.now(),
                 'type': 'trade_result',
                 'created_at': datetime.now().isoformat()
             }
             
             # Save to trade_results collection
-            doc_ref = self.db.collection('trade_results').add(result_doc)
+            doc_ref = self.db.collection('trade_results').add(result_data)
             doc_id = doc_ref[1].id
             
             logging.info(f"✅ Saved trade result to Firebase: {doc_id}")
