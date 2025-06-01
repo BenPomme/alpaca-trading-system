@@ -345,6 +345,20 @@ class TradingModule(ABC):
             self.logger.error(f"Error saving ML trade data: {e}")
             return "error"
     
+    def update_ml_trade_outcome(self, trade_id: str, outcome_data: Dict[str, Any]):
+        """Update existing trade with final profit/loss outcome - CRITICAL FOR ML LEARNING"""
+        try:
+            if self.firebase_db and self.firebase_db.is_connected():
+                success = self.firebase_db.update_trade_outcome(trade_id, outcome_data)
+                if success:
+                    self.logger.debug(f"✅ Trade {trade_id} outcome updated with P&L: ${outcome_data.get('profit_loss', 0):.2f}")
+                else:
+                    self.logger.warning(f"Failed to update trade {trade_id} outcome")
+            else:
+                self.logger.warning("Firebase not available for trade outcome update")
+        except Exception as e:
+            self.logger.error(f"Error updating trade outcome {trade_id}: {e}")
+    
     def record_parameter_effectiveness(self, 
                                      parameter_type: str,
                                      parameter_value: Any,

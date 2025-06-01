@@ -265,7 +265,8 @@ class CryptoModule(TradingModule):
                         'quantity': opportunity.quantity,
                         'investment': investment_amount,
                         'session': session.value,
-                        'entry_time': datetime.now().isoformat()
+                        'entry_time': datetime.now().isoformat(),
+                        'entry_trade_id': trade_id  # Link to ML entry trade for profit updates
                     }
                 
             except Exception as e:
@@ -887,6 +888,25 @@ class CryptoModule(TradingModule):
             
             # Save to Firebase
             trade_id = self.save_ml_enhanced_trade(ml_exit_data.to_dict())
+            
+            # UPDATE ENTRY TRADE WITH FINAL PROFIT/LOSS (CRITICAL FOR ML LEARNING)
+            entry_data = self._crypto_positions.get(symbol, {})
+            entry_trade_id = entry_data.get('entry_trade_id')
+            if entry_trade_id:
+                try:
+                    # Update the original entry trade with final profit outcome
+                    entry_update_data = {
+                        'profit_loss': result.pnl or 0.0,
+                        'exit_reason': exit_reason,
+                        'final_outcome': 'profitable' if (result.pnl or 0.0) > 0 else 'loss',
+                        'hold_duration_hours': hold_duration_hours,
+                        'exit_trade_id': trade_id,
+                        'updated_at': datetime.now().isoformat()
+                    }
+                    self.update_ml_trade_outcome(entry_trade_id, entry_update_data)
+                    self.logger.info(f"🔗 Updated entry trade {entry_trade_id} with final P&L: ${result.pnl:.2f}")
+                except Exception as e:
+                    self.logger.error(f"Failed to update entry trade profit: {e}")
             
             # Record exit parameter effectiveness
             self.record_parameter_effectiveness(
