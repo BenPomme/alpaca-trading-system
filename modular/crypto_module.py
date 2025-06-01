@@ -132,9 +132,20 @@ class CryptoModule(TradingModule):
             'volume': 0.30
         }
         
-        # Performance tracking
+        # Performance tracking - REAL profitability metrics
         self._crypto_positions = {}
-        self._session_performance = {session: {'trades': 0, 'wins': 0} for session in TradingSession}
+        self._session_performance = {
+            session: {
+                'total_trades': 0,
+                'profitable_trades': 0,
+                'total_pnl': 0.0,
+                'total_invested': 0.0,
+                'avg_profit_per_trade': 0.0,
+                'max_drawdown': 0.0,
+                'win_rate': 0.0,
+                'roi': 0.0
+            } for session in TradingSession
+        }
         
         total_cryptos = sum(len(symbols) for symbols in self.crypto_universe.values())
         self.logger.info(f"Crypto module initialized with {total_cryptos} cryptocurrencies")
@@ -238,11 +249,24 @@ class CryptoModule(TradingModule):
                 result = self._execute_crypto_trade(opportunity)
                 results.append(result)
                 
-                # Update session performance tracking
+                # Update session performance tracking with REAL metrics
                 session = TradingSession(opportunity.metadata.get('session'))
-                self._session_performance[session]['trades'] += 1
+                session_stats = self._session_performance[session]
+                session_stats['total_trades'] += 1
+                
                 if result.success:
-                    self._session_performance[session]['wins'] += 1
+                    # Track actual investment amount
+                    investment_amount = opportunity.quantity * (result.execution_price or opportunity.metadata.get('current_price', 0))
+                    session_stats['total_invested'] += investment_amount
+                    
+                    # Store entry data for later exit calculation
+                    self._crypto_positions[opportunity.symbol] = {
+                        'entry_price': result.execution_price,
+                        'quantity': opportunity.quantity,
+                        'investment': investment_amount,
+                        'session': session.value,
+                        'entry_time': datetime.now().isoformat()
+                    }
                 
             except Exception as e:
                 error_result = TradeResult(
@@ -268,16 +292,29 @@ class CryptoModule(TradingModule):
             # Get current crypto positions
             positions = self._get_crypto_positions()
             
-            for position in positions:
-                try:
-                    exit_signal = self._analyze_crypto_exit(position)
-                    if exit_signal:
-                        exit_result = self._execute_crypto_exit(position, exit_signal)
-                        if exit_result:
-                            exit_results.append(exit_result)
+            if len(positions) > 0:
+                self.logger.info(f"📊 Monitoring {len(positions)} crypto positions for exits")
                 
-                except Exception as e:
-                    self.logger.error(f"Error monitoring crypto position {position.get('symbol', 'unknown')}: {e}")
+                for position in positions:
+                    try:
+                        symbol = position.get('symbol', 'unknown')
+                        pnl = position.get('unrealized_pl', 0)
+                        pnl_pct = pnl / max(abs(position.get('market_value', 1)), 1)
+                        
+                        self.logger.info(f"💰 {symbol}: ${pnl:.2f} P&L ({pnl_pct:.1%}) - checking exit signals")
+                        
+                        exit_signal = self._analyze_crypto_exit(position)
+                        if exit_signal:
+                            self.logger.info(f"🚨 EXIT SIGNAL: {symbol} - {exit_signal}")
+                            exit_result = self._execute_crypto_exit(position, exit_signal)
+                            if exit_result:
+                                exit_results.append(exit_result)
+                        else:
+                            self.logger.debug(f"✅ {symbol}: No exit signal - holding position")
+                    except Exception as e:
+                        self.logger.error(f"Error monitoring position {position.get('symbol', 'unknown')}: {e}")
+            else:
+                self.logger.debug("No crypto positions found to monitor")
             
             # Log session performance periodically
             if len(positions) > 0:
@@ -742,22 +779,30 @@ class CryptoModule(TradingModule):
             execution_result = self.order_executor.execute_order(order_data)
             
             if execution_result.get('success'):
+                # Calculate REAL P&L from our tracked entry data
+                exit_price = self._get_crypto_price(symbol)
+                actual_pnl = position.get('unrealized_pl', 0)
+                actual_pnl_pct = actual_pnl / max(abs(position.get('market_value', 1)), 1)
+                
                 # Create exit result with P&L information
                 result = TradeResult(
                     opportunity=exit_opportunity,
                     status=TradeStatus.EXECUTED,
                     order_id=execution_result.get('order_id'),
-                    execution_price=self._get_crypto_price(symbol),
+                    execution_price=exit_price,
                     execution_time=datetime.now(),
-                    pnl=position.get('unrealized_pl', 0),
-                    pnl_pct=position.get('unrealized_pl', 0) / max(abs(position.get('market_value', 1)), 1),
+                    pnl=actual_pnl,
+                    pnl_pct=actual_pnl_pct,
                     exit_reason=self._get_exit_reason_enum(exit_reason)
                 )
+                
+                # UPDATE REAL PROFITABILITY METRICS
+                self._update_exit_performance_metrics(symbol, actual_pnl)
                 
                 # 🧠 ML DATA COLLECTION: Save exit analysis for parameter optimization
                 self._save_ml_enhanced_crypto_exit(position, result, exit_reason)
                 
-                self.logger.info(f"💰 Crypto exit: {symbol} {exit_reason} P&L: ${result.pnl:.2f} ({result.pnl_pct:.1%})")
+                self.logger.info(f"💰 Crypto exit: {symbol} {exit_reason} P&L: ${actual_pnl:.2f} ({actual_pnl_pct:.1%})")
                 return result
             else:
                 return TradeResult(
@@ -1060,17 +1105,55 @@ class CryptoModule(TradingModule):
         }
         return mapping.get(exit_reason, ExitReason.STRATEGY_SIGNAL)
     
+    def _update_exit_performance_metrics(self, symbol: str, pnl: float):
+        """Update real profitability metrics when position is exited"""
+        try:
+            # Get the entry session from our tracked positions
+            entry_data = self._crypto_positions.get(symbol, {})
+            entry_session_name = entry_data.get('session', self._get_current_trading_session().value)
+            
+            # Find the session enum
+            entry_session = None
+            for session in TradingSession:
+                if session.value == entry_session_name:
+                    entry_session = session
+                    break
+            
+            if entry_session:
+                session_stats = self._session_performance[entry_session]
+                
+                # Update P&L metrics
+                session_stats['total_pnl'] += pnl
+                if pnl > 0:
+                    session_stats['profitable_trades'] += 1
+                
+                # Recalculate derived metrics
+                if session_stats['total_trades'] > 0:
+                    session_stats['win_rate'] = session_stats['profitable_trades'] / session_stats['total_trades']
+                    session_stats['avg_profit_per_trade'] = session_stats['total_pnl'] / session_stats['total_trades']
+                
+                if session_stats['total_invested'] > 0:
+                    session_stats['roi'] = session_stats['total_pnl'] / session_stats['total_invested']
+                
+                # Remove from tracked positions
+                if symbol in self._crypto_positions:
+                    del self._crypto_positions[symbol]
+                    
+        except Exception as e:
+            self.logger.error(f"Error updating exit performance metrics: {e}")
+    
     def _log_session_performance(self):
-        """Log session-based performance metrics"""
+        """Log session-based REAL profitability metrics"""
         try:
             current_session = self._get_current_trading_session()
             session_stats = self._session_performance[current_session]
             
-            if session_stats['trades'] > 0:
-                win_rate = session_stats['wins'] / session_stats['trades']
-                self.logger.info(f"Session {current_session.value}: {session_stats['trades']} trades, "
-                               f"{win_rate:.1%} win rate")
-                
+            if session_stats['total_trades'] > 0:
+                self.logger.info(f"Session {current_session.value}: {session_stats['total_trades']} trades, "
+                               f"{session_stats['win_rate']:.1%} PROFIT RATE, "
+                               f"Total P&L: ${session_stats['total_pnl']:.2f}, "
+                               f"ROI: {session_stats['roi']:.1%}")
+                               
         except Exception as e:
             self.logger.debug(f"Error logging session performance: {e}")
     
