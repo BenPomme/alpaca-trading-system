@@ -575,9 +575,9 @@ def main():
     signal.signal(signal.SIGTERM, signal_handler)
     
     logger.info("🚀 MODULAR TRADING SYSTEM - PRODUCTION STARTUP") 
-    logger.info("🔧 FORCE REDEPLOY: Risk Manager + Real Crypto Analysis - v1.3")
-    logger.info("🎯 RISK MANAGER SHOULD NOW BE INITIALIZED")
-    logger.info("🎯 CRYPTO ANALYSIS SHOULD USE REAL DATA")
+    logger.info("🔧 FORCE REDEPLOY: Firebase Method Signature Fix - v1.4")
+    logger.info("🎯 FIREBASE INTEGRATION SHOULD NOW WORK")
+    logger.info("🎯 TRADE LOGGING SHOULD COMPLETE SUCCESSFULLY")
     logger.info("=" * 60)
     logger.info(f"⏰ Start Time: {datetime.now()}")
     logger.info(f"🐍 Python Version: {sys.version}")
