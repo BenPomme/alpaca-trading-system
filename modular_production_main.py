@@ -136,11 +136,50 @@ class ProductionTradingSystem:
             secret_key = self.config.get('ALPACA_PAPER_SECRET_KEY')
             base_url = self.config.get('ALPACA_BASE_URL', 'https://paper-api.alpaca.markets')
             
+            # COMPREHENSIVE CREDENTIAL DEBUGGING
+            logger.info("🔍 ALPACA API CREDENTIAL DEBUGGING:")
+            logger.info(f"   API Key present: {bool(api_key)}")
+            logger.info(f"   Secret Key present: {bool(secret_key)}")
+            logger.info(f"   Base URL: {base_url}")
+            
+            if api_key:
+                logger.info(f"   API Key starts with: {api_key[:8]}..." if len(api_key) > 8 else f"   API Key: {api_key}")
+                logger.info(f"   API Key length: {len(api_key)}")
+            
+            if secret_key:
+                logger.info(f"   Secret Key starts with: {secret_key[:8]}..." if len(secret_key) > 8 else f"   Secret Key: {secret_key}")
+                logger.info(f"   Secret Key length: {len(secret_key)}")
+            
             if not api_key or not secret_key:
                 logger.error("❌ Alpaca API credentials not found")
+                logger.error("🔍 Available environment variables:")
+                import os
+                env_vars = [k for k in os.environ.keys() if 'ALPACA' in k.upper()]
+                for var in env_vars:
+                    logger.error(f"   {var}: {'SET' if os.environ.get(var) else 'NOT SET'}")
                 return False
             
+            # VALIDATE API KEY FORMATS
+            logger.info("🔍 VALIDATING API KEY FORMATS:")
+            
+            # Alpaca paper keys should start with specific prefixes
+            if api_key and not (api_key.startswith('PK') or api_key.startswith('AK')):
+                logger.warning(f"⚠️ API Key format unusual - should start with 'PK' or 'AK', got: {api_key[:4]}...")
+            
+            if secret_key and not secret_key.replace('-', '').replace('_', '').isalnum():
+                logger.warning(f"⚠️ Secret Key format unusual - contains unexpected characters")
+            
+            # Check for common environment variable issues
+            if api_key and (api_key.startswith('"') or api_key.endswith('"')):
+                logger.warning("⚠️ API Key has quotes - removing them")
+                api_key = api_key.strip('"')
+                
+            if secret_key and (secret_key.startswith('"') or secret_key.endswith('"')):
+                logger.warning("⚠️ Secret Key has quotes - removing them")
+                secret_key = secret_key.strip('"')
+            
             # Initialize Alpaca API for algorithmic trading
+            logger.info("📡 Connecting to Alpaca API...")
             self.alpaca_api = tradeapi.REST(
                 api_key,
                 secret_key,

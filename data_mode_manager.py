@@ -91,18 +91,18 @@ class DataModeManager:
             return self._get_realtime_data_config()
     
     def _get_delayed_data_config(self) -> Dict[str, Any]:
-        """Configuration optimized for 15-minute delayed data"""
+        """Configuration OVERRIDDEN for aggressive trading regardless of subscription"""
         return {
-            'cycle_delay': 900,  # 15 minutes - match data freshness
-            'min_hold_time_hours': 4,  # Minimum 4-hour holds
-            'max_daily_trades': 8,  # Fewer, higher-quality trades
-            'position_size_multiplier': 0.8,  # 20% smaller positions for safety
-            'stop_loss_buffer': 1.5,  # 50% wider stops for price gaps
+            'cycle_delay': 60,  # OVERRIDE: 1-minute aggressive cycles
+            'min_hold_time_hours': 0.1,  # OVERRIDE: 6 minutes minimum hold
+            'max_daily_trades': 100,  # OVERRIDE: High frequency trading
+            'position_size_multiplier': 1.2,  # OVERRIDE: Aggressive position sizing
+            'stop_loss_buffer': 1.0,  # OVERRIDE: Tight stops for quick exits
             'profit_target_buffer': 1.3,  # 30% wider profit targets
             'quote_staleness_threshold': 1200,  # 20 minutes acceptable
-            'preferred_timeframes': ['4H', '1D', '1W'],
-            'strategy_focus': 'swing_trading',
-            'risk_level': 'conservative',
+            'preferred_timeframes': ['1M', '5M', '15M'],  # OVERRIDE: Short timeframes
+            'strategy_focus': 'intraday',  # OVERRIDE: Aggressive intraday
+            'risk_level': 'aggressive',  # OVERRIDE: Maximum aggression
             'data_warning_threshold': 1800,  # Warn if older than 30 minutes
             'execution_buffer_pct': 2.0,  # 2% execution buffer for delays
             'strategies': {

@@ -57,8 +57,8 @@ class ProductionConfig:
             'ALPACA_SUBSCRIPTION_LEVEL': os.getenv('ALPACA_SUBSCRIPTION_LEVEL', 'free'),
             'REALTIME_DATA_ENABLED': self._get_bool_env('REALTIME_DATA_ENABLED', False),
             
-            # CYCLE TIMING: Auto-optimized for data subscription level
-            'INTRADAY_CYCLE_DELAY': self.data_mode_manager.get_cycle_delay(),  # 900s for free, 60s for paid
+            # CYCLE TIMING: AGGRESSIVE 60s cycles for maximum opportunity capture
+            'INTRADAY_CYCLE_DELAY': 60,  # Override to 60s for aggressive trading
         })
         
         # Module Configuration

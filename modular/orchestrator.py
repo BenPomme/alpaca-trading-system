@@ -289,11 +289,14 @@ class ModularOrchestrator:
         }
         
         try:
-            self.logger.debug(f"Running cycle for {module.module_name}")
+            # EXPLICIT MODULE EXECUTION LOGGING
+            self.logger.info(f"🔄 EXECUTING MODULE: {module.module_name}")
             
             # 1. Analyze opportunities
+            self.logger.info(f"📊 {module.module_name}: Starting opportunity analysis...")
             opportunities = module.analyze_opportunities()
             result['opportunities_count'] = len(opportunities)
+            self.logger.info(f"📊 {module.module_name}: Found {len(opportunities)} opportunities")
             
             # 2. Validate and filter opportunities
             valid_opportunities = [
@@ -304,14 +307,20 @@ class ModularOrchestrator:
             # 3. Execute valid trades
             trade_results = []
             if valid_opportunities:
+                self.logger.info(f"🚀 {module.module_name}: Executing {len(valid_opportunities)} valid trades...")
                 trade_results = module.execute_trades(valid_opportunities)
                 result['trades_count'] = len(trade_results)
                 result['trades_passed'] = sum(1 for tr in trade_results if tr.passed)
                 result['successful_trades'] = sum(1 for tr in trade_results if tr.success)
+                self.logger.info(f"✅ {module.module_name}: {result['trades_passed']} passed, {result['successful_trades']} profitable")
+            else:
+                self.logger.info(f"⚠️ {module.module_name}: No valid opportunities to execute")
             
             # 4. Monitor existing positions for exits
+            self.logger.info(f"👁️ {module.module_name}: Monitoring positions for exits...")
             exit_results = module.monitor_positions()
             result['exits_count'] = len(exit_results)
+            self.logger.info(f"🚪 {module.module_name}: {len(exit_results)} exit actions taken")
             
             # Include exit results in trade counting
             if exit_results:
