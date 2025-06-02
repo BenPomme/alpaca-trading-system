@@ -49,10 +49,10 @@ class StockAnalysis:
     
     @property
     def is_tradeable(self) -> bool:
-        """Check if analysis meets minimum trading criteria"""
-        return (self.combined_confidence > 0.55 and 
+        """Check if analysis meets minimum trading criteria - SIMPLIFIED"""
+        return (self.combined_confidence > 0.30 and  # Much lower threshold
                 self.current_price > 0 and
-                self.technical_score > 0.40)
+                self.technical_score > 0.20)  # Much lower threshold
 
 
 @dataclass
@@ -619,8 +619,8 @@ class StocksModule(TradingModule):
     def _create_stock_opportunity(self, analysis: StockAnalysis) -> Optional[TradeOpportunity]:
         """Create a trade opportunity from stock analysis"""
         try:
-            # Determine trade direction based on combined analysis
-            action = TradeAction.BUY if analysis.combined_confidence > 0.55 else TradeAction.SELL
+            # Determine trade direction based on combined analysis - SIMPLIFIED
+            action = TradeAction.BUY if analysis.combined_confidence > 0.35 else TradeAction.SELL
             
             # Calculate position size with strategy multiplier
             base_quantity = self._calculate_stock_quantity(analysis.symbol, analysis.current_price)
@@ -918,20 +918,9 @@ class StocksModule(TradingModule):
         return any(enhanced in strategy_name for enhanced in enhanced_strategies)
     
     def _get_strategy_confidence_threshold(self, strategy_name: str) -> float:
-        """Get confidence threshold for a strategy"""
-        thresholds = {
-            'leveraged_etfs': 0.70,
-            'momentum_amp': 0.75,
-            'sector_rotation': 0.60,
-            'volatility_trading': 0.55,
-            'core_equity': 0.55
-        }
-        
-        for strategy, threshold in thresholds.items():
-            if strategy in strategy_name:
-                return threshold
-        
-        return 0.55  # Default
+        """Get confidence threshold for a strategy - SIMPLIFIED for more trading"""
+        # SIMPLIFIED: Use same low threshold for all strategies to enable trading
+        return 0.45  # Much lower threshold for all strategies
     
     # Position monitoring methods
     
@@ -1404,20 +1393,9 @@ class StocksModule(TradingModule):
             return None
     
     def _symbol_fits_strategy(self, symbol: str, strategy: StockStrategy) -> bool:
-        """Check if symbol fits the given strategy"""
-        try:
-            if strategy == StockStrategy.LEVERAGED_ETFS:
-                return any(symbol in etfs for etfs in self.strategy_symbols['leveraged_etfs'].values())
-            elif strategy == StockStrategy.SECTOR_ROTATION:
-                return any(symbol in sectors for sectors in self.strategy_symbols['sector_etfs'].values())
-            elif strategy == StockStrategy.MOMENTUM_AMPLIFICATION:
-                return any(symbol in momentum for momentum in self.strategy_symbols['momentum_stocks'].values())
-            elif strategy == StockStrategy.VOLATILITY_TRADING:
-                return any(symbol in vol for vol in self.strategy_symbols['volatility_symbols'].values())
-            else:  # CORE_EQUITY
-                return True  # Any symbol can use core equity strategy
-        except:
-            return False
+        """Check if symbol fits the given strategy - SIMPLIFIED to allow all symbols"""
+        # SIMPLIFIED: Allow any symbol to use any strategy for maximum opportunities
+        return True
     
     def _create_intraday_stock_opportunity(self, analysis: StockAnalysis, heat_factor: float, strategy_info: Dict[str, Any]) -> Optional[TradeOpportunity]:
         """Create intraday-optimized trade opportunity"""
