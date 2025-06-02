@@ -82,11 +82,21 @@ class TradeResult:
     exit_reason: Optional[ExitReason] = None
     
     @property
+    def passed(self) -> bool:
+        """
+        A trade passed if the order was successfully executed (filled).
+        This counts all successful order executions regardless of profitability.
+        """
+        return self.status == TradeStatus.EXECUTED
+    
+    @property
     def success(self) -> bool:
         """
-        A trade is successful only if it was executed AND resulted in a profit.
-        CRITICAL FIX: Previously this only checked execution status, causing
-        misleading profit rate calculations.
+        A trade is successful (profitable) only if:
+        1. Order was executed AND
+        2. Trade generated profit (pnl > 0)
+        
+        For entry trades without P&L data yet, success is False until exit.
         """
         return (self.status == TradeStatus.EXECUTED and 
                 self.pnl is not None and 

@@ -182,7 +182,8 @@ class ModularOrchestrator:
             'summary': {
                 'total_opportunities': 0,
                 'total_trades': 0,
-                'successful_trades': 0
+                'trades_passed': 0,      # Orders successfully executed
+                'successful_trades': 0   # Profitable trades only
             }
         }
         
@@ -206,6 +207,7 @@ class ModularOrchestrator:
                 if result['success']:
                     cycle_results['summary']['total_opportunities'] += result['opportunities_count']
                     cycle_results['summary']['total_trades'] += result['trades_count']
+                    cycle_results['summary']['trades_passed'] += result['trades_passed']
                     cycle_results['summary']['successful_trades'] += result['successful_trades']
                 else:
                     # Update module health on failure
@@ -280,7 +282,8 @@ class ModularOrchestrator:
             'success': False,
             'opportunities_count': 0,
             'trades_count': 0,
-            'successful_trades': 0,
+            'trades_passed': 0,        # Orders successfully executed
+            'successful_trades': 0,    # Profitable trades only
             'exits_count': 0,
             'duration_seconds': 0.0
         }
@@ -303,11 +306,19 @@ class ModularOrchestrator:
             if valid_opportunities:
                 trade_results = module.execute_trades(valid_opportunities)
                 result['trades_count'] = len(trade_results)
+                result['trades_passed'] = sum(1 for tr in trade_results if tr.passed)
                 result['successful_trades'] = sum(1 for tr in trade_results if tr.success)
             
             # 4. Monitor existing positions for exits
             exit_results = module.monitor_positions()
             result['exits_count'] = len(exit_results)
+            
+            # Include exit results in trade counting
+            if exit_results:
+                all_trades = trade_results + exit_results
+                result['trades_count'] = len(all_trades)
+                result['trades_passed'] = sum(1 for tr in all_trades if tr.passed)
+                result['successful_trades'] = sum(1 for tr in all_trades if tr.success)
             
             # 5. Save results
             for opp in opportunities:
@@ -322,8 +333,9 @@ class ModularOrchestrator:
             result['success'] = True
             result['duration_seconds'] = time.time() - module_start
             
-            self.logger.debug(f"{module.module_name}: {result['opportunities_count']} opps, "
-                            f"{result['trades_count']} trades, {result['exits_count']} exits")
+            self.logger.info(f"📊 {module.module_name}: {result['opportunities_count']} opps, "
+                            f"{result['trades_count']} trades ({result['trades_passed']} passed, "
+                            f"{result['successful_trades']} profitable), {result['exits_count']} exits")
             
             return result
             
