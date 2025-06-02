@@ -1383,10 +1383,10 @@ class CryptoModule(TradingModule):
             if not self.smart_allocation_enabled:
                 return 0.90  # Use 90% of buying power when smart allocation disabled
             
-            # MARKET HOURS: Use 100% of buying power for maximum opportunity capture
+            # MARKET HOURS: EMERGENCY LIMIT - Crypto should be MINIMAL during bullish stock market
             if self._is_stock_market_open():
-                self.logger.info("📈 MARKET HOURS: Using 100% allocation for maximum opportunity capture")
-                return 0.95  # 100% during market hours (95% to leave small buffer)
+                self.logger.warning("🚨 EMERGENCY: Limiting crypto to 20% during bullish stock market hours")
+                return 0.20  # EMERGENCY: Only 20% crypto during market hours
             
             # Get current performance metrics
             current_win_rate = self._calculate_current_win_rate()

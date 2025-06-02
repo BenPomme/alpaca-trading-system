@@ -344,16 +344,17 @@ class ProductionTradingSystem:
                     import traceback
                     logger.error(f"Crypto module error details: {traceback.format_exc()}")
             
-            # Register Stocks Module
+            # Register Stocks Module  
             if modules_config.get('stocks', True):
                 try:
-                    logger.info("📈 Initializing Stocks module...")
+                    logger.info("📈 DEBUGGING: Starting Stocks module initialization...")
+                    logger.info(f"📈 DEBUGGING: modules_config stocks = {modules_config.get('stocks', True)}")
                     
                     stocks_config = ModuleConfig(
                         module_name="stocks",
                         enabled=True,
-                        max_allocation_pct=95.0,  # 100% buying power usage
-                        min_confidence=0.45,     # Very low for maximum opportunities
+                        max_allocation_pct=40.0,  # REDUCED: Prevent insufficient balance
+                        min_confidence=0.35,     # LOWERED: More opportunities
                         max_positions=30,        # Maximum diversification
                         default_stop_loss_pct=0.08,
                         default_profit_target_pct=0.15,
@@ -366,6 +367,7 @@ class ProductionTradingSystem:
                         }
                     )
                     
+                    logger.info("📈 DEBUGGING: Creating StocksModule instance...")
                     stocks_module = StocksModule(
                         config=stocks_config,
                         firebase_db=self.firebase_db,
@@ -374,8 +376,15 @@ class ProductionTradingSystem:
                         api_client=self.alpaca_api,
                         logger=logger
                     )
+                    logger.info("📈 DEBUGGING: StocksModule created, registering with orchestrator...")
                     self.orchestrator.register_module(stocks_module)
-                    logger.info("✅ Stocks module registered")
+                    logger.info("✅ DEBUGGING: Stocks module registration COMPLETED")
+                    
+                    # VERIFY REGISTRATION
+                    active_modules = self.orchestrator.registry.get_active_modules()
+                    stocks_found = any(m.module_name == 'stocks' for m in active_modules)
+                    logger.info(f"📈 DEBUGGING: Stocks module in active list: {stocks_found}")
+                    logger.info(f"📈 DEBUGGING: All active modules: {[m.module_name for m in active_modules]}")
                 except Exception as e:
                     logger.error(f"❌ Failed to register stocks module: {e}")
                     import traceback
