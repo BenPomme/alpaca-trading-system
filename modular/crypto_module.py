@@ -405,8 +405,8 @@ class CryptoModule(TradingModule):
             if not market_data:
                 return None
             
-            # Calculate analysis components
-            momentum_score = self._calculate_crypto_momentum(symbol, market_data)
+            # Calculate analysis components using institutional mean reversion approach
+            momentum_score = self._calculate_crypto_mean_reversion_score(symbol, market_data)
             volatility_score = self._calculate_crypto_volatility(symbol, market_data)
             volume_score = self._calculate_crypto_volume(symbol, market_data)
             
@@ -1144,6 +1144,11 @@ class CryptoModule(TradingModule):
                     low_24h = min(float(bar.l) for bar in bars) if bars else current_price * 0.98
                     volume_24h = sum(volumes) if volumes else 1000000
                     
+                    # Calculate mean reversion metrics for real data
+                    ma_20 = sum(prices[-20:]) / min(len(prices), 20) if prices else current_price
+                    avg_volume = sum(volumes) / len(volumes) if volumes else volume_24h
+                    volume_ratio = volume_24h / avg_volume if avg_volume > 0 else 1.0
+                    
                     self.logger.info(f"📊 {symbol}: Real 24h data - High: ${high_24h:.4f}, Low: ${low_24h:.4f}, Vol: {volume_24h:.0f}")
                     
                 else:
@@ -1161,6 +1166,10 @@ class CryptoModule(TradingModule):
                     low_24h = current_price * (2 - volatility_factor)
                     volume_24h = 800000 + (price_seed % 400000)  # Varying volume
                     
+                    # Calculate mean reversion metrics for simulated data
+                    ma_20 = current_price * 0.98  # Approximate MA
+                    volume_ratio = 1.0 + ((price_seed % 100) / 1000)  # 1.0-1.1 ratio variation
+                    
                     self.logger.info(f"📊 {symbol}: Simulated 24h data - momentum_factor: {momentum_factor:.4f}, volatility_factor: {volatility_factor:.4f}")
                 
             except Exception as api_error:
@@ -1175,6 +1184,12 @@ class CryptoModule(TradingModule):
                 high_24h = current_price * (1.02 + variation * 2)
                 low_24h = current_price * (0.96 - variation)
                 volume_24h = 800000 + (price_seed % 400000)
+                
+                # Calculate mean reversion metrics for enhanced fallback
+                ma_20 = current_price * (0.97 + variation)  # Approximate MA with variation
+                volume_ratio = 1.0 + ((price_seed % 150) / 1500)  # 1.0-1.1 ratio variation
+            
+            # ma_20 and volume_ratio are now calculated in each data path above
             
             return {
                 'current_price': current_price,
@@ -1182,7 +1197,9 @@ class CryptoModule(TradingModule):
                 'high_24h': high_24h,
                 'low_24h': low_24h,
                 'volume_24h': volume_24h,
-                'avg_volume_7d': volume_24h * 0.8  # Estimate weekly average
+                'avg_volume_7d': volume_24h * 0.8,  # Estimate weekly average
+                'ma_20': ma_20,  # 20-day moving average for mean reversion
+                'volume_ratio': volume_ratio  # Volume ratio for mean reversion
             }
             
         except Exception as e:

@@ -180,43 +180,46 @@ class TestCryptoModule(unittest.TestCase):
         self.assertIn('MANAUSD', symbols)  # gaming (US focus)
         self.assertIn('SANDUSD', symbols)  # gaming (US focus)
     
-    def test_calculate_crypto_momentum_positive(self):
-        """Test momentum calculation with positive trend"""
+    def test_calculate_crypto_mean_reversion_oversold(self):
+        """Test mean reversion calculation for oversold condition"""
+        market_data = {
+            'current_price': 40000.0,
+            'ma_20': 50000.0,  # 20% below MA (oversold)
+            'volume_ratio': 1.5
+        }
+        
+        score = self.crypto_module._calculate_crypto_mean_reversion_score('BTCUSD', market_data)
+        
+        # Oversold condition should result in high score
+        self.assertGreater(score, 0.7)
+        self.assertLessEqual(score, 1.0)
+    
+    def test_calculate_crypto_mean_reversion_overbought(self):
+        """Test mean reversion calculation for overbought condition"""
+        market_data = {
+            'current_price': 60000.0,
+            'ma_20': 50000.0,  # 20% above MA (overbought)
+            'volume_ratio': 1.0
+        }
+        
+        score = self.crypto_module._calculate_crypto_mean_reversion_score('BTCUSD', market_data)
+        
+        # Overbought condition should result in low score
+        self.assertLessEqual(score, 0.2)
+        self.assertGreaterEqual(score, 0.0)
+    
+    def test_calculate_crypto_mean_reversion_neutral(self):
+        """Test mean reversion calculation for neutral zone"""
         market_data = {
             'current_price': 50000.0,
-            'price_24h_ago': 48000.0
+            'ma_20': 50000.0,  # At MA (neutral)
+            'volume_ratio': 1.0
         }
         
-        momentum = self.crypto_module._calculate_crypto_momentum('BTCUSD', market_data)
+        score = self.crypto_module._calculate_crypto_mean_reversion_score('BTCUSD', market_data)
         
-        # 4.17% gain should result in momentum > 0.5
-        self.assertGreater(momentum, 0.5)
-        self.assertLessEqual(momentum, 1.0)
-    
-    def test_calculate_crypto_momentum_negative(self):
-        """Test momentum calculation with negative trend"""
-        market_data = {
-            'current_price': 45000.0,
-            'price_24h_ago': 48000.0
-        }
-        
-        momentum = self.crypto_module._calculate_crypto_momentum('BTCUSD', market_data)
-        
-        # 6.25% loss should result in momentum < 0.5
-        self.assertLess(momentum, 0.5)
-        self.assertGreaterEqual(momentum, 0.0)
-    
-    def test_calculate_crypto_momentum_neutral(self):
-        """Test momentum calculation with no data"""
-        market_data = {
-            'current_price': 45000.0
-            # No price_24h_ago
-        }
-        
-        momentum = self.crypto_module._calculate_crypto_momentum('BTCUSD', market_data)
-        
-        # Should return neutral (0.5) when no historical data
-        self.assertEqual(momentum, 0.5)
+        # Neutral zone should return moderate score
+        self.assertAlmostEqual(score, 0.4, places=1)
     
     def test_calculate_crypto_volatility_high(self):
         """Test volatility calculation with high volatility"""
