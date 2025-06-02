@@ -253,9 +253,9 @@ class ProductionTradingSystem:
                     crypto_config = ModuleConfig(
                         module_name="crypto",
                         enabled=True,
-                        max_allocation_pct=20.0,
+                        max_allocation_pct=30.0,  # Market hours: conservative 30%
                         min_confidence=0.6,
-                        max_positions=8,
+                        max_positions=15,  # Increased for aggressive after-hours trading
                         default_stop_loss_pct=0.10,
                         default_profit_target_pct=0.20,
                         custom_params={
@@ -263,7 +263,13 @@ class ProductionTradingSystem:
                                 'asia': 0.45,
                                 'europe': 0.50,
                                 'us': 0.40
-                            }
+                            },
+                            # AGGRESSIVE AFTER-HOURS PARAMETERS
+                            'after_hours_max_allocation_pct': 90.0,  # Use 90% of buying power after hours
+                            'leverage_multiplier': 1.5,  # Standard leverage during market hours
+                            'after_hours_leverage': 3.5,  # MAXIMUM leverage after hours
+                            'max_allocation_pct': 30.0,  # Conservative during market hours
+                            'volatility_threshold': 3.0  # Lower threshold for more opportunities
                         }
                     )
                     

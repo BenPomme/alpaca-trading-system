@@ -81,9 +81,11 @@ class CryptoModule(TradingModule):
         
         self.api = api_client
         
-        # Crypto-specific configuration
+        # Crypto-specific configuration with market hours awareness
         self.max_crypto_allocation = config.custom_params.get('max_allocation_pct', 30.0) / 100
+        self.after_hours_max_allocation = config.custom_params.get('after_hours_max_allocation_pct', 90.0) / 100  # Aggressive after-hours
         self.leverage_multiplier = config.custom_params.get('leverage_multiplier', 1.5)
+        self.after_hours_leverage = config.custom_params.get('after_hours_leverage', 3.5)  # Max leverage after hours
         self.volatility_threshold = config.custom_params.get('volatility_threshold', 5.0) / 100
         
         # Cryptocurrency universe organized by categories (only Alpaca-supported cryptos)
@@ -173,14 +175,20 @@ class CryptoModule(TradingModule):
         opportunities = []
         
         try:
-            # Check current allocation to avoid over-allocation
+            # Check current allocation with market-hours-aware limits
             current_allocation = self._get_current_crypto_allocation()
-            if current_allocation >= self.max_crypto_allocation:
-                self.logger.info(f"Crypto allocation limit reached: {current_allocation:.1%} - SKIPPING NEW ENTRIES")
+            max_allocation = self._get_max_allocation_for_current_session()
+            
+            if current_allocation >= max_allocation:
+                session_type = "AFTER-HOURS" if not self._is_stock_market_open() else "MARKET HOURS"
+                self.logger.info(f"Crypto allocation limit reached: {current_allocation:.1%} >= {max_allocation:.1%} ({session_type}) - SKIPPING NEW ENTRIES")
                 # Still continue with analysis for exit opportunities
                 # This ensures we actively manage exits when over-allocated
                 self.logger.info("🚨 ALLOCATION LIMIT: Focusing on exit opportunities to free capital")
                 return opportunities
+            else:
+                session_type = "AFTER-HOURS" if not self._is_stock_market_open() else "MARKET HOURS" 
+                self.logger.info(f"💰 ALLOCATION OK: {current_allocation:.1%} < {max_allocation:.1%} ({session_type}) - Ready for aggressive crypto trading")
             
             # Get ALL crypto symbols for 24/7 analysis
             active_symbols = self._get_active_crypto_symbols()
@@ -293,8 +301,22 @@ class CryptoModule(TradingModule):
             # Get current crypto positions
             positions = self._get_crypto_positions()
             
+            # Check if we should close positions before market opens (CRITICAL for strategy)
+            if self._should_close_positions_before_market_open() and positions:
+                self.logger.warning(f"🚨 PRE-MARKET CLOSURE: Closing {len(positions)} crypto positions before market opens")
+                for position in positions:
+                    symbol = position.get('symbol', 'unknown')
+                    self.logger.info(f"⏰ FORCED CLOSURE: {symbol} - preparing for stock market session")
+                    exit_result = self._execute_crypto_exit(position, "pre_market_closure")
+                    if exit_result:
+                        exit_results.append(exit_result)
+                return exit_results
+            
             if len(positions) > 0:
-                self.logger.info(f"📊 Monitoring {len(positions)} crypto positions for exits")
+                allocation = self._get_current_crypto_allocation()
+                max_allocation = self._get_max_allocation_for_current_session()
+                session_type = "AFTER-HOURS" if not self._is_stock_market_open() else "MARKET HOURS"
+                self.logger.info(f"📊 Monitoring {len(positions)} crypto positions for exits ({session_type}: {allocation:.1%}/{max_allocation:.1%})")
                 
                 for position in positions:
                     try:
@@ -471,9 +493,14 @@ class CryptoModule(TradingModule):
             # Determine trade direction - use momentum strategy for all crypto
             action = self._determine_crypto_action(analysis, crypto_config['strategy'])
             
-            # Calculate position size with consistent 24/7 multiplier and leverage
+            # Calculate position size with session-aware leverage (AGGRESSIVE after hours)
             base_quantity = self._calculate_crypto_quantity(analysis.symbol, analysis.current_price)
-            adjusted_quantity = base_quantity * crypto_config['position_size_multiplier'] * self.leverage_multiplier
+            session_leverage = self._get_leverage_for_current_session()
+            adjusted_quantity = base_quantity * crypto_config['position_size_multiplier'] * session_leverage
+            
+            # Log aggressive positioning when market is closed
+            if not self._is_stock_market_open():
+                self.logger.info(f"🚀 AFTER-HOURS AGGRESSIVE: {analysis.symbol} using {session_leverage}x leverage (vs {self.leverage_multiplier}x normal)")
             
             opportunity = TradeOpportunity(
                 symbol=analysis.symbol,
@@ -1206,3 +1233,47 @@ class CryptoModule(TradingModule):
             'focus_category': session_config.symbol_focus,
             'session_performance': dict(self._session_performance)
         }
+    
+    def _is_stock_market_open(self) -> bool:
+        """Check if US stock market is currently open"""
+        try:
+            clock = self.api.get_clock()
+            return getattr(clock, 'is_open', False)
+        except Exception as e:
+            self.logger.debug(f"Error checking market hours: {e}")
+            return False  # Assume closed if unable to check
+    
+    def _get_max_allocation_for_current_session(self) -> float:
+        """Get maximum crypto allocation based on market session"""
+        if self._is_stock_market_open():
+            # Market hours: Conservative allocation to save room for stock trades
+            return self.max_crypto_allocation  # 30%
+        else:
+            # After hours: AGGRESSIVE allocation - use almost all buying power for crypto
+            return self.after_hours_max_allocation  # 90%
+    
+    def _get_leverage_for_current_session(self) -> float:
+        """Get leverage multiplier based on market session"""
+        if self._is_stock_market_open():
+            # Market hours: Standard leverage
+            return self.leverage_multiplier  # 1.5x
+        else:
+            # After hours: MAXIMUM leverage for crypto opportunities
+            return self.after_hours_leverage  # 3.5x
+    
+    def _should_close_positions_before_market_open(self) -> bool:
+        """Check if we should close positions before market opens"""
+        try:
+            clock = self.api.get_clock()
+            if hasattr(clock, 'next_open'):
+                from datetime import datetime, timedelta
+                next_open = clock.next_open
+                current_time = datetime.now(next_open.tzinfo)
+                time_until_open = (next_open - current_time).total_seconds() / 60  # minutes
+                
+                # Close positions 30 minutes before market opens
+                return time_until_open <= 30 and time_until_open > 0
+            return False
+        except Exception as e:
+            self.logger.debug(f"Error checking time until market open: {e}")
+            return False
