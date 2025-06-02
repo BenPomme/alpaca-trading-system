@@ -81,11 +81,12 @@ class CryptoModule(TradingModule):
         
         self.api = api_client
         
-        # FIXED: Institutional-grade risk management
-        self.max_crypto_allocation = 0.15  # REDUCED from 30% to 15% (institutional standard)
-        self.after_hours_max_allocation = 0.15  # REDUCED from 90% to 15% (stop the bleeding)
-        self.leverage_multiplier = 1.0  # REDUCED from 1.5x to 1.0x (no leverage until profitable)
-        self.after_hours_leverage = 1.0  # REDUCED from 3.5x to 1.0x (stop destruction)
+        # SMART LEVERAGE SYSTEM FOR 5% MONTHLY ROI
+        self.base_crypto_allocation = 0.40  # Target 40% for 5% monthly ROI (balanced performance)
+        self.emergency_allocation = 0.20    # Emergency mode if losing money
+        self.max_profitable_allocation = 0.60  # Maximum when performing well
+        self.leverage_multiplier = 2.0      # Smart leverage for 5% monthly target
+        self.smart_allocation_enabled = True
         self.volatility_threshold = config.custom_params.get('volatility_threshold', 5.0) / 100
         
         # Cryptocurrency universe organized by categories (only Alpaca-supported cryptos)
@@ -179,24 +180,26 @@ class CryptoModule(TradingModule):
         opportunities = []
         
         try:
-            # INTELLIGENT RISK-BASED POSITION SIZING (no arbitrary allocation limits)
+            # SMART ALLOCATION CONTROL FOR 5% MONTHLY ROI TARGET
             current_allocation = self._get_current_crypto_allocation()
             session_type = "AFTER-HOURS" if not self._is_stock_market_open() else "MARKET HOURS"
             
-            # Check for excessive risk concentration (only stop if risk is too high)
+            # Get smart allocation limit based on performance
+            smart_allocation_limit = self._get_smart_allocation_limit()
+            
+            # Check current allocation vs smart limit
             portfolio_summary = self.risk_manager.get_portfolio_summary() if self.risk_manager else {}
             portfolio_value = portfolio_summary.get('portfolio_value', 100000)
-            
-            # Risk-based limits instead of allocation limits
-            max_daily_risk = portfolio_value * 0.05  # Max 5% portfolio risk per day
-            max_position_risk = portfolio_value * 0.02  # Max 2% risk per position
-            
             current_crypto_value = current_allocation * portfolio_value
             
-            # Only limit new positions if we're at extreme risk levels
-            if current_allocation >= 0.95:  # Only stop at 95% (extreme concentration)
-                self.logger.warning(f"🚨 EXTREME CONCENTRATION: {current_allocation:.1%} crypto allocation - pausing new entries for risk management")
-                return opportunities
+            if current_allocation >= smart_allocation_limit:
+                self.logger.warning(f"🎯 SMART ALLOCATION LIMIT: {current_allocation:.1%} >= {smart_allocation_limit:.1%} - optimizing for 5% monthly ROI")
+                self.logger.info(f"💡 PERFORMANCE MODE: Current allocation ${current_crypto_value:,.0f} optimized for risk-adjusted returns")
+                
+                # Don't completely stop - allow high-confidence opportunities for rebalancing
+                if current_allocation >= smart_allocation_limit * 1.2:  # 20% buffer
+                    self.logger.warning(f"🚨 ALLOCATION EXCEEDED: {current_allocation:.1%} > {smart_allocation_limit*1.2:.1%} - PAUSING new entries")
+                    return opportunities
             
             # Log current status without arbitrary limits
             self.logger.info(f"💰 CRYPTO STATUS ({session_type}): {current_allocation:.1%} allocation, "
