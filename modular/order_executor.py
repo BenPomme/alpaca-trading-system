@@ -92,6 +92,14 @@ class ModularOrderExecutor:
                     'error': f'Pending {side} order already exists for {symbol}'
                 }
             
+            # Check market hours for stock symbols (critical fix)
+            if not self._is_crypto_symbol(symbol):
+                if not self._is_market_open():
+                    return {
+                        'success': False,
+                        'error': f'Market closed - cannot trade {symbol} outside market hours'
+                    }
+            
             # Get current market price for validation
             current_price = self._get_current_price(symbol)
             if not current_price:
@@ -281,3 +289,23 @@ class ModularOrderExecutor:
         
         mode = "DISABLED" if not enabled else ("DRY_RUN" if dry_run else "LIVE")
         self.logger.info(f"🔧 Order execution mode: {mode}")
+    
+    def _is_crypto_symbol(self, symbol: str) -> bool:
+        """Check if symbol is a cryptocurrency (trades 24/7)."""
+        crypto_indicators = ['USD', 'BTC', 'ETH', 'USDT', '/']
+        return any(indicator in symbol for indicator in crypto_indicators)
+    
+    def _is_market_open(self) -> bool:
+        """Check if US stock market is currently open."""
+        try:
+            clock = self.api.get_clock()
+            is_open = getattr(clock, 'is_open', False)
+            
+            if not is_open:
+                self.logger.warning(f"🚨 MARKET CLOSED: Cannot execute stock orders outside market hours")
+            
+            return is_open
+        except Exception as e:
+            self.logger.error(f"❌ Error checking market hours: {e}")
+            # Conservative approach: assume market is closed if unable to verify
+            return False
