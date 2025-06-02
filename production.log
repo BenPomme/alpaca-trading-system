@@ -134,3 +134,13 @@
 2025-06-02 11:55:15,937 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
 2025-06-02 11:55:17,944 - werkzeug - INFO - 127.0.0.1 - - [02/Jun/2025 11:55:17] "[35m[1mGET /health HTTP/1.1[0m" 503 -
 2025-06-02 11:55:17,947 - werkzeug - INFO - 127.0.0.1 - - [02/Jun/2025 11:55:17] "GET /status HTTP/1.1" 200 -
+2025-06-02 11:58:02,657 - production_config - INFO - ✅ Configuration loaded from environment
+2025-06-02 11:58:02,657 - production_config - WARNING - ⚠️ ALPACA_PAPER_API_KEY not set - trading will be disabled
+2025-06-02 11:58:02,657 - production_config - WARNING - ⚠️ ALPACA_PAPER_SECRET_KEY not set - trading will be disabled
+2025-06-02 11:58:02,657 - production_config - WARNING - ⚠️ OPENAI_API_KEY not set - Market Intelligence will be disabled
+2025-06-02 11:58:02,657 - production_config - INFO - ⚡ Trading cycle configured: 900s intervals (optimized for Basic Plan)
+2025-06-02 11:58:02,657 - production_config - INFO - ✅ Cycle timing optimized for 15-minute delayed data access
+2025-06-02 11:58:02,657 - production_config - WARNING - ⚠️ Firebase keys missing: ['FIREBASE_PRIVATE_KEY_ID', 'FIREBASE_PRIVATE_KEY', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_CLIENT_ID'] - Firebase will be disabled
+2025-06-02 11:58:02,657 - production_config - INFO - ✅ Configuration validation complete
+2025-06-02 11:58:02,657 - production_health_check - INFO - 🏥 Health monitor initialized
+2025-06-02 11:58:02,657 - modular_production_main - INFO - 🚀 Production Trading System initializing...

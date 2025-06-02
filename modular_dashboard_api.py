@@ -16,6 +16,7 @@ import alpaca_trade_api as tradeapi
 # Import modular components
 from modular.firebase_interface import ModularFirebaseInterface
 from firebase_database import FirebaseDatabase
+from standardized_metrics import StandardizedMetrics, get_standardized_metrics_summary
 
 
 class ModularDashboardAPI:
@@ -27,6 +28,9 @@ class ModularDashboardAPI:
         # Initialize Firebase connections
         self.firebase_db = FirebaseDatabase()
         self.modular_interface = ModularFirebaseInterface(self.firebase_db, self.logger)
+        
+        # Initialize standardized metrics calculator
+        self.metrics_calculator = StandardizedMetrics()
         
         # Initialize Alpaca API for real-time account data
         api_key = os.getenv('ALPACA_PAPER_API_KEY')
@@ -635,19 +639,80 @@ class ModularDashboardAPI:
             recent_trades = self.get_recent_trades()
             
             if recent_trades:
-                # Basic trade statistics
-                metrics['total_trades'] = len(recent_trades)
+                # STANDARDIZED METRICS CALCULATION - FIX FOR WIN RATE INCONSISTENCY
+                self.logger.info(f"📊 Calculating standardized metrics for {len(recent_trades)} trades")
                 
-                pnl_values = [trade.get('pnl', 0) for trade in recent_trades if trade.get('pnl') is not None]
-                
-                if pnl_values:
-                    metrics['winning_trades'] = sum(1 for pnl in pnl_values if pnl > 0)
-                    metrics['losing_trades'] = sum(1 for pnl in pnl_values if pnl < 0)
-                    metrics['win_rate'] = (metrics['winning_trades'] / len(pnl_values)) * 100
-                    metrics['total_pnl'] = sum(pnl_values)
-                    metrics['avg_pnl_per_trade'] = metrics['total_pnl'] / len(pnl_values)
-                    metrics['best_trade'] = max(pnl_values)
-                    metrics['worst_trade'] = min(pnl_values)
+                try:
+                    # Use standardized metrics calculator
+                    standardized_report = self.metrics_calculator.generate_performance_report(
+                        recent_trades, 
+                        source_format='firebase',
+                        include_module_breakdown=False
+                    )
+                    
+                    # Extract standardized metrics
+                    std_metrics = standardized_report['overall_performance']['metrics']
+                    std_counts = standardized_report['overall_performance']['raw_counts']
+                    
+                    # Update metrics with standardized calculations
+                    metrics['total_trades'] = std_counts['total_trades']
+                    metrics['executed_trades'] = std_counts['executed_trades']
+                    metrics['completed_trades'] = std_counts['completed_trades']
+                    metrics['profitable_trades'] = std_counts['profitable_trades']
+                    metrics['winning_trades'] = std_counts['profitable_trades']  # Legacy compatibility
+                    metrics['losing_trades'] = std_counts['completed_trades'] - std_counts['profitable_trades']
+                    
+                    # CLEAR METRIC SEPARATION - NO MORE CONFUSION
+                    metrics['execution_rate'] = std_metrics['execution_rate']['value']
+                    metrics['execution_rate_label'] = std_metrics['execution_rate']['label']
+                    
+                    metrics['profitability_rate'] = std_metrics['profitability_rate']['value']
+                    metrics['profitability_rate_label'] = std_metrics['profitability_rate']['label']
+                    
+                    metrics['overall_success_rate'] = std_metrics['overall_success_rate']['value']
+                    metrics['overall_success_rate_label'] = std_metrics['overall_success_rate']['label']
+                    
+                    # For backward compatibility, use profitability_rate as default "win_rate"
+                    metrics['win_rate'] = std_metrics['profitability_rate']['value']
+                    metrics['win_rate_note'] = f"Profitability Rate: {std_metrics['profitability_rate']['description']}"
+                    
+                    # Calculate P&L statistics
+                    pnl_values = [trade.get('pnl', 0) for trade in recent_trades if trade.get('pnl') is not None]
+                    if pnl_values:
+                        metrics['total_pnl'] = sum(pnl_values)
+                        metrics['avg_pnl_per_trade'] = metrics['total_pnl'] / len(pnl_values)
+                        metrics['best_trade'] = max(pnl_values)
+                        metrics['worst_trade'] = min(pnl_values)
+                    else:
+                        metrics['total_pnl'] = 0
+                        metrics['avg_pnl_per_trade'] = 0
+                        metrics['best_trade'] = 0
+                        metrics['worst_trade'] = 0
+                    
+                    # Add data quality information
+                    metrics['data_quality'] = standardized_report['data_quality']
+                    metrics['metric_source'] = 'standardized_metrics_v1.0'
+                    
+                    self.logger.info(f"✅ Standardized metrics calculated:")
+                    self.logger.info(f"   Execution Rate: {metrics['execution_rate']}%")
+                    self.logger.info(f"   Profitability Rate: {metrics['profitability_rate']}%")
+                    self.logger.info(f"   Overall Success Rate: {metrics['overall_success_rate']}%")
+                    
+                except Exception as e:
+                    self.logger.error(f"❌ Standardized metrics calculation failed: {e}")
+                    # Fallback to legacy calculation
+                    metrics['total_trades'] = len(recent_trades)
+                    pnl_values = [trade.get('pnl', 0) for trade in recent_trades if trade.get('pnl') is not None]
+                    if pnl_values:
+                        metrics['winning_trades'] = sum(1 for pnl in pnl_values if pnl > 0)
+                        metrics['losing_trades'] = sum(1 for pnl in pnl_values if pnl < 0)
+                        metrics['win_rate'] = (metrics['winning_trades'] / len(pnl_values)) * 100
+                        metrics['win_rate_note'] = "LEGACY CALCULATION - May be inconsistent"
+                        metrics['total_pnl'] = sum(pnl_values)
+                        metrics['avg_pnl_per_trade'] = metrics['total_pnl'] / len(pnl_values)
+                        metrics['best_trade'] = max(pnl_values)
+                        metrics['worst_trade'] = min(pnl_values)
+                    metrics['metric_source'] = 'legacy_fallback'
             
             # Add portfolio-based metrics if Alpaca is available
             if self.api:
