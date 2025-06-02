@@ -387,6 +387,52 @@ class RiskManager:
             self.logger.error(f"Error validating opportunity {opportunity.symbol}: {e}")
             return False
 
+    def get_portfolio_summary(self) -> Dict[str, float]:
+        """
+        Get portfolio summary for risk calculations.
+        
+        Returns:
+            Dictionary with portfolio metrics
+        """
+        try:
+            account = self.api.get_account()
+            positions = self.api.list_positions()
+            
+            portfolio_value = float(account.portfolio_value)
+            equity = float(account.equity)
+            cash = float(account.cash)
+            
+            # Calculate position values
+            long_value = sum(float(pos.market_value) for pos in positions if float(pos.qty) > 0)
+            short_value = sum(abs(float(pos.market_value)) for pos in positions if float(pos.qty) < 0)
+            total_positions = len(positions)
+            
+            return {
+                'portfolio_value': portfolio_value,
+                'equity': equity,
+                'cash': cash,
+                'buying_power': float(account.buying_power),
+                'long_value': long_value,
+                'short_value': short_value,
+                'total_positions': total_positions,
+                'cash_percentage': cash / portfolio_value * 100 if portfolio_value > 0 else 0,
+                'invested_percentage': (long_value + short_value) / portfolio_value * 100 if portfolio_value > 0 else 0
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error getting portfolio summary: {e}")
+            return {
+                'portfolio_value': 100000,  # Default fallback
+                'equity': 100000,
+                'cash': 50000,
+                'buying_power': 50000,
+                'long_value': 50000,
+                'short_value': 0,
+                'total_positions': 0,
+                'cash_percentage': 50.0,
+                'invested_percentage': 50.0
+            }
+    
     def get_module_allocation(self, module_name: str) -> float:
         """
         Get current allocation percentage for a specific module.
