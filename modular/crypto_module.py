@@ -81,11 +81,11 @@ class CryptoModule(TradingModule):
         
         self.api = api_client
         
-        # Crypto-specific configuration with market hours awareness
-        self.max_crypto_allocation = config.custom_params.get('max_allocation_pct', 30.0) / 100
-        self.after_hours_max_allocation = config.custom_params.get('after_hours_max_allocation_pct', 90.0) / 100  # Aggressive after-hours
-        self.leverage_multiplier = config.custom_params.get('leverage_multiplier', 1.5)
-        self.after_hours_leverage = config.custom_params.get('after_hours_leverage', 3.5)  # Max leverage after hours
+        # FIXED: Institutional-grade risk management
+        self.max_crypto_allocation = 0.15  # REDUCED from 30% to 15% (institutional standard)
+        self.after_hours_max_allocation = 0.15  # REDUCED from 90% to 15% (stop the bleeding)
+        self.leverage_multiplier = 1.0  # REDUCED from 1.5x to 1.0x (no leverage until profitable)
+        self.after_hours_leverage = 1.0  # REDUCED from 3.5x to 1.0x (stop destruction)
         self.volatility_threshold = config.custom_params.get('volatility_threshold', 5.0) / 100
         
         # Cryptocurrency universe organized by categories (only Alpaca-supported cryptos)
@@ -96,13 +96,17 @@ class CryptoModule(TradingModule):
             # Removed 'gaming' category (MANAUSD, SANDUSD not supported by Alpaca Paper API)
         }
         
-        # 24/7 Crypto Trading Configuration - No artificial session restrictions
+        # INSTITUTIONAL CRYPTO STRATEGY - Research-backed mean reversion
         self.crypto_trading_config = {
-            'min_confidence': 0.35,  # Aggressive threshold for 24/7 opportunities
-            'position_size_multiplier': 1.2,  # Consistent aggressive sizing
-            'strategy': CryptoStrategy.MOMENTUM,  # Best performing strategy for crypto
-            'analyze_all_symbols': True,  # Always analyze entire universe
-            'cycle_frequency_seconds': 120  # 2-minute cycles for crypto
+            'min_confidence': 0.60,  # Higher threshold based on research
+            'position_size_multiplier': 0.8,  # Conservative sizing with proper risk management
+            'strategy': CryptoStrategy.REVERSAL,  # Mean reversion strategy (proven for crypto)
+            'analyze_all_symbols': False,  # Focus on top 3 cryptos for concentration
+            'cycle_frequency_seconds': 3600,  # Hourly cycles (not intraday scalping)
+            'stop_loss_pct': 0.10,  # 10% stop loss (CRITICAL missing piece)
+            'profit_target_pct': 0.15,  # 15% profit target for mean reversion
+            'oversold_threshold': -0.20,  # Buy on 20%+ dips from moving average
+            'moving_average_period': 20  # 20-day MA for mean reversion reference
         }
         
         # Keep session configs for legacy compatibility but don't use for restrictions
@@ -429,27 +433,48 @@ class CryptoModule(TradingModule):
             self.logger.error(f"Error analyzing crypto symbol {symbol}: {e}")
             return None
     
-    def _calculate_crypto_momentum(self, symbol: str, market_data: Dict) -> float:
-        """Calculate momentum score for cryptocurrency"""
+    def _calculate_crypto_mean_reversion_score(self, symbol: str, market_data: Dict) -> float:
+        """Calculate mean reversion score for cryptocurrency (INSTITUTIONAL APPROACH)"""
         try:
-            # Simplified momentum calculation
-            price_24h_ago = market_data.get('price_24h_ago', market_data.get('current_price', 0))
+            # Get data for mean reversion analysis
             current_price = market_data.get('current_price', 0)
+            ma_20 = market_data.get('ma_20', current_price)  # 20-day moving average
+            volume_ratio = market_data.get('volume_ratio', 1.0)
             
-            if price_24h_ago <= 0:
-                return 0.5  # Neutral if no historical data
+            if ma_20 <= 0:
+                return 0.0
             
-            price_change_pct = (current_price - price_24h_ago) / price_24h_ago
+            # Calculate distance from moving average (key mean reversion metric)
+            distance_from_ma = (current_price - ma_20) / ma_20
             
-            # Convert to 0-1 score (0.5 = neutral, >0.5 = positive momentum)
-            momentum_score = 0.5 + (price_change_pct * 5)  # Scale by 5 for sensitivity
+            # INSTITUTIONAL LOGIC: Buy when oversold (below MA), sell when overbought (above MA)
+            oversold_threshold = self.crypto_trading_config['oversold_threshold']  # -20%
             
-            # Clamp to 0-1 range
-            return max(0.0, min(1.0, momentum_score))
+            if distance_from_ma <= oversold_threshold:
+                # Oversold condition - higher score for bigger discounts
+                # More oversold = higher confidence for mean reversion
+                oversold_magnitude = abs(distance_from_ma) / abs(oversold_threshold)
+                base_score = min(oversold_magnitude, 1.0)
+                
+                # Volume confirmation increases confidence
+                volume_boost = min((volume_ratio - 1.0) * 0.3, 0.3)  # Up to 30% boost
+                
+                final_score = min(base_score + volume_boost, 1.0)
+                
+                self.logger.info(f"📉 {symbol}: OVERSOLD SIGNAL - Distance from MA: {distance_from_ma:.1%}, Score: {final_score:.2f}")
+                return final_score
+            
+            elif distance_from_ma >= 0.20:  # Overbought (20% above MA)
+                # Overbought - low score (don't buy, prepare to sell)
+                return 0.1
+            
+            else:
+                # Neutral zone - moderate score
+                return 0.4
             
         except Exception as e:
-            self.logger.debug(f"Error calculating momentum for {symbol}: {e}")
-            return 0.5
+            self.logger.debug(f"Error calculating mean reversion for {symbol}: {e}")
+            return 0.3
     
     def _calculate_crypto_volatility(self, symbol: str, market_data: Dict) -> float:
         """Calculate volatility score for cryptocurrency"""
@@ -753,19 +778,24 @@ class CryptoModule(TradingModule):
             
             unrealized_pl_pct = unrealized_pl / market_value
             
-            # SMART EXIT LOGIC - Only exit for good trading reasons, not allocation nonsense
+            # INSTITUTIONAL EXIT LOGIC - Research-backed risk management
             
-            # 1. STOP LOSS - Protect capital (most important)
-            if unrealized_pl_pct <= -0.15:  # 15% stop loss
-                return 'stop_loss'
+            # 1. EMERGENCY STOP LOSS - Protect capital (MOST CRITICAL FIX)
+            stop_loss_pct = self.crypto_trading_config.get('stop_loss_pct', 0.10)
+            if unrealized_pl_pct <= -stop_loss_pct:  # 10% stop loss (DOWN from 15%)
+                self.logger.warning(f"🚨 EMERGENCY STOP LOSS: {position.get('symbol')} at {unrealized_pl_pct:.1%} loss")
+                return 'emergency_stop_loss'
             
-            # 2. MEAN REVERSION - Exit outsized winners first (before normal profit target)
-            if unrealized_pl_pct >= 0.40:  # 40%+ gains may be due for reversal
-                return 'mean_reversion_exit'
+            # 2. INSTITUTIONAL PROFIT TARGET - Mean reversion complete
+            profit_target_pct = self.crypto_trading_config.get('profit_target_pct', 0.15)
+            if unrealized_pl_pct >= profit_target_pct:  # 15% profit target (DOWN from 25%)
+                self.logger.info(f"🎯 PROFIT TARGET HIT: {position.get('symbol')} at {unrealized_pl_pct:.1%} gain")
+                return 'institutional_profit_target'
             
-            # 3. PROFIT TARGET - Take profits at good levels
-            if unrealized_pl_pct >= 0.25:  # 25% profit target for crypto
-                return 'profit_target'
+            # 3. MEAN REVERSION OVERBOUGHT EXIT - Exit if too far above MA
+            if unrealized_pl_pct >= 0.30:  # 30%+ gains may be due for reversal
+                self.logger.info(f"🔄 MEAN REVERSION EXIT: {position.get('symbol')} at {unrealized_pl_pct:.1%} - overbought")
+                return 'mean_reversion_overbought'
             
             # 4. TRAILING STOP LOGIC - Protect profits once we're doing well
             if unrealized_pl_pct >= 0.20:  # If we're at 20%+ profit
