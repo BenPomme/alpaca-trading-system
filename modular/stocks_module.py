@@ -678,8 +678,12 @@ class StocksModule(TradingModule):
             }
             
             self.logger.info(f"Attempting stock trade for {opportunity.symbol}: {order_data['side']} {order_data['qty']} shares.")
-            execution_result = self.order_executor.execute_order(order_data)
-            
+            try:
+                execution_result = self.order_executor.execute_order(order_data)
+            except Exception as e:
+                self.logger.error(f"Error executing stock order for {opportunity.symbol}: {e}")
+                return None
+
             if not execution_result or not execution_result.get('success'):
                 error_msg = execution_result.get('error', 'Unknown error during stock order submission')
                 self.logger.error(f"Failed to submit stock order for {opportunity.symbol}: {error_msg}")
