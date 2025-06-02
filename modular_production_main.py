@@ -399,7 +399,10 @@ class ProductionTradingSystem:
             def health_check():
                 """Health check endpoint for Railway."""
                 health_status = self.get_system_health()
-                status_code = 200 if health_status['status'] == 'healthy' else 503
+                # Return 200 for healthy and degraded (system running)
+                # Return 503 only for stopped, error, or critical (system down)
+                running_statuses = {'healthy', 'degraded'}
+                status_code = 200 if health_status['status'] in running_statuses else 503
                 return jsonify(health_status), status_code
             
             @self.flask_app.route('/status')

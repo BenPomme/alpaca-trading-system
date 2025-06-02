@@ -1,6 +1,6 @@
 # QA.md - Quality Assurance & Bug Prevention Guide
 
-This file documents 11 major bugs encountered during Phase 3-4 development and establishes rules to prevent similar issues in future development.
+This file documents 12 major bugs encountered during Phase 3-4 development and establishes rules to prevent similar issues in future development.
 
 **MAJOR BREAKTHROUGH**: QA.md rules led to complete order execution system implementation (Bugs #10-11), achieving live trade execution with real Alpaca order IDs.
 
@@ -719,6 +719,109 @@ bars[formatted_symbol].c  # Not bars.c
 2. **Firebase Method Missing**: `'FirebaseDatabase' object has no attribute 'save_trade_opportunity'`
 
 **Key Lesson**: Always research actual API documentation when integration fails - don't assume method names or data formats.
+
+### 12. Successful Trades Count Mismatch (June 2, 2025)
+
+**Bug**: Railway logs show successful order executions with real Alpaca order IDs, but cycle summary reports `successful_trades: 0`
+
+**Root Cause Discovery**: 
+1. `TradeResult.success` property required `pnl > 0` for all trades
+2. Entry trades don't have P&L until position is closed (pnl=None)
+3. Success property was counting only profitable closed positions, not successful order executions
+4. Orchestrator uses `result.success` to count successful_trades in cycle summary
+
+**Research Done**: 
+- Analyzed orchestrator.py line 306: `result['successful_trades'] += result['successful_trades']`
+- Found TradeResult.success property in base_module.py lines 91-93
+- Traced trade execution flow from crypto_module.py to base_module.py
+- Confirmed entry trades create TradeResult with status=EXECUTED but pnl=None
+
+**Solution Applied**:
+```python
+# FIXED TradeResult.success property logic:
+@property
+def success(self) -> bool:
+    if self.status != TradeStatus.EXECUTED:
+        return False
+        
+    # For exit trades (have pnl data), success means profitable
+    if self.pnl is not None:
+        return self.pnl > 0
+        
+    # For entry trades (no pnl yet), success means order was executed
+    return True
+```
+
+**QA Rules Applied**: Rules 5, 6, 9 (data contracts, logic validation, defensive programming)
+
+**Outcome**: 
+- ✅ **Entry trades now count as successful** when orders execute
+- ✅ **Exit trades count as successful** only when profitable  
+- ✅ **Accurate success metrics** for cycle summaries
+- ✅ **Proper profit tracking** for ML learning system
+
+**Prevention Rule Added**:
+> **RULE 12: Trade Success Definition Clarity**
+> - Entry trades: Success = order executed successfully
+> - Exit trades: Success = order executed AND profitable
+> - Always distinguish between execution success and trade profitability
+> - Ensure success metrics align with business requirements (order fills vs profit)
+
+---
+
+### 13. Over-Allocation Exit Logic Bug (June 2, 2025)
+
+**Bug**: Railway logs show mass crypto exits during after-hours due to "over_allocation_rebalance" when allocation is 82.3% vs 90.0% available
+
+**Observed Symptoms**:
+```
+📊 Monitoring 7 crypto positions for exits (AFTER-HOURS: 82.3%/90.0%)
+🚨 EXIT SIGNAL: BTCUSD - over_allocation_rebalance
+🚨 EXIT SIGNAL: ETHUSD - over_allocation_rebalance  
+🚨 EXIT SIGNAL: LINKUSD - over_allocation_rebalance
+```
+
+**Root Cause Analysis**: 
+1. **Incorrect Allocation Comparison**: `crypto_module.py` line 750 used static 30% threshold
+2. **Session-Awareness Missing**: Exit logic ignored after-hours 90% allocation limit
+3. **Logic Flow**: `over_allocation = current_allocation >= self.max_crypto_allocation` (30%)
+4. **Impact**: 82.3% > 30% triggered aggressive exits, but 82.3% < 90% should be normal
+
+**Research Done**: 
+- Traced allocation logic in `_analyze_crypto_exit()` method
+- Found session-aware allocation in `analyze_opportunities()` working correctly
+- Confirmed `_get_max_allocation_for_current_session()` returns 90% after-hours
+- Identified inconsistency between entry analysis (session-aware) and exit analysis (static)
+
+**Solution Applied**:
+```python
+# BEFORE (incorrect):
+over_allocation = current_allocation >= self.max_crypto_allocation  # Always 30%
+
+# AFTER (correct):
+max_allocation = self._get_max_allocation_for_current_session()  # 30% or 90%
+over_allocation = current_allocation >= max_allocation
+```
+
+**Additional Improvements**:
+- Raised profit exit threshold from 2% to 5% when over-allocated
+- Added better logging to show session-aware allocation comparison
+- Enhanced debugging with session type information
+
+**QA Rules Applied**: Rules 1, 5, 6 (attribute consistency, data contracts, logic validation)
+
+**Outcome**: 
+- ✅ **After-hours 90% allocation limit** now properly respected
+- ✅ **Reduced premature exits** of profitable positions (2-5% range)
+- ✅ **Session-aware exit logic** matches entry logic consistency
+- ✅ **Better position holding** for target profit levels (25%)
+
+**Prevention Rule Added**:
+> **RULE 13: Session-Aware Logic Consistency**
+> - When implementing session-aware entry logic, ensure exit logic matches
+> - Always use the same allocation calculation methods across entry/exit analysis
+> - Verify dynamic thresholds (time-based, market-based) are applied consistently
+> - Test allocation logic with boundary conditions (market open/close transitions)
 
 ---
 

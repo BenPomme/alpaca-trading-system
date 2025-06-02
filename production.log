@@ -118,3 +118,19 @@
 2025-06-01 16:20:50,828 - __main__ - INFO - 🛑 Initiating graceful shutdown...
 2025-06-01 16:20:50,828 - __main__ - INFO - ✅ Firebase connection closed
 2025-06-01 16:20:50,828 - __main__ - INFO - ✅ Graceful shutdown complete
+2025-06-02 11:55:15,931 - production_config - INFO - ✅ Configuration loaded from environment
+2025-06-02 11:55:15,931 - production_config - WARNING - ⚠️ ALPACA_PAPER_API_KEY not set - trading will be disabled
+2025-06-02 11:55:15,931 - production_config - WARNING - ⚠️ ALPACA_PAPER_SECRET_KEY not set - trading will be disabled
+2025-06-02 11:55:15,931 - production_config - WARNING - ⚠️ OPENAI_API_KEY not set - Market Intelligence will be disabled
+2025-06-02 11:55:15,931 - production_config - INFO - ⚡ Trading cycle configured: 900s intervals (optimized for Basic Plan)
+2025-06-02 11:55:15,931 - production_config - INFO - ✅ Cycle timing optimized for 15-minute delayed data access
+2025-06-02 11:55:15,931 - production_config - WARNING - ⚠️ Firebase keys missing: ['FIREBASE_PRIVATE_KEY_ID', 'FIREBASE_PRIVATE_KEY', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_CLIENT_ID'] - Firebase will be disabled
+2025-06-02 11:55:15,931 - production_config - INFO - ✅ Configuration validation complete
+2025-06-02 11:55:15,931 - production_health_check - INFO - 🏥 Health monitor initialized
+2025-06-02 11:55:15,931 - modular_production_main - INFO - 🚀 Production Trading System initializing...
+2025-06-02 11:55:15,932 - modular_production_main - INFO - ✅ Flask health endpoints initialized (including Market Intelligence)
+2025-06-02 11:55:15,937 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:8080
+2025-06-02 11:55:15,937 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-06-02 11:55:17,944 - werkzeug - INFO - 127.0.0.1 - - [02/Jun/2025 11:55:17] "[35m[1mGET /health HTTP/1.1[0m" 503 -
+2025-06-02 11:55:17,947 - werkzeug - INFO - 127.0.0.1 - - [02/Jun/2025 11:55:17] "GET /status HTTP/1.1" 200 -
