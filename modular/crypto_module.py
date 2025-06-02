@@ -11,6 +11,7 @@ from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
 from enum import Enum
 import time
+import dataclasses
 
 from modular.base_module import (
     TradingModule, ModuleConfig, TradeOpportunity, TradeResult,
@@ -713,7 +714,7 @@ class CryptoModule(TradingModule):
             self.logger.error(f"Crypto execution error for {opportunity.symbol}: {e}", exc_info=True)
             return TradeResult(
                 opportunity=opportunity,
-                status=TradeStatus.ERROR, # Changed from FAILED for clarity
+                status=TradeStatus.FAILED,
                 order_id=None,
                 error_message=f"Crypto execution error: {str(e)}"
             )
@@ -1061,7 +1062,7 @@ class CryptoModule(TradingModule):
             )
             return TradeResult(
                 opportunity=error_opportunity,
-                status=TradeStatus.ERROR,
+                status=TradeStatus.FAILED,
                 order_id=None,
                 error_message=str(e)
             )
