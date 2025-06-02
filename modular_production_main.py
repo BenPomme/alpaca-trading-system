@@ -225,9 +225,9 @@ class ProductionTradingSystem:
                     options_config = ModuleConfig(
                         module_name="options",
                         enabled=True,
-                        max_allocation_pct=30.0,
-                        min_confidence=0.7,
-                        max_positions=5,
+                        max_allocation_pct=50.0,  # Increased for full buying power usage
+                        min_confidence=0.6,      # Lowered for more opportunities
+                        max_positions=10,        # Increased for more diversification
                         default_stop_loss_pct=0.08,
                         default_profit_target_pct=0.15,
                         custom_params={
@@ -302,9 +302,9 @@ class ProductionTradingSystem:
                     stocks_config = ModuleConfig(
                         module_name="stocks",
                         enabled=True,
-                        max_allocation_pct=50.0,
-                        min_confidence=0.65,
-                        max_positions=10,
+                        max_allocation_pct=80.0,  # Increased for full buying power usage
+                        min_confidence=0.55,     # Lowered for more opportunities
+                        max_positions=20,        # Increased for more diversification
                         default_stop_loss_pct=0.08,
                         default_profit_target_pct=0.15,
                         custom_params={

@@ -1381,7 +1381,12 @@ class CryptoModule(TradingModule):
         """Get smart allocation limit based on performance for 5% monthly ROI target"""
         try:
             if not self.smart_allocation_enabled:
-                return self.base_crypto_allocation
+                return 0.90  # Use 90% of buying power when smart allocation disabled
+            
+            # MARKET HOURS: Use majority of buying power for aggressive trading
+            if self._is_stock_market_open():
+                self.logger.info("📈 MARKET HOURS: Using 80% allocation for maximum opportunity capture")
+                return 0.80  # 80% during market hours for full buying power usage
             
             # Get current performance metrics
             current_win_rate = self._calculate_current_win_rate()
@@ -1394,7 +1399,7 @@ class CryptoModule(TradingModule):
                 self.logger.warning(f"🚨 EMERGENCY MODE: Monthly loss {monthly_performance:.1%} - reducing to {self.emergency_allocation:.1%}")
                 return self.emergency_allocation  # 20%
             
-            # PERFORMANCE-BASED ALLOCATION TIERS
+            # PERFORMANCE-BASED ALLOCATION TIERS (AFTER HOURS)
             if current_win_rate < 0.45:
                 # Learning phase: Conservative allocation while system learns
                 return 0.25  # 25% max allocation
