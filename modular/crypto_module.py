@@ -154,9 +154,14 @@ class CryptoModule(TradingModule):
             } for session in TradingSession
         }
         
+        # Define missing attributes for compatibility
+        self.max_crypto_allocation = self.base_crypto_allocation  # Default to base allocation
+        self.after_hours_max_allocation = 0.90  # 90% for after hours aggressive trading
+        self.after_hours_leverage = 3.5  # 3.5x leverage for after hours
+        
         total_cryptos = sum(len(symbols) for symbols in self.crypto_universe.values())
         self.logger.info(f"Crypto module initialized with {total_cryptos} cryptocurrencies")
-        self.logger.info(f"Max allocation: {self.max_crypto_allocation:.1%}, Leverage: {self.leverage_multiplier}x")
+        self.logger.info(f"Smart allocation range: {self.emergency_allocation:.1%}-{self.max_profitable_allocation:.1%}, Leverage: {self.leverage_multiplier}x")
     
     @property
     def module_name(self) -> str:
@@ -1369,3 +1374,95 @@ class CryptoModule(TradingModule):
         except Exception as e:
             self.logger.debug(f"Error checking time until market open: {e}")
             return False
+    
+    # Smart Allocation Methods for 5% Monthly ROI Target
+    
+    def _get_smart_allocation_limit(self) -> float:
+        """Get smart allocation limit based on performance for 5% monthly ROI target"""
+        try:
+            if not self.smart_allocation_enabled:
+                return self.base_crypto_allocation
+            
+            # Get current performance metrics
+            current_win_rate = self._calculate_current_win_rate()
+            monthly_performance = self._calculate_monthly_performance()
+            
+            self.logger.info(f"🎯 SMART ALLOCATION: Win rate: {current_win_rate:.1%}, Monthly: {monthly_performance:.1%}")
+            
+            # EMERGENCY MODE: If losing 5%+ this month, drastically reduce allocation
+            if monthly_performance < -0.05:
+                self.logger.warning(f"🚨 EMERGENCY MODE: Monthly loss {monthly_performance:.1%} - reducing to {self.emergency_allocation:.1%}")
+                return self.emergency_allocation  # 20%
+            
+            # PERFORMANCE-BASED ALLOCATION TIERS
+            if current_win_rate < 0.45:
+                # Learning phase: Conservative allocation while system learns
+                return 0.25  # 25% max allocation
+            elif current_win_rate < 0.60:
+                # Stable phase: Moderate allocation for balanced growth
+                return self.base_crypto_allocation  # 40% target allocation
+            else:
+                # Profitable phase: Maximum allocation for 5% monthly target
+                return self.max_profitable_allocation  # 60% max allocation
+                
+        except Exception as e:
+            self.logger.error(f"Error calculating smart allocation limit: {e}")
+            return self.base_crypto_allocation  # Fallback to 40%
+    
+    def _calculate_current_win_rate(self) -> float:
+        """Calculate current win rate across all sessions"""
+        try:
+            total_trades = 0
+            profitable_trades = 0
+            
+            for session_stats in self._session_performance.values():
+                total_trades += session_stats.get('total_trades', 0)
+                profitable_trades += session_stats.get('profitable_trades', 0)
+            
+            if total_trades == 0:
+                return 0.50  # Neutral starting point
+            
+            win_rate = profitable_trades / total_trades
+            return win_rate
+            
+        except Exception as e:
+            self.logger.error(f"Error calculating win rate: {e}")
+            return 0.50  # Conservative default
+    
+    def _calculate_monthly_performance(self) -> float:
+        """Calculate monthly performance for smart allocation decisions"""
+        try:
+            # Get daily P&L for last 30 days (simplified version)
+            daily_pnl = self._get_daily_pnl()
+            
+            if not daily_pnl:
+                return 0.0  # No performance data yet
+            
+            # Calculate portfolio base value (for percentage calculation)
+            account = self.api.get_account()
+            portfolio_value = float(getattr(account, 'portfolio_value', 100000))
+            
+            # Sum recent P&L and calculate percentage
+            recent_pnl = sum(daily_pnl[-30:])  # Last 30 days
+            monthly_performance = recent_pnl / portfolio_value if portfolio_value > 0 else 0.0
+            
+            return monthly_performance
+            
+        except Exception as e:
+            self.logger.error(f"Error calculating monthly performance: {e}")
+            return 0.0  # Conservative default
+    
+    def _get_daily_pnl(self) -> List[float]:
+        """Get daily P&L history for performance calculation"""
+        try:
+            # Sum up total P&L from all sessions (simplified)
+            total_pnl = 0.0
+            for session_stats in self._session_performance.values():
+                total_pnl += session_stats.get('total_pnl', 0.0)
+            
+            # Return as single-day entry (in production, would track daily history)
+            return [total_pnl] if total_pnl != 0 else []
+            
+        except Exception as e:
+            self.logger.error(f"Error getting daily P&L: {e}")
+            return []
