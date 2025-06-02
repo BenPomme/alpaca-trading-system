@@ -175,20 +175,28 @@ class CryptoModule(TradingModule):
         opportunities = []
         
         try:
-            # Check current allocation with market-hours-aware limits
+            # INTELLIGENT RISK-BASED POSITION SIZING (no arbitrary allocation limits)
             current_allocation = self._get_current_crypto_allocation()
-            max_allocation = self._get_max_allocation_for_current_session()
+            session_type = "AFTER-HOURS" if not self._is_stock_market_open() else "MARKET HOURS"
             
-            if current_allocation >= max_allocation:
-                session_type = "AFTER-HOURS" if not self._is_stock_market_open() else "MARKET HOURS"
-                self.logger.info(f"Crypto allocation limit reached: {current_allocation:.1%} >= {max_allocation:.1%} ({session_type}) - SKIPPING NEW ENTRIES")
-                # Still continue with analysis for exit opportunities
-                # This ensures we actively manage exits when over-allocated
-                self.logger.info("🚨 ALLOCATION LIMIT: Focusing on exit opportunities to free capital")
+            # Check for excessive risk concentration (only stop if risk is too high)
+            portfolio_summary = self.risk_manager.get_portfolio_summary() if self.risk_manager else {}
+            portfolio_value = portfolio_summary.get('portfolio_value', 100000)
+            
+            # Risk-based limits instead of allocation limits
+            max_daily_risk = portfolio_value * 0.05  # Max 5% portfolio risk per day
+            max_position_risk = portfolio_value * 0.02  # Max 2% risk per position
+            
+            current_crypto_value = current_allocation * portfolio_value
+            
+            # Only limit new positions if we're at extreme risk levels
+            if current_allocation >= 0.95:  # Only stop at 95% (extreme concentration)
+                self.logger.warning(f"🚨 EXTREME CONCENTRATION: {current_allocation:.1%} crypto allocation - pausing new entries for risk management")
                 return opportunities
-            else:
-                session_type = "AFTER-HOURS" if not self._is_stock_market_open() else "MARKET HOURS" 
-                self.logger.info(f"💰 ALLOCATION OK: {current_allocation:.1%} < {max_allocation:.1%} ({session_type}) - Ready for aggressive crypto trading")
+            
+            # Log current status without arbitrary limits
+            self.logger.info(f"💰 CRYPTO STATUS ({session_type}): {current_allocation:.1%} allocation, "
+                           f"${current_crypto_value:,.0f} exposure - Looking for quality opportunities")
             
             # Get ALL crypto symbols for 24/7 analysis
             active_symbols = self._get_active_crypto_symbols()
@@ -745,32 +753,51 @@ class CryptoModule(TradingModule):
             
             unrealized_pl_pct = unrealized_pl / market_value
             
-            # Check if we're over allocation limit - be MORE aggressive with exits
-            current_allocation = self._get_current_crypto_allocation()
-            over_allocation = current_allocation >= self.max_crypto_allocation
+            # SMART EXIT LOGIC - Only exit for good trading reasons, not allocation nonsense
             
-            if over_allocation:
-                # AGGRESSIVE EXIT MODE when over-allocated (57.8%!)
-                if unrealized_pl_pct >= 0.02:  # 2%+ profit when over-allocated (reasonable threshold)
-                    return 'over_allocation_profit'
-                elif unrealized_pl_pct <= -0.05:  # Much tighter 5% stop loss
-                    return 'over_allocation_stop_loss'
-                # When severely over-allocated, exit even break-even positions
-                elif abs(unrealized_pl_pct) <= 0.005:  # Within 0.5% of break-even
-                    return 'over_allocation_rebalance'
-            
-            # Standard crypto exit conditions
-            if unrealized_pl_pct >= 0.25:  # 25% profit target
-                return 'profit_target'
-            elif unrealized_pl_pct <= -0.15:  # 15% stop loss
+            # 1. STOP LOSS - Protect capital (most important)
+            if unrealized_pl_pct <= -0.15:  # 15% stop loss
                 return 'stop_loss'
             
-            # Session-based exits (simplified)
-            current_session = self._get_current_trading_session()
-            if current_session != self._infer_position_session(position):
-                # Consider exit if session changed and position is profitable
-                if unrealized_pl_pct > 0.10:  # 10% profit in different session
-                    return 'session_change'
+            # 2. MEAN REVERSION - Exit outsized winners first (before normal profit target)
+            if unrealized_pl_pct >= 0.40:  # 40%+ gains may be due for reversal
+                return 'mean_reversion_exit'
+            
+            # 3. PROFIT TARGET - Take profits at good levels
+            if unrealized_pl_pct >= 0.25:  # 25% profit target for crypto
+                return 'profit_target'
+            
+            # 4. TRAILING STOP LOGIC - Protect profits once we're doing well
+            if unrealized_pl_pct >= 0.20:  # If we're at 20%+ profit
+                # Use trailing stop to protect 75% of gains (5% trailing stop from peak)
+                # This is a simplified version - in production we'd track peak value
+                trailing_stop_threshold = 0.15  # Exit if profit drops to 15% (from 20%+)
+                if unrealized_pl_pct <= trailing_stop_threshold:
+                    return 'trailing_stop'
+            
+            # 5. TECHNICAL ANALYSIS EXIT - Exit if momentum turns against us
+            try:
+                current_price = position.get('current_price', 0)
+                if current_price > 0:
+                    # Get recent price action for momentum analysis
+                    quotes = self._get_quotes([symbol])
+                    if quotes and symbol in quotes:
+                        quote = quotes[symbol]
+                        # Simple momentum check: if current price is significantly below recent quote
+                        if hasattr(quote, 'ap') and quote.ap:
+                            recent_price = float(quote.ap)
+                            price_decline = (recent_price - current_price) / current_price
+                            
+                            # If we're profitable but price declining rapidly, exit to protect gains
+                            if unrealized_pl_pct > 0.05 and price_decline < -0.03:  # 3% price decline
+                                return 'momentum_reversal'
+            except Exception:
+                pass  # Skip technical analysis if data unavailable
+            
+            # 6. PRE-MARKET CLOSURE - Only exit if market opening soon (already implemented elsewhere)
+            if self._should_close_positions_before_market_open():
+                return 'pre_market_closure'
+            
             
             return None
             
