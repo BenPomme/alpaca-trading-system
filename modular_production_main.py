@@ -553,6 +553,9 @@ class ProductionTradingSystem:
                 logger.error("❌ System initialization failed")
                 return False
             
+            # EMERGENCY CHECK: Verify account allocation 
+            self._emergency_allocation_check()
+            
             self.running = True
             
             # Start Flask health server in background
@@ -746,6 +749,52 @@ class ProductionTradingSystem:
                 logger.error(f"❌ Firebase shutdown error: {e}")
         
         logger.info("✅ Graceful shutdown complete")
+    
+    def _emergency_allocation_check(self):
+        """Emergency check for catastrophic allocation failures"""
+        try:
+            logger.info("🚨 EMERGENCY ALLOCATION CHECK")
+            
+            # Get account and positions
+            account = self.alpaca_api.get_account()
+            positions = self.alpaca_api.list_positions()
+            
+            buying_power = float(account.buying_power)
+            portfolio_value = float(account.portfolio_value)
+            
+            # Calculate current allocation
+            crypto_value = 0
+            stock_value = 0
+            
+            for pos in positions:
+                value = abs(float(pos.market_value))
+                if any(crypto in pos.symbol for crypto in ['BTC', 'ETH', 'SOL', 'AVAX', 'LINK', 'UNI', 'AAVE', 'DOT', 'MATIC']):
+                    crypto_value += value
+                else:
+                    stock_value += value
+            
+            total_invested = crypto_value + stock_value
+            crypto_pct = (crypto_value / portfolio_value * 100) if portfolio_value > 0 else 0
+            unused_pct = (buying_power / portfolio_value * 100) if portfolio_value > 0 else 0
+            
+            logger.info(f"💰 Portfolio: ${portfolio_value:,.0f}")
+            logger.info(f"🔓 Buying Power: ${buying_power:,.0f} ({unused_pct:.1f}%)")
+            logger.info(f"₿ Crypto: ${crypto_value:,.0f} ({crypto_pct:.1f}%)")
+            logger.info(f"📈 Stocks: ${stock_value:,.0f}")
+            
+            # Check for allocation disasters
+            if crypto_pct > 50:
+                logger.error(f"🚨 ALLOCATION DISASTER: {crypto_pct:.1f}% in crypto during bullish stock market!")
+            
+            if unused_pct > 70:
+                logger.error(f"🚨 UNUSED CAPITAL DISASTER: {unused_pct:.1f}% buying power unused!")
+            
+            if stock_value < 10000 and buying_power > 100000:
+                logger.error(f"🚨 BULLISH MARKET MISS: Only ${stock_value:,.0f} in stocks with ${buying_power:,.0f} available!")
+                logger.error("💡 SPY/QQQ showing 68-72% bullish confidence - should be trading aggressively!")
+            
+        except Exception as e:
+            logger.error(f"❌ Emergency allocation check failed: {e}")
 
 
 def signal_handler(signum, frame):
