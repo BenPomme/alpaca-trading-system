@@ -108,7 +108,7 @@ class CryptoModule(TradingModule):
             'analyze_all_symbols': False,  # Focus on top 3 cryptos for concentration
             'cycle_frequency_seconds': 3600,  # Hourly cycles (not intraday scalping)
             'stop_loss_pct': 0.10,  # 10% stop loss (CRITICAL missing piece)
-            'profit_target_pct': 0.15,  # 15% profit target for mean reversion
+            'profit_target_pct': 0.25,  # Increased to 25% profit target for larger mean reversion captures
             'oversold_threshold': -0.20,  # Buy on 20%+ dips from moving average
             'moving_average_period': 20  # 20-day MA for mean reversion reference
         }
@@ -850,8 +850,8 @@ class CryptoModule(TradingModule):
                 return 'emergency_stop_loss'
             
             # 2. INSTITUTIONAL PROFIT TARGET - Mean reversion complete
-            profit_target_pct = self.crypto_trading_config.get('profit_target_pct', 0.15)
-            if unrealized_pl_pct >= profit_target_pct:  # 15% profit target (DOWN from 25%)
+            profit_target_pct = self.crypto_trading_config.get('profit_target_pct', 0.25)
+            if unrealized_pl_pct >= profit_target_pct:  # 25% profit target (DOWN from 25%)
                 self.logger.info(f"🎯 PROFIT TARGET HIT: {position.get('symbol')} at {unrealized_pl_pct:.1%} gain")
                 return 'institutional_profit_target'
             

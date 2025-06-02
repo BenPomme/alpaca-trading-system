@@ -100,7 +100,7 @@ class StocksModule(TradingModule):
         
         # INSTITUTIONAL RISK MANAGEMENT
         self.stocks_stop_loss_pct = 0.08  # 8% stop loss (CRITICAL missing piece)
-        self.stocks_profit_target_pct = 0.15  # 15% profit target
+        self.stocks_profit_target_pct = 0.20  # Increased to 20% profit target for stocks
         self.monthly_rebalance_enabled = True  # Monthly momentum vs intraday scalping
         self.max_stock_positions = 25  # REDUCED from 40+ to 25 (institutional concentration)
         
@@ -159,40 +159,40 @@ class StocksModule(TradingModule):
                 'min_confidence': 0.65,  # Lowered for intraday opportunities
                 'position_multiplier': 3.0,  # Increased for intraday leverage
                 'max_allocation': 0.20,  # Increased for day trading
-                'intraday_stop_loss': 0.02,  # 2% tight stop for intraday
-                'intraday_profit_target': 0.025,  # 2.5% quick profit
+                'intraday_stop_loss': 0.03,  # Increased stop loss to 3% for intraday
+                'intraday_profit_target': 0.04,  # Increased profit target to 4% for intraday
                 'min_hold_minutes': 5  # Minimum 5 minute hold
             },
             StockStrategy.SECTOR_ROTATION: {
                 'min_confidence': 0.55,  # Lowered for more opportunities
                 'position_multiplier': 2.0,  # Increased for intraday
                 'max_allocation': 0.30,  # Increased allocation
-                'intraday_stop_loss': 0.025,
-                'intraday_profit_target': 0.03,
+                'intraday_stop_loss': 0.035,  # Increased stop loss to 3.5%
+                'intraday_profit_target': 0.05,  # Increased profit target to 5%
                 'min_hold_minutes': 10
             },
             StockStrategy.MOMENTUM_AMPLIFICATION: {
                 'min_confidence': 0.70,  # Slightly lowered
                 'position_multiplier': 2.5,  # Increased for momentum
                 'max_allocation': 0.25,  # Increased for momentum plays
-                'intraday_stop_loss': 0.015,  # Tight stop for momentum
-                'intraday_profit_target': 0.04,  # Higher target for momentum
+                'intraday_stop_loss': 0.02,    # Increased stop loss to 2%
+                'intraday_profit_target': 0.06,  # Increased profit target to 6%
                 'min_hold_minutes': 3  # Very short hold for momentum
             },
             StockStrategy.VOLATILITY_TRADING: {
                 'min_confidence': 0.50,  # Lowered for volatility opportunities
                 'position_multiplier': 2.2,  # Increased for vol trading
                 'max_allocation': 0.15,
-                'intraday_stop_loss': 0.03,
-                'intraday_profit_target': 0.035,
+                'intraday_stop_loss': 0.04,    # Increased stop loss to 4%
+                'intraday_profit_target': 0.055,  # Increased profit target to 5.5%
                 'min_hold_minutes': 8
             },
             StockStrategy.CORE_EQUITY: {
                 'min_confidence': 0.50,  # Lowered for more opportunities
                 'position_multiplier': 1.5,  # Increased for intraday
                 'max_allocation': 0.35,  # Increased base allocation
-                'intraday_stop_loss': 0.025,
-                'intraday_profit_target': 0.03,
+                'intraday_stop_loss': 0.03,    # Increased stop loss to 3%
+                'intraday_profit_target': 0.05,  # Increased profit target to 5%
                 'min_hold_minutes': 8
             }
         }
