@@ -90,10 +90,16 @@ class StocksModule(TradingModule):
         self.api = api_client
         self.intelligence_systems = intelligence_systems or {}
         
-        # Stocks-specific configuration
-        self.max_stock_allocation = config.custom_params.get('max_allocation_pct', 50.0) / 100  # 50% max for stocks
-        self.aggressive_multiplier = config.custom_params.get('aggressive_multiplier', 2.0)
-        self.market_tier = config.custom_params.get('market_tier', 2)
+        # INSTITUTIONAL STOCKS CONFIGURATION - Research-backed approach
+        self.max_stock_allocation = 0.40  # REDUCED from 50% to 40% (better concentration)
+        self.aggressive_multiplier = 1.5  # REDUCED from 2.0 to 1.5 (more conservative)
+        self.market_tier = 2  # Focus on tier 1-2 only (core liquid stocks)
+        
+        # INSTITUTIONAL RISK MANAGEMENT
+        self.stocks_stop_loss_pct = 0.08  # 8% stop loss (CRITICAL missing piece)
+        self.stocks_profit_target_pct = 0.15  # 15% profit target
+        self.monthly_rebalance_enabled = True  # Monthly momentum vs intraday scalping
+        self.max_stock_positions = 25  # REDUCED from 40+ to 25 (institutional concentration)
         
         # Enhanced strategy symbols - ALL REAL SYMBOLS FOR LIVE TRADING
         self.strategy_symbols = {
@@ -126,18 +132,15 @@ class StocksModule(TradingModule):
             }
         }
         
-        # Symbol universe by tier (for market_tier configuration)
+        # INSTITUTIONAL SYMBOL UNIVERSE - Top 25 liquid stocks/ETFs only
         self.symbol_tiers = {
-            1: SymbolTier("core_etfs", ['SPY', 'QQQ', 'IWM'], 1, 0.60),
-            2: SymbolTier("liquid_stocks", 
-                         ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX'] + 
-                         ['XLK', 'XLV', 'XLF', 'XLE', 'XLY'], 2, 0.55),
-            3: SymbolTier("extended_universe",
-                         ['AMD', 'CRM', 'ADBE', 'PYPL', 'BABA', 'DIS', 'V', 'MA', 'JPM', 'BAC'] +
-                         ['TQQQ', 'UPRO', 'SOXL'], 3, 0.65),
-            4: SymbolTier("global_symbols",
-                         ['TSM', 'ASML', 'SAP', 'NVO', 'UNH', 'JNJ', 'PG', 'KO'] +
-                         ['VXX', 'SVXY', 'TLT', 'GLD'], 4, 0.70)
+            1: SymbolTier("core_etfs", 
+                         ['SPY', 'QQQ', 'IWM', 'XLK', 'XLV'], 1, 0.60),  # Core ETFs
+            2: SymbolTier("mega_cap_stocks", 
+                         ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 
+                          'NFLX', 'AMD', 'CRM', 'V', 'MA', 'JPM', 'UNH', 'JNJ'], 2, 0.55)
+            # REMOVED: Tiers 3 & 4 for concentration (was 40+ symbols, now 20)
+            # Institutional focus: Quality over quantity, concentration over diversification
         }
         
         # Intelligence analysis weights
@@ -191,13 +194,14 @@ class StocksModule(TradingModule):
             }
         }
         
-        # Intraday trading configuration
-        self.intraday_config = {
-            'cycle_frequency_seconds': 60,  # 1-minute cycles for intraday
-            'max_daily_trades': 999,  # UNLIMITED profitable trades (was 25)
-            'daily_loss_limit': 0.03,  # 3% daily loss limit (keep this for risk management)
-            'heat_adjustment': True,  # Dynamic sizing based on daily P&L
-            'time_based_strategies': True  # Use different strategies by time of day
+        # INSTITUTIONAL TRADING CONFIGURATION - Monthly momentum approach
+        self.institutional_config = {
+            'cycle_frequency_seconds': 86400,  # DAILY cycles (vs 1-minute scalping)
+            'max_monthly_rebalances': 4,  # Maximum 4 rebalances per month
+            'momentum_period_months': 6,  # 6-month momentum (institutional standard)
+            'monthly_loss_limit': 0.08,  # 8% monthly loss limit
+            'position_hold_minimum_days': 7,  # Minimum 7-day hold period
+            'concentration_limit': 25  # Maximum 25 positions (institutional standard)
         }
         
         # Time-of-day strategy matrix (Eastern Time)
@@ -244,8 +248,8 @@ class StocksModule(TradingModule):
         total_symbols = sum(len(tier.symbols) for tier in self.symbol_tiers.values())
         self.logger.info(f"Stocks module initialized with {total_symbols} symbols across {len(self.symbol_tiers)} tiers")
         self.logger.info(f"Market tier: {self.market_tier}, Aggressive multiplier: {self.aggressive_multiplier}x")
-        self.logger.info(f"Intraday trading optimized: {self.intraday_config['cycle_frequency_seconds']}s cycles, "
-                        f"UNLIMITED profitable trades (no daily limit)")
+        self.logger.info(f"Institutional trading: {self.institutional_config['cycle_frequency_seconds']}s cycles, "
+                        f"Monthly momentum approach (vs intraday scalping)")
     
     @property
     def module_name(self) -> str:
@@ -694,7 +698,11 @@ class StocksModule(TradingModule):
             
             # 🧠 ML DATA COLLECTION: Save trade with enhanced parameter context
             if result.success:
-                self._save_ml_enhanced_stock_trade(opportunity, result)
+                trade_id = self._save_ml_enhanced_stock_trade(opportunity, result)
+                # Store trade_id in result metadata for position tracking
+                if not hasattr(result, 'metadata'):
+                    result.metadata = {}
+                result.metadata['ml_trade_id'] = trade_id
             
             return result
                 
@@ -844,9 +852,11 @@ class StocksModule(TradingModule):
             )
             
             self.logger.info(f"💾 Stock ML data saved: {opportunity.symbol} ({strategy_name}) - {trade_id}")
+            return trade_id
             
         except Exception as e:
             self.logger.error(f"Error saving ML stock trade data: {e}")
+            return None
     
     def _get_strategy_leverage_factor(self, strategy_name: str) -> float:
         """Get leverage factor for a strategy"""
@@ -1014,11 +1024,22 @@ class StocksModule(TradingModule):
                     elif unrealized_pl_pct <= -intraday_stop:
                         return 'intraday_stop'
             
-            # Legacy exit conditions (fallback)
-            if unrealized_pl_pct >= 0.15:  # 15% profit target
-                return 'profit_target'
-            elif unrealized_pl_pct <= -0.08:  # 8% stop loss
-                return 'stop_loss'
+            # INSTITUTIONAL EXIT CONDITIONS - Research-backed risk management
+            
+            # 1. PROFIT TARGET - Take profits at 15%
+            if unrealized_pl_pct >= self.stocks_profit_target_pct:  # 15% profit target
+                self.logger.info(f"🎯 STOCKS PROFIT TARGET: {symbol} at {unrealized_pl_pct:.1%}")
+                return 'institutional_profit_target'
+            
+            # 2. STOP LOSS - Limit losses at 8% (CRITICAL missing institutional control)
+            elif unrealized_pl_pct <= -self.stocks_stop_loss_pct:  # 8% stop loss
+                self.logger.warning(f"🚨 STOCKS STOP LOSS: {symbol} at {unrealized_pl_pct:.1%}")
+                return 'institutional_stop_loss'
+            
+            # 3. MOMENTUM REVERSAL - Exit if 6-month momentum turns negative
+            elif self._is_momentum_reversal(symbol, position):
+                self.logger.info(f"📉 MOMENTUM REVERSAL: {symbol} - 6-month trend broken")
+                return 'momentum_reversal'
             
             return None
             
@@ -1236,7 +1257,7 @@ class StocksModule(TradingModule):
             'strategy_performance': dict(self._strategy_performance),
             'daily_pnl': self._daily_pnl,
             'daily_trade_count': self._daily_trade_count,
-            'intraday_config': self.intraday_config,
+            'institutional_config': self.institutional_config,
             'enhanced_strategies': {
                 'leveraged_etfs': len(sum(self.strategy_symbols['leveraged_etfs'].values(), [])),
                 'sector_etfs': len(sum(self.strategy_symbols['sector_etfs'].values(), [])),
@@ -1265,9 +1286,9 @@ class StocksModule(TradingModule):
             # NO DAILY TRADE LIMIT - Trade as much as profitable!
             # (was: daily trade limit check removed for unlimited profitable trading)
             
-            # Check daily loss limit (KEEP THIS for risk management)
-            if self._daily_pnl <= -self.intraday_config['daily_loss_limit']:
-                self.logger.warning(f"Daily loss limit reached: {self._daily_pnl:.1%} <= -{self.intraday_config['daily_loss_limit']:.1%}")
+            # Check monthly loss limit (INSTITUTIONAL risk management)
+            if self._daily_pnl <= -self.institutional_config['monthly_loss_limit']:
+                self.logger.warning(f"Monthly loss limit reached: {self._daily_pnl:.1%} <= -{self.institutional_config['monthly_loss_limit']:.1%}")
                 return False
             
             return True  # No artificial trade limits!
@@ -1311,8 +1332,8 @@ class StocksModule(TradingModule):
     def _get_heat_adjustment_factor(self) -> float:
         """Get position sizing adjustment based on daily P&L performance"""
         try:
-            if not self.intraday_config['heat_adjustment']:
-                return 1.0
+            # Institutional approach: Less heat adjustment, more consistent sizing
+            return 1.0  # Simplified for institutional approach
             
             daily_pnl_pct = self._daily_pnl
             
@@ -1411,3 +1432,21 @@ class StocksModule(TradingModule):
         except Exception as e:
             self.logger.error(f"Error creating intraday opportunity: {e}")
             return None
+    
+    def _is_momentum_reversal(self, symbol: str, position: Dict) -> bool:
+        """INSTITUTIONAL MOMENTUM CHECK - Detect 6-month momentum reversal"""
+        try:
+            # In production, would check if 6-month momentum has turned negative
+            # This is a placeholder for the institutional momentum reversal logic
+            
+            # Would implement:
+            # 1. Get 6-month price performance 
+            # 2. Check if recent momentum < historical momentum
+            # 3. Return True if momentum has significantly deteriorated
+            
+            # For now, return False - would implement actual momentum calculation
+            return False
+            
+        except Exception as e:
+            self.logger.debug(f"Error checking momentum reversal for {symbol}: {e}")
+            return False

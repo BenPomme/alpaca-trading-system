@@ -280,13 +280,14 @@ class CryptoModule(TradingModule):
                     session_stats['total_invested'] += investment_amount
                     
                     # Store entry data for later exit calculation
+                    ml_trade_id = getattr(result, 'metadata', {}).get('ml_trade_id', None)
                     self._crypto_positions[opportunity.symbol] = {
                         'entry_price': result.execution_price,
                         'quantity': opportunity.quantity,
                         'investment': investment_amount,
                         'session': session.value,
                         'entry_time': datetime.now().isoformat(),
-                        'entry_trade_id': trade_id  # Link to ML entry trade for profit updates
+                        'entry_trade_id': ml_trade_id  # Link to ML entry trade for profit updates
                     }
                 
             except Exception as e:
@@ -626,7 +627,11 @@ class CryptoModule(TradingModule):
             
             # 🧠 ML DATA COLLECTION: Save trade with enhanced parameter context
             if result.success:
-                self._save_ml_enhanced_crypto_trade(opportunity, result)
+                trade_id = self._save_ml_enhanced_crypto_trade(opportunity, result)
+                # Store trade_id in result metadata for position tracking
+                if not hasattr(result, 'metadata'):
+                    result.metadata = {}
+                result.metadata['ml_trade_id'] = trade_id
             
             return result
                 
@@ -732,9 +737,11 @@ class CryptoModule(TradingModule):
             )
             
             self.logger.info(f"💾 Crypto ML data saved: {opportunity.symbol} ({current_session.value}) - {trade_id}")
+            return trade_id
             
         except Exception as e:
             self.logger.error(f"Error saving ML crypto trade data: {e}")
+            return None
     
     # Position monitoring methods
     
