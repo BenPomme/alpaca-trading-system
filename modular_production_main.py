@@ -153,9 +153,20 @@ class ProductionTradingSystem:
             # - Algo Trader Plus ($99/month): Full market real-time data, unlimited historical
             logger.info("📊 Alpaca API initialized - data quality depends on account subscription tier")
             
-            # Test connection
-            account = self.alpaca_api.get_account()
-            logger.info(f"✅ Alpaca API connected - Account: {account.id}")
+            # Test connection with detailed error handling
+            try:
+                account = self.alpaca_api.get_account()
+                logger.info(f"✅ Alpaca API connected - Account: {account.id}")
+                logger.info(f"💰 Portfolio Value: ${float(account.portfolio_value):,.2f}")
+                logger.info(f"🔓 Buying Power: ${float(account.buying_power):,.2f}")
+            except Exception as api_error:
+                logger.error(f"❌ Alpaca API test failed: {api_error}")
+                if "unauthorized" in str(api_error).lower():
+                    logger.error("🔑 AUTHENTICATION ERROR: Check these environment variables:")
+                    logger.error("   - ALPACA_PAPER_API_KEY")
+                    logger.error("   - ALPACA_PAPER_SECRET_KEY") 
+                    logger.error("   - ALPACA_BASE_URL")
+                raise api_error
             
             return True
             
@@ -225,9 +236,9 @@ class ProductionTradingSystem:
                     options_config = ModuleConfig(
                         module_name="options",
                         enabled=True,
-                        max_allocation_pct=50.0,  # Increased for full buying power usage
-                        min_confidence=0.6,      # Lowered for more opportunities
-                        max_positions=10,        # Increased for more diversification
+                        max_allocation_pct=70.0,  # Higher allocation for 100% buying power
+                        min_confidence=0.55,     # Lower for more opportunities
+                        max_positions=15,        # More positions
                         default_stop_loss_pct=0.08,
                         default_profit_target_pct=0.15,
                         custom_params={
@@ -302,9 +313,9 @@ class ProductionTradingSystem:
                     stocks_config = ModuleConfig(
                         module_name="stocks",
                         enabled=True,
-                        max_allocation_pct=80.0,  # Increased for full buying power usage
-                        min_confidence=0.55,     # Lowered for more opportunities
-                        max_positions=20,        # Increased for more diversification
+                        max_allocation_pct=95.0,  # 100% buying power usage
+                        min_confidence=0.45,     # Very low for maximum opportunities
+                        max_positions=30,        # Maximum diversification
                         default_stop_loss_pct=0.08,
                         default_profit_target_pct=0.15,
                         custom_params={

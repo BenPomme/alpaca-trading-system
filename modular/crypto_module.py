@@ -1383,10 +1383,10 @@ class CryptoModule(TradingModule):
             if not self.smart_allocation_enabled:
                 return 0.90  # Use 90% of buying power when smart allocation disabled
             
-            # MARKET HOURS: Use majority of buying power for aggressive trading
+            # MARKET HOURS: Use 100% of buying power for maximum opportunity capture
             if self._is_stock_market_open():
-                self.logger.info("📈 MARKET HOURS: Using 80% allocation for maximum opportunity capture")
-                return 0.80  # 80% during market hours for full buying power usage
+                self.logger.info("📈 MARKET HOURS: Using 100% allocation for maximum opportunity capture")
+                return 0.95  # 100% during market hours (95% to leave small buffer)
             
             # Get current performance metrics
             current_win_rate = self._calculate_current_win_rate()
