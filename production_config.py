@@ -9,6 +9,7 @@ management for the modular trading system in production.
 import os
 import logging
 from typing import Any, Dict, Optional, Union
+from data_mode_manager import DataModeManager
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +25,15 @@ class ProductionConfig:
     def __init__(self):
         """Initialize production configuration."""
         self.config = {}
+        
+        # Initialize data mode manager for subscription-aware configuration
+        self.data_mode_manager = DataModeManager(logger=logger)
+        
         self._load_configuration()
         self._validate_critical_config()
+        
+        logger.info("✅ Configuration loaded from environment")
+        logger.info(self.data_mode_manager.format_data_mode_status())
     
     def _load_configuration(self):
         """Load all configuration from environment variables."""
@@ -44,9 +52,13 @@ class ProductionConfig:
             'ML_OPTIMIZATION': self._get_bool_env('ML_OPTIMIZATION', True),
             'RISK_MANAGEMENT': self._get_bool_env('RISK_MANAGEMENT', True),
             
-            # Data Feed Configuration for real-time trading
-            'ALPACA_DATA_FEED': os.getenv('ALPACA_DATA_FEED', 'sip'),  # sip = real-time, iex = free but delayed
-            'INTRADAY_CYCLE_DELAY': self._get_int_env('INTRADAY_CYCLE_DELAY', 900),  # 15 minutes - optimized for Basic Plan delayed data
+            # Data Feed Configuration - AUTO-OPTIMIZED FOR SUBSCRIPTION LEVEL
+            'ALPACA_DATA_FEED': os.getenv('ALPACA_DATA_FEED', 'iex'),  # iex = free delayed, sip = paid real-time
+            'ALPACA_SUBSCRIPTION_LEVEL': os.getenv('ALPACA_SUBSCRIPTION_LEVEL', 'free'),
+            'REALTIME_DATA_ENABLED': self._get_bool_env('REALTIME_DATA_ENABLED', False),
+            
+            # CYCLE TIMING: Auto-optimized for data subscription level
+            'INTRADAY_CYCLE_DELAY': self.data_mode_manager.get_cycle_delay(),  # 900s for free, 60s for paid
         })
         
         # Module Configuration

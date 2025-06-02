@@ -1003,16 +1003,24 @@ class CryptoModule(TradingModule):
                     if hasattr(bar, 'c') and hasattr(bar, 't'):  # 'c' is close price, 't' is timestamp
                         price = float(bar.c)
                         
-                        # Validate data freshness for minute-level trading
+                        # Validate data freshness based on subscription level
                         if hasattr(bar, 't') and bar.t:
                             from datetime import datetime, timezone
+                            from data_mode_manager import get_data_mode_manager
+                            
                             bar_time = bar.t.replace(tzinfo=timezone.utc) if bar.t.tzinfo is None else bar.t
                             age_seconds = (datetime.now(timezone.utc) - bar_time).total_seconds()
                             
-                            if age_seconds > 300:  # Warn if data is older than 5 minutes
-                                self.logger.warning(f"⚠️ {symbol}: Quote data is {age_seconds:.0f}s old (may impact trading accuracy)")
-                            elif age_seconds > 60:  # Info if older than 1 minute
-                                self.logger.info(f"🕐 {symbol}: Quote data is {age_seconds:.0f}s old")
+                            # Use data mode manager to determine acceptable staleness
+                            data_manager = get_data_mode_manager()
+                            
+                            if not data_manager.is_quote_acceptable(age_seconds):
+                                if data_manager.should_warn_about_staleness(age_seconds):
+                                    self.logger.warning(f"⚠️ {symbol}: Quote data is {age_seconds:.0f}s old (exceeds {data_manager.config['data_warning_threshold']}s threshold)")
+                                else:
+                                    self.logger.debug(f"🕐 {symbol}: Quote data is {age_seconds:.0f}s old (acceptable for {data_manager.data_mode.value} mode)")
+                            else:
+                                self.logger.debug(f"✅ {symbol}: Quote data is {age_seconds:.0f}s old (fresh for {data_manager.data_mode.value} mode)")
                         
                         if price > 0:
                             self.logger.info(f"✅ {symbol}: Real-time price from crypto bars: ${price}")
