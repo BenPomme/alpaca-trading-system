@@ -104,10 +104,10 @@ class CryptoModule(TradingModule):
         self.crypto_trading_config = {
             'min_confidence': 0.60,  # Higher threshold based on research
             'position_size_multiplier': 0.8,  # Conservative sizing with proper risk management
-            'strategy': CryptoStrategy.REVERSAL,  # Mean reversion strategy (proven for crypto)
+            'strategy': CryptoStrategy.MOMENTUM,  # Momentum strategy for crypto entries
             'analyze_all_symbols': False,  # Focus on top 3 cryptos for concentration
             'cycle_frequency_seconds': 3600,  # Hourly cycles (not intraday scalping)
-            'stop_loss_pct': 0.10,  # 10% stop loss (CRITICAL missing piece)
+            'stop_loss_pct': 0.07,  # 7% stop loss (tighter risk control)
             'profit_target_pct': 0.25,  # Increased to 25% profit target for larger mean reversion captures
             'oversold_threshold': -0.20,  # Buy on 20%+ dips from moving average
             'moving_average_period': 20  # 20-day MA for mean reversion reference
@@ -339,6 +339,26 @@ class CryptoModule(TradingModule):
             if len(positions) > 0:
                 allocation = self._get_current_crypto_allocation()
                 max_allocation = self._get_max_allocation_for_current_session()
+                # Automatically trim worst positions if allocation far above smart limit
+                smart_limit = self._get_smart_allocation_limit()
+                if allocation > smart_limit * 1.2:
+                    self.logger.warning(f"🚨 OVER-ALLOCATION: {allocation:.1%} > {smart_limit*1.2:.1%} – commencing auto-rebalancing exits")
+                    # Sort by unrealised P&L (worst first) and close until within limit
+                    try:
+                        sorted_positions = sorted(positions, key=lambda p: p.get('unrealized_pl', 0))
+                        for pos in sorted_positions:
+                            if self._get_current_crypto_allocation() <= smart_limit:
+                                break
+                            sym = pos.get('symbol', 'unknown')
+                            self.logger.info(f"🔻 REBALANCE EXIT: {sym} UPL {pos.get('unrealized_pl',0):.2f}")
+                            try:
+                                reb_res = self._execute_crypto_exit(pos, 'over_allocation_rebalance')
+                                if reb_res:
+                                    exit_results.append(reb_res)
+                            except Exception as ex:
+                                self.logger.error(f"Rebalance exit failed for {sym}: {ex}")
+                    except Exception as ex_outer:
+                        self.logger.error(f"Error during auto-rebalancing: {ex_outer}")
                 session_type = "AFTER-HOURS" if not self._is_stock_market_open() else "MARKET HOURS"
                 self.logger.info(f"📊 Monitoring {len(positions)} crypto positions for exits ({session_type}: {allocation:.1%}/{max_allocation:.1%})")
                 
