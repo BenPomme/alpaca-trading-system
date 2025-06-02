@@ -18,6 +18,7 @@ from sklearn.model_selection import cross_val_score
 from scipy.optimize import minimize
 import warnings
 warnings.filterwarnings('ignore', category=FutureWarning)
+from modular.ml_data_helpers import MLLearningEventLogger
 
 
 @dataclass
@@ -616,8 +617,6 @@ class MLParameterOptimizationEngine:
     def _log_optimization_applied(self, result: ParameterOptimizationResult):
         """Log optimization application for audit trail"""
         try:
-            from .ml_data_helpers import MLLearningEventLogger
-            
             event_logger = MLLearningEventLogger(self.firebase_db, "parameter_optimizer")
             event_logger.log_parameter_change(
                 parameters_before={result.parameter_type: result.old_value},

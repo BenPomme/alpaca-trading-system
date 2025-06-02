@@ -14,7 +14,7 @@ import logging
 from enum import Enum
 
 # Import ML data collection helpers
-from .ml_data_helpers import MLDataCollector, ParameterEffectivenessTracker, MLLearningEventLogger
+from modular.ml_data_helpers import MLDataCollector, ParameterEffectivenessTracker, MLLearningEventLogger
 
 
 class TradeAction(Enum):

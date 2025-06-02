@@ -20,7 +20,7 @@ try:
 except ImportError:
     openai = None
 
-from .base_module import (
+from modular.base_module import (
     TradingModule, ModuleConfig, TradeOpportunity, TradeResult, 
     TradeAction, TradeStatus, ExitReason
 )

@@ -13,12 +13,12 @@ from dataclasses import dataclass
 from enum import Enum
 import time
 
-from .base_module import (
+from modular.base_module import (
     TradingModule, ModuleConfig, TradeOpportunity, TradeResult,
     TradeAction, TradeStatus, ExitReason
 )
-from ..utils.pattern_recognition import PatternRecognition
-from ..utils.news_sentiment import NewsSentimentAnalyzer # Example import
+from utils.pattern_recognition import PatternRecognition
+from utils.news_sentiment import NewsSentimentAnalyzer # Example import
 
 
 class StockStrategy(Enum):

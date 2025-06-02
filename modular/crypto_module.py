@@ -12,12 +12,12 @@ from dataclasses import dataclass
 from enum import Enum
 import time
 
-from .base_module import (
+from modular.base_module import (
     TradingModule, ModuleConfig, TradeOpportunity, TradeResult,
     TradeAction, TradeStatus, ExitReason
 )
-from ..utils.technical_indicators import TechnicalIndicators
-from ..utils.pattern_recognition import PatternRecognition
+from utils.technical_indicators import TechnicalIndicators
+from utils.pattern_recognition import PatternRecognition
 
 
 class TradingSession(Enum):

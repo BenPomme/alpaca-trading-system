@@ -12,10 +12,11 @@ from datetime import datetime, timedelta
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from .base_module import (
+from modular.base_module import (
     TradingModule, ModuleRegistry, ModuleHealth, ModuleHealthStatus,
     TradeOpportunity, TradeResult, ModuleConfig
 )
+from modular.ml_optimizer import MLParameterOptimizationEngine
 
 
 class ModularOrchestrator:
@@ -54,7 +55,6 @@ class ModularOrchestrator:
         # Initialize ML optimizer if not provided
         if ml_optimizer is None and firebase_db:
             try:
-                from .ml_optimizer import MLParameterOptimizationEngine
                 self.ml_optimizer = MLParameterOptimizationEngine(firebase_db, self, self.logger)
                 self.logger.info("Auto-created ML optimization engine")
             except Exception as e:

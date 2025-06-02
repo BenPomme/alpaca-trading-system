@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 import json
 import logging
 
-from .base_module import TradeOpportunity, TradeResult, ModuleConfig
+from modular.base_module import TradeOpportunity, TradeResult, ModuleConfig
 
 
 class ModularFirebaseInterface:
