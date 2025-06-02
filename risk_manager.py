@@ -19,7 +19,7 @@ class RiskManager:
         self.logger = logger or logging.getLogger(__name__)
         
         # Risk Parameters (Phase 4.1: Unlimited positions for aggressive strategy)
-        self.max_positions = None                 # No limit on concurrent positions
+        self.max_positions = 25                 # CHANGED FROM None. Was: No limit on concurrent positions
         self.max_daily_trades = 20                # Maximum trades per day
         self.max_position_size_pct = 0.15         # 15% of portfolio per position
         self.max_sector_exposure = 0.60           # 60% exposure to any sector (aggressive target)

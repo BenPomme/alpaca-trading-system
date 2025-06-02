@@ -68,6 +68,9 @@ python test_phase4_complete.py
 
 # Local debugging with full output
 python debug_cycle.py
+
+# Performance analysis (mandatory weekly)
+python analyze_trading_performance.py
 ```
 
 ### Testing Framework
@@ -115,6 +118,12 @@ railway status
 
 # Test deployment verification
 python railway_deploy.py
+
+# Link to project (if needed)
+railway link
+
+# Deploy to production
+git push  # Automatic deployment on push
 ```
 
 ## Critical Environment Variables
@@ -390,6 +399,21 @@ def _calculate_monthly_performance(self) -> float:
 - **ML Learning**: Entry-exit trade linking for profit optimization
 - **Data Freshness**: Real-time quote validation implemented
 - **Health Monitoring**: Comprehensive debug endpoints deployed
+
+### Dependencies & Installation
+```bash
+# Core dependencies (see requirements.txt)
+pip install alpaca-trade-api>=3.0.0
+pip install firebase-admin>=6.2.0
+pip install flask>=2.3.3
+pip install openai>=1.0.0
+pip install scikit-learn>=1.3.0
+pip install pandas>=2.0.0
+pip install numpy>=1.24.0
+
+# Or install all at once
+pip install -r requirements.txt
+```
 
 ### Recent Critical Fixes (June 2025)
 - **SMART LEVERAGE**: Implemented performance-based allocation for 5% monthly ROI

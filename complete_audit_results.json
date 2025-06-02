@@ -1,0 +1,124 @@
+{
+  "timestamp": "2025-06-02T17:27:22.629331",
+  "portfolio_value": 95337.07,
+  "total_unrealized_pl": 140.922559,
+  "crypto_allocation_pct": 89.5143379086435,
+  "stock_allocation_pct": 3.077313368241755,
+  "cash_pct": 7.40834598755762,
+  "position_count": 10,
+  "recent_filled_orders": 0,
+  "critical_issues_count": 2,
+  "warnings_count": 1,
+  "worst_position_loss": -46.41838,
+  "best_position_gain": 184.617059,
+  "portfolio_decline_pct": -4.662929999999993,
+  "position_details": [
+    {
+      "symbol": "AVAXUSD",
+      "category": "\u20bf",
+      "qty": 592.057963701,
+      "avg_price": 20.589516385,
+      "current_price": 20.61,
+      "market_value": 12202.314632,
+      "unrealized_pl": 12.127488,
+      "unrealized_plpc": 0.09948565888890999
+    },
+    {
+      "symbol": "BTCUSD",
+      "category": "\u20bf",
+      "qty": 0.145670667,
+      "avg_price": 104410.760924096,
+      "current_price": 104473.28,
+      "market_value": 15218.692381,
+      "unrealized_pl": 9.107195,
+      "unrealized_plpc": 0.059877997253879996
+    },
+    {
+      "symbol": "COST",
+      "category": "\ud83d\udcc8",
+      "qty": 1.0,
+      "avg_price": 1042.01125,
+      "current_price": 1046.07,
+      "market_value": 1046.07,
+      "unrealized_pl": 4.05875,
+      "unrealized_plpc": 0.38951114971168
+    },
+    {
+      "symbol": "DOTUSD",
+      "category": "\u20bf",
+      "qty": 3016.214758301,
+      "avg_price": 4.039199614,
+      "current_price": 4.02381,
+      "market_value": 12136.675107,
+      "unrealized_pl": -46.41838,
+      "unrealized_plpc": -0.38100651570581
+    },
+    {
+      "symbol": "EBAY",
+      "category": "\ud83d\udcc8",
+      "qty": 13.0,
+      "avg_price": 73.205,
+      "current_price": 74.11,
+      "market_value": 963.43,
+      "unrealized_pl": 11.765,
+      "unrealized_plpc": 1.23625435421078
+    },
+    {
+      "symbol": "ETHUSD",
+      "category": "\u20bf",
+      "qty": 6.028840069,
+      "avg_price": 2521.977681735,
+      "current_price": 2552.6,
+      "market_value": 15389.21716,
+      "unrealized_pl": 184.617059,
+      "unrealized_plpc": 1.2142184455601601
+    },
+    {
+      "symbol": "LINKUSD",
+      "category": "\u20bf",
+      "qty": 884.663839909,
+      "avg_price": 13.770394532,
+      "current_price": 13.75,
+      "market_value": 12164.127799,
+      "unrealized_pl": -18.042305,
+      "unrealized_plpc": -0.14810419527861
+    },
+    {
+      "symbol": "SOLUSD",
+      "category": "\u20bf",
+      "qty": 98.922855101,
+      "avg_price": 153.681963518,
+      "current_price": 153.9,
+      "market_value": 15224.2274,
+      "unrealized_pl": 21.568791,
+      "unrealized_plpc": 0.14187512562593
+    },
+    {
+      "symbol": "UNIUSD",
+      "category": "\u20bf",
+      "qty": 484.833098858,
+      "avg_price": 6.29266,
+      "current_price": 6.1982,
+      "market_value": 3005.092513,
+      "unrealized_pl": -45.797335,
+      "unrealized_plpc": -1.5011140120323299
+    },
+    {
+      "symbol": "XLK",
+      "category": "\ud83d\udcc8",
+      "qty": 4.0,
+      "avg_price": 229.096026,
+      "current_price": 231.0801,
+      "market_value": 924.3204,
+      "unrealized_pl": 7.936296,
+      "unrealized_plpc": 0.86604470389198
+    }
+  ],
+  "issues": [
+    "\ud83d\udd34 EXTREME CRYPTO OVER-ALLOCATION: 89.5% (DANGER ZONE)",
+    "\ud83d\udd34 NO TRADING ACTIVITY: 0 filled orders in 7 days"
+  ],
+  "warnings": [
+    "\ud83d\udfe1 PORTFOLIO DECLINE: -4.7% from start"
+  ]
+}

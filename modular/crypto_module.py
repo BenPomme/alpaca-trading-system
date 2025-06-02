@@ -10,11 +10,14 @@ from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
 from enum import Enum
+import time
 
 from .base_module import (
     TradingModule, ModuleConfig, TradeOpportunity, TradeResult,
     TradeAction, TradeStatus, ExitReason
 )
+from ..utils.technical_indicators import TechnicalIndicators
+from ..utils.pattern_recognition import PatternRecognition
 
 
 class TradingSession(Enum):
@@ -113,19 +116,19 @@ class CryptoModule(TradingModule):
         # Keep session configs for legacy compatibility but don't use for restrictions
         self.session_configs = {
             TradingSession.ASIA_PRIME: SessionConfig(
-                strategy=CryptoStrategy.MOMENTUM,
+                strategy=CryptoStrategy.REVERSAL,
                 position_size_multiplier=1.2,
                 min_confidence=0.35,
                 symbol_focus='all'
             ),
             TradingSession.EUROPE_PRIME: SessionConfig(
-                strategy=CryptoStrategy.MOMENTUM,
+                strategy=CryptoStrategy.REVERSAL,
                 position_size_multiplier=1.2,
                 min_confidence=0.35,
                 symbol_focus='all'
             ),
             TradingSession.US_PRIME: SessionConfig(
-                strategy=CryptoStrategy.MOMENTUM,
+                strategy=CryptoStrategy.REVERSAL,
                 position_size_multiplier=1.2,
                 min_confidence=0.35,
                 symbol_focus='all'
@@ -605,49 +608,94 @@ class CryptoModule(TradingModule):
             # Prepare order data for crypto
             order_data = {
                 'symbol': opportunity.symbol,
-                'qty': opportunity.quantity,
+                'qty': opportunity.quantity, # Crypto quantities can be fractional
                 'side': 'buy' if opportunity.action == TradeAction.BUY else 'sell',
                 'type': 'market',
                 'time_in_force': 'gtc'  # Good til cancelled for crypto
             }
             
-            # Execute via injected order executor
+            self.logger.info(f"Attempting crypto trade for {opportunity.symbol}: {order_data['side']} {order_data['qty']} units.")
             execution_result = self.order_executor.execute_order(order_data)
             
-            # Create trade result
-            result = None
-            if execution_result.get('success'):
-                current_price = opportunity.metadata.get('current_price', 0)
-                
-                result = TradeResult(
-                    opportunity=opportunity,
-                    status=TradeStatus.EXECUTED,
-                    order_id=execution_result.get('order_id'),
-                    execution_price=current_price,
-                    execution_time=datetime.now()
-                )
-            else:
-                result = TradeResult(
+            if not execution_result or not execution_result.get('success'):
+                error_msg = execution_result.get('error', 'Unknown error during crypto order submission')
+                self.logger.error(f"Failed to submit crypto order for {opportunity.symbol}: {error_msg}")
+                return TradeResult(
                     opportunity=opportunity,
                     status=TradeStatus.FAILED,
-                    error_message=execution_result.get('error', 'Unknown crypto execution error')
+                    order_id=None,
+                    error_message=f"Order submission failed: {error_msg}"
                 )
+
+            order_id = execution_result.get('order_id')
+            self.logger.info(f"Crypto order {order_id} submitted for {opportunity.symbol}. Polling for fill...")
+
+            # Poll for order status
+            filled_avg_price = None
+            actual_filled_qty = 0.0
+            final_status = None
+            max_retries = 120  # Poll for up to 120 seconds for crypto
+            retries = 0
+            while retries < max_retries:
+                time.sleep(1) # Wait 1 second between polls
+                status_result = self.order_executor.get_order_status(order_id)
+                if status_result and status_result.get('success'):
+                    final_status = status_result.get('status')
+                    if final_status == 'filled':
+                        filled_avg_price = status_result.get('filled_avg_price')
+                        actual_filled_qty = float(status_result.get('filled_qty', 0.0))
+                        self.logger.info(f"Crypto order {order_id} for {opportunity.symbol} filled. Price: {filled_avg_price}, Qty: {actual_filled_qty}")
+                        break
+                    elif final_status in ['canceled', 'expired', 'rejected', 'done_for_day']:
+                        self.logger.warning(f"Crypto order {order_id} for {opportunity.symbol} did not fill. Final status: {final_status}")
+                        break
+                    elif final_status == 'partially_filled':
+                        current_filled_qty = float(status_result.get('filled_qty', 0.0))
+                        self.logger.info(f"Crypto order {order_id} for {opportunity.symbol} is partially_filled with {current_filled_qty}. Continuing to poll.")
+                else:
+                    self.logger.warning(f"Could not get status for crypto order {order_id}. Retrying...")
+                retries += 1
+
+            result_status = TradeStatus.FAILED
+            error_msg_result = None
+            updated_opportunity = opportunity # Keep original opportunity by default
+
+            if filled_avg_price and actual_filled_qty > 0:
+                result_status = TradeStatus.EXECUTED
+                updated_opportunity = dataclasses.replace(opportunity, quantity=actual_filled_qty)
+            else:
+                self.logger.error(f"Crypto order {order_id} for {opportunity.symbol} did not fill adequately. Final status: {final_status}, Filled Qty: {actual_filled_qty}")
+                error_msg_result = f"Order {order_id} failed to fill adequately. Status: {final_status}, Filled Qty: {actual_filled_qty}"
+
+            # Create trade result. P&L is None for entry trades.
+            result = TradeResult(
+                opportunity=updated_opportunity,
+                status=result_status,
+                order_id=order_id,
+                execution_price=filled_avg_price if result_status == TradeStatus.EXECUTED else None,
+                execution_time=datetime.now(), # Ideally, get execution time from order status
+                error_message=error_msg_result,
+                pnl=None, # P&L is handled by _execute_crypto_exit for exits
+                pnl_pct=None
+            )
             
             # 🧠 ML DATA COLLECTION: Save trade with enhanced parameter context
-            if result.success:
-                trade_id = self._save_ml_enhanced_crypto_trade(opportunity, result)
-                # Store trade_id in result metadata for position tracking
-                if not hasattr(result, 'metadata'):
+            # result.success checks pnl > 0, which is false for entries. Check status directly.
+            if result.status == TradeStatus.EXECUTED:
+                trade_id = self._save_ml_enhanced_crypto_trade(updated_opportunity, result) # Pass updated_opportunity
+                if not hasattr(result, 'metadata'): # Ensure metadata attribute exists
                     result.metadata = {}
                 result.metadata['ml_trade_id'] = trade_id
             
             return result
                 
         except Exception as e:
+            self.logger.error(f"Crypto execution error for {opportunity.symbol}: {e}", exc_info=True)
             return TradeResult(
                 opportunity=opportunity,
-                status=TradeStatus.FAILED,
-                error_message=f"Crypto execution error: {e}"
+                status=TradeStatus.ERROR, # Changed from FAILED for clarity
+                order_id=None,
+                error_message=f"Crypto execution error: {str(e)}"
             )
     
     def _save_ml_enhanced_crypto_trade(self, opportunity: TradeOpportunity, result: TradeResult):
@@ -853,68 +901,150 @@ class CryptoModule(TradingModule):
     def _execute_crypto_exit(self, position: Dict, exit_reason: str) -> Optional[TradeResult]:
         """Execute crypto position exit with ML-enhanced exit analysis"""
         try:
-            symbol = position.get('symbol', '')
-            qty = abs(position.get('qty', 0))
-            
-            if qty == 0:
+            symbol = position.get('symbol')
+            if not symbol:
+                self.logger.error("Cannot execute crypto exit: position symbol is missing.")
                 return None
+
+            position_qty = float(position.get('qty', 0))
+            if position_qty == 0:
+                self.logger.warning(f"Attempting to exit crypto position with zero quantity for {symbol}")
+                return None
+
+            side_to_close = 'sell' if position_qty > 0 else 'buy'
+            qty_to_close = abs(position_qty)
             
-            # Create exit opportunity
+            # Create exit opportunity (used for TradeResult regardless of execution outcome)
             exit_opportunity = TradeOpportunity(
                 symbol=symbol,
-                action=TradeAction.SELL if position.get('qty', 0) > 0 else TradeAction.BUY,
-                quantity=qty,
-                confidence=0.6,  # Medium confidence for exits
+                action=TradeAction.SELL if side_to_close == 'sell' else TradeAction.BUY,
+                quantity=qty_to_close,
+                confidence=0.6,  # Medium confidence for exits, can be refined
                 strategy='crypto_exit'
             )
             
-            # Execute exit (without saving ML data for exit trades - handled separately)
+            # Prepare order data for crypto exit
             order_data = {
                 'symbol': symbol,
-                'qty': qty,
-                'side': 'sell' if position.get('qty', 0) > 0 else 'buy',
+                'qty': qty_to_close,
+                'side': side_to_close,
                 'type': 'market',
-                'time_in_force': 'gtc'
+                'time_in_force': 'gtc'  # Good til cancelled for crypto
             }
             
+            self.logger.info(f"Attempting to close crypto position {symbol}: {side_to_close} {qty_to_close} units.")
             execution_result = self.order_executor.execute_order(order_data)
             
-            if execution_result.get('success'):
-                # Calculate REAL P&L from our tracked entry data
-                exit_price = self._get_crypto_price(symbol)
-                actual_pnl = position.get('unrealized_pl', 0)
-                actual_pnl_pct = actual_pnl / max(abs(position.get('market_value', 1)), 1)
-                
-                # Create exit result with P&L information
-                result = TradeResult(
-                    opportunity=exit_opportunity,
-                    status=TradeStatus.EXECUTED,
-                    order_id=execution_result.get('order_id'),
-                    execution_price=exit_price,
-                    execution_time=datetime.now(),
-                    pnl=actual_pnl,
-                    pnl_pct=actual_pnl_pct,
-                    exit_reason=self._get_exit_reason_enum(exit_reason)
-                )
-                
-                # UPDATE REAL PROFITABILITY METRICS
-                self._update_exit_performance_metrics(symbol, actual_pnl)
-                
-                # 🧠 ML DATA COLLECTION: Save exit analysis for parameter optimization
-                self._save_ml_enhanced_crypto_exit(position, result, exit_reason)
-                
-                self.logger.info(f"💰 Crypto exit: {symbol} {exit_reason} P&L: ${actual_pnl:.2f} ({actual_pnl_pct:.1%})")
-                return result
-            else:
+            if not execution_result or not execution_result.get('success'):
+                error_msg = execution_result.get('error', 'Unknown error during crypto order submission')
+                self.logger.error(f"Failed to submit closing crypto order for {symbol}: {error_msg}")
                 return TradeResult(
                     opportunity=exit_opportunity,
                     status=TradeStatus.FAILED,
-                    error_message=execution_result.get('error', 'Exit execution failed')
+                    order_id=None,
+                    error_message=f"Order submission failed: {error_msg}"
                 )
+
+            order_id = execution_result.get('order_id')
+            self.logger.info(f"Closing crypto order {order_id} submitted for {symbol}. Polling for fill...")
+
+            # Poll for order status
+            filled_avg_price = None
+            actual_filled_qty = 0
+            final_status = None
+            # Crypto orders might take longer or have partial fills, adjust polling as needed
+            max_retries = 120  # Poll for up to 120 seconds for crypto
+            retries = 0
+            while retries < max_retries:
+                time.sleep(1) # Wait 1 second between polls
+                status_result = self.order_executor.get_order_status(order_id)
+                if status_result and status_result.get('success'):
+                    final_status = status_result.get('status')
+                    # For crypto, partial fills might occur. We need to handle 'filled' or 'partially_filled' and then check qty.
+                    # However, Alpaca API usually transitions from partially_filled to filled once complete for market orders.
+                    # We will consider 'filled' as the primary success state.
+                    if final_status == 'filled':
+                        filled_avg_price = status_result.get('filled_avg_price')
+                        actual_filled_qty = float(status_result.get('filled_qty', 0))
+                        self.logger.info(f"Crypto order {order_id} for {symbol} filled. Price: {filled_avg_price}, Qty: {actual_filled_qty}")
+                        break
+                    elif final_status in ['canceled', 'expired', 'rejected', 'done_for_day']:
+                        self.logger.warning(f"Crypto order {order_id} for {symbol} did not fill. Final status: {final_status}")
+                        break
+                    elif final_status == 'partially_filled':
+                        # Log partial fill and continue polling, or decide to act on it
+                        current_filled_qty = float(status_result.get('filled_qty', 0))
+                        self.logger.info(f"Crypto order {order_id} for {symbol} is partially_filled with {current_filled_qty}. Continuing to poll.")
+                        # Potentially update filled_avg_price and actual_filled_qty if we were to accept partial fills here
+                else:
+                    self.logger.warning(f"Could not get status for crypto order {order_id}. Retrying...")
+                retries += 1
+            
+            if not filled_avg_price or actual_filled_qty == 0:
+                self.logger.error(f"Closing crypto order {order_id} for {symbol} did not achieve full fill with valid price/qty. Final status: {final_status}")
+                return TradeResult(
+                    opportunity=exit_opportunity,
+                    status=TradeStatus.FAILED, # Or a more specific status
+                    order_id=order_id,
+                    error_message=f"Order {order_id} failed to fill adequately. Status: {final_status}, Filled Qty: {actual_filled_qty}"
+                )
+
+            # Calculate REAL P&L using actual fill price and entry price from position
+            entry_price = float(position.get('avg_entry_price', 0))
+            if entry_price == 0:
+                 self.logger.warning(f"avg_entry_price for crypto {symbol} is 0. P&L calculation will be inaccurate.")
+
+            if side_to_close == 'sell': # Closing a long position
+                realized_pnl = (filled_avg_price - entry_price) * actual_filled_qty
+            else: # Closing a short position (buy to cover)
+                realized_pnl = (entry_price - filled_avg_price) * actual_filled_qty
+            
+            cost_basis = entry_price * actual_filled_qty
+            pnl_pct = (realized_pnl / cost_basis) * 100 if cost_basis != 0 else 0
+
+            self.logger.info(f"Crypto Exit P&L for {symbol}: Entry: {entry_price}, Exit Fill: {filled_avg_price}, Qty: {actual_filled_qty}, P&L: {realized_pnl:.2f} ({pnl_pct:.2f}%)")
+
+            # Create exit result with P&L information
+            result = TradeResult(
+                opportunity=exit_opportunity, # Original opportunity for context
+                status=TradeStatus.EXECUTED if final_status == 'filled' and actual_filled_qty > 0 else TradeStatus.FAILED,
+                order_id=order_id,
+                execution_price=filled_avg_price,
+                execution_time=datetime.now(), # Ideally, get execution time from order status
+                pnl=realized_pnl,
+                pnl_pct=pnl_pct,
+                exit_reason=self._get_exit_reason_enum(exit_reason)
+            )
+            
+            # UPDATE REAL PROFITABILITY METRICS
+            self._update_exit_performance_metrics(symbol, realized_pnl) # Use the new accurate P&L
+            
+            # 🧠 ML DATA COLLECTION: Save exit analysis for parameter optimization
+            # This call should now use the `result` object with correct P&L
+            self._save_ml_enhanced_crypto_exit(position, result, exit_reason)
+            
+            self.logger.info(f"💰 Crypto exit processed: {symbol} {exit_reason} P&L: ${realized_pnl:.2f} ({pnl_pct:.1%})")
+            return result
             
         except Exception as e:
-            self.logger.error(f"Error executing crypto exit: {e}")
-            return None
+            self.logger.error(f"Error executing crypto exit for {position.get('symbol', 'UNKNOWN')}: {e}", exc_info=True)
+            symbol = position.get('symbol', 'UNKNOWN_CRYPTO')
+            qty = abs(float(position.get('qty', 0)))
+            action_on_error = TradeAction.SELL if float(position.get('qty', 0)) > 0 else TradeAction.BUY
+
+            error_opportunity = TradeOpportunity(
+                symbol=symbol,
+                action=action_on_error,
+                quantity=qty if qty > 0 else 0.001, # Avoid zero quantity for crypto
+                confidence=0.0,
+                strategy='crypto_exit_error'
+            )
+            return TradeResult(
+                opportunity=error_opportunity,
+                status=TradeStatus.ERROR,
+                order_id=None,
+                error_message=str(e)
+            )
     
     def _save_ml_enhanced_crypto_exit(self, position: Dict, result: TradeResult, exit_reason: str):
         """Save crypto exit with ML-critical exit analysis data"""

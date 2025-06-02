@@ -31,45 +31,65 @@ class FirebaseDatabase:
                 print("✅ FIREBASE INIT: Firebase already initialized")
                 return
             
-            # Initialize with service account key
-            service_account_path = os.getenv('FIREBASE_SERVICE_ACCOUNT_PATH', 'firebase-service-account.json')
-            
-            if os.path.exists(service_account_path):
-                # Use service account file
-                cred = credentials.Certificate(service_account_path)
+            # Attempt 1: Use FIREBASE_SERVICE_ACCOUNT_PATH environment variable
+            service_account_env_path = os.getenv('FIREBASE_SERVICE_ACCOUNT_PATH')
+            if service_account_env_path and os.path.exists(service_account_env_path):
+                cred = credentials.Certificate(service_account_env_path)
                 firebase_admin.initialize_app(cred)
-                print(f"✅ Firebase initialized with service account: {service_account_path}")
+                self.db = firestore.client()
+                print(f"✅ Firebase initialized with service account from FIREBASE_SERVICE_ACCOUNT_PATH: {service_account_env_path}")
+                return
+
+            # Attempt 2: Use GOOGLE_APPLICATION_CREDENTIALS environment variable
+            google_creds_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+            if google_creds_path and os.path.exists(google_creds_path):
+                # No need to manually create credentials.Certificate if GOOGLE_APPLICATION_CREDENTIALS is set,
+                # firebase_admin.initialize_app() will pick it up automatically.
+                firebase_admin.initialize_app()
+                self.db = firestore.client()
+                print(f"✅ Firebase initialized using GOOGLE_APPLICATION_CREDENTIALS: {google_creds_path}")
+                return
+
+            # Attempt 3: Use default 'firebase-service-account.json' file
+            default_service_account_file = 'firebase-service-account.json'
+            if os.path.exists(default_service_account_file):
+                cred = credentials.Certificate(default_service_account_file)
+                firebase_admin.initialize_app(cred)
+                self.db = firestore.client()
+                print(f"✅ Firebase initialized with default service account file: {default_service_account_file}")
+                return
+            
+            # Attempt 4: Use individual environment variables for Railway/Cloud deployment
+            print("🔥 FIREBASE INIT: Service account file not found. Attempting individual environment variable initialization...")
+            firebase_project_id = os.getenv('FIREBASE_PROJECT_ID', 'alpaca-12fab') # Use env var or default
+            firebase_config = {
+                "type": "service_account",
+                "project_id": firebase_project_id,
+                "private_key_id": os.getenv('FIREBASE_PRIVATE_KEY_ID'),
+                "private_key": os.getenv('FIREBASE_PRIVATE_KEY', '').replace('\\n', '\n'),
+                "client_email": os.getenv('FIREBASE_CLIENT_EMAIL'),
+                "client_id": os.getenv('FIREBASE_CLIENT_ID'),
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                "client_x509_cert_url": os.getenv('FIREBASE_CLIENT_CERT_URL')
+            }
+            
+            # Debug: Check which variables are present
+            env_vars = ['FIREBASE_PRIVATE_KEY_ID', 'FIREBASE_PRIVATE_KEY', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_CLIENT_ID', 'FIREBASE_CLIENT_CERT_URL']
+            missing_vars = [var for var in env_vars if not os.getenv(var)]
+            if missing_vars:
+                print(f"❌ FIREBASE INIT: Missing environment variables: {missing_vars}")
             else:
-                # Use environment variables for Railway deployment
-                print("🔥 FIREBASE INIT: Attempting environment variable initialization...")
-                firebase_config = {
-                    "type": "service_account",
-                    "project_id": "alpaca-12fab",
-                    "private_key_id": os.getenv('FIREBASE_PRIVATE_KEY_ID'),
-                    "private_key": os.getenv('FIREBASE_PRIVATE_KEY', '').replace('\\n', '\n'),
-                    "client_email": os.getenv('FIREBASE_CLIENT_EMAIL'),
-                    "client_id": os.getenv('FIREBASE_CLIENT_ID'),
-                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                    "token_uri": "https://oauth2.googleapis.com/token",
-                    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-                    "client_x509_cert_url": os.getenv('FIREBASE_CLIENT_CERT_URL')
-                }
-                
-                # Debug: Check which variables are present
-                env_vars = ['FIREBASE_PRIVATE_KEY_ID', 'FIREBASE_PRIVATE_KEY', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_CLIENT_ID', 'FIREBASE_CLIENT_CERT_URL']
-                missing_vars = [var for var in env_vars if not os.getenv(var)]
-                if missing_vars:
-                    print(f"❌ FIREBASE INIT: Missing environment variables: {missing_vars}")
-                else:
-                    print("✅ FIREBASE INIT: All environment variables present")
-                
-                if all(firebase_config.values()):
-                    cred = credentials.Certificate(firebase_config)
-                    firebase_admin.initialize_app(cred)
-                    print("✅ Firebase initialized with environment variables")
-                else:
-                    print("⚠️ Firebase credentials not found - using mock mode")
-                    return
+                print("✅ FIREBASE INIT: All environment variables present")
+            
+            if all(firebase_config.values()):
+                cred = credentials.Certificate(firebase_config)
+                firebase_admin.initialize_app(cred)
+                print("✅ Firebase initialized with environment variables")
+            else:
+                print("⚠️ Firebase credentials not found - using mock mode")
+                return
             
             self.db = firestore.client()
             

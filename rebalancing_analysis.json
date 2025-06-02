@@ -1,0 +1,26 @@
+{
+  "timestamp": "2025-06-02T17:36:42.082040",
+  "portfolio_value": 95028.4,
+  "current_allocations": {
+    "crypto_pct": 89.74842879602308,
+    "stock_pct": 42.294318330099216,
+    "crypto_value": 85286.49590999998,
+    "stock_value": 40191.614
+  },
+  "target_allocations": {
+    "crypto_pct": 30.0,
+    "stock_pct": 50.0,
+    "cash_pct": 20.0
+  },
+  "rebalancing_needed": {
+    "crypto_excess": 56777.97590999999,
+    "stock_deficit": 7322.585999999996
+  },
+  "bleeding_positions_count": 0,
+  "total_bleeding_pnl": 0,
+  "recommendations": [
+    "Reduce crypto from 89.7% to 30%",
+    "Increase stocks from 42.3% to 50%",
+    "Implement stop losses on 0 bleeding positions"
+  ]
+}

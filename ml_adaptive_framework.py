@@ -12,6 +12,7 @@ from ml_strategy_selector import MLStrategySelector
 from ml_risk_predictor import MLRiskPredictor
 from database_manager import TradingDatabase
 from firebase_database import FirebaseDatabase
+import logging
 
 class MLAdaptiveFramework:
     """
@@ -19,11 +20,12 @@ class MLAdaptiveFramework:
     Integrates with Phase 4 system for intelligent decision making
     """
     
-    def __init__(self, api_client, risk_manager, db: TradingDatabase = None, firebase_db: FirebaseDatabase = None):
+    def __init__(self, api_client, risk_manager, db: TradingDatabase = None, firebase_db: FirebaseDatabase = None, logger=None):
         self.api = api_client
         self.risk_manager = risk_manager
         self.db = db
         self.firebase_db = firebase_db
+        self.logger = logger or logging.getLogger(__name__)
         
         # Initialize ML components with Firebase support
         self.strategy_selector = MLStrategySelector(db, firebase_db)
@@ -367,6 +369,18 @@ class MLAdaptiveFramework:
         # Update strategy performance
         self.strategy_selector.update_strategy_performance(strategy, trade_result)
         
+        # Periodically save ML model states to Firebase
+        if self.ml_performance['total_trades'] % 5 == 0: # Save every 5 trades
+            if hasattr(self, 'save_ml_states_to_firebase') and callable(self.save_ml_states_to_firebase):
+                self.logger.info(f"Attempting to save ML states to Firebase (trade count: {self.ml_performance['total_trades']}).")
+                try:
+                    self.save_ml_states_to_firebase()
+                    self.logger.info("ML states saved to Firebase successfully after trade outcome.")
+                except Exception as e:
+                    self.logger.error(f"Error saving ML states to Firebase after trade outcome: {e}")
+            else:
+                self.logger.warning("save_ml_states_to_firebase method not found or not callable.")
+
         # Update ML performance tracking
         self.ml_performance['total_trades'] += 1
         

@@ -1,0 +1,19 @@
+{
+  "timestamp": "2025-06-02T17:30:43.392933",
+  "critical_issues": [
+    "Extreme crypto over-allocation (89.5%)",
+    "No proper risk management",
+    "Profit/loss calculation issues",
+    "No clear exit strategy",
+    "Portfolio decline (-4.7%)",
+    "Unbalanced allocation"
+  ],
+  "immediate_actions": [
+    "Reduce crypto allocation to 30%",
+    "Implement 1-2% risk per trade",
+    "Fix success definition in base_module.py",
+    "Add stop losses to all positions",
+    "Increase stock allocation"
+  ],
+  "status": "analysis_complete"
+}

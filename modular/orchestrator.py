@@ -442,6 +442,29 @@ class ModularOrchestrator:
         """Cleanup resources on shutdown"""
         self.logger.info("Shutting down modular orchestrator")
         
+        # Attempt to save ML states via ml_optimizer
+        if self.ml_optimizer:
+            self.logger.info("Attempting to save final ML model states via ml_optimizer on cleanup...")
+            # Check for a direct save method or a method to get the ML framework
+            if hasattr(self.ml_optimizer, 'save_ml_states_to_firebase') and callable(self.ml_optimizer.save_ml_states_to_firebase):
+                try:
+                    self.ml_optimizer.save_ml_states_to_firebase()
+                    self.logger.info("ML states saved via ml_optimizer.save_ml_states_to_firebase() on cleanup.")
+                except Exception as e:
+                    self.logger.error(f"Error saving ML states via ml_optimizer.save_ml_states_to_firebase() on cleanup: {e}")
+            elif (hasattr(self.ml_optimizer, 'ml_adaptive_framework') and 
+                  hasattr(self.ml_optimizer.ml_adaptive_framework, 'save_ml_states_to_firebase') and 
+                  callable(self.ml_optimizer.ml_adaptive_framework.save_ml_states_to_firebase)):
+                try:
+                    self.ml_optimizer.ml_adaptive_framework.save_ml_states_to_firebase()
+                    self.logger.info("ML states saved via ml_optimizer.ml_adaptive_framework.save_ml_states_to_firebase() on cleanup.")
+                except Exception as e:
+                    self.logger.error(f"Error saving ML states via ml_optimizer.ml_adaptive_framework.save_ml_states_to_firebase() on cleanup: {e}")
+            elif hasattr(self.ml_optimizer, 'shutdown'): # Fallback if specific save method not found, assuming shutdown handles it
+                self.logger.info("ML optimizer has a shutdown method, assuming it handles final state saving if necessary.")
+            else:
+                self.logger.warning("ml_optimizer does not have a recognized method to save ML states on cleanup.")
+
         # Save final metrics
         try:
             final_metrics = {

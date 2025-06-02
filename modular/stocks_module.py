@@ -11,11 +11,14 @@ from datetime import datetime
 from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
 from enum import Enum
+import time
 
 from .base_module import (
     TradingModule, ModuleConfig, TradeOpportunity, TradeResult,
     TradeAction, TradeStatus, ExitReason
 )
+from ..utils.pattern_recognition import PatternRecognition
+from ..utils.news_sentiment import NewsSentimentAnalyzer # Example import
 
 
 class StockStrategy(Enum):
@@ -668,37 +671,84 @@ class StocksModule(TradingModule):
             # Prepare order data for stock trading
             order_data = {
                 'symbol': opportunity.symbol,
-                'qty': int(opportunity.quantity),
+                'qty': int(opportunity.quantity), # Ensure quantity is an integer for stocks
                 'side': 'buy' if opportunity.action == TradeAction.BUY else 'sell',
                 'type': 'market',
                 'time_in_force': 'day'  # Day orders for stocks
             }
             
-            # Execute via injected order executor
+            self.logger.info(f"Attempting stock trade for {opportunity.symbol}: {order_data['side']} {order_data['qty']} shares.")
             execution_result = self.order_executor.execute_order(order_data)
             
-            # Create trade result
-            result = None
-            if execution_result.get('success'):
-                current_price = opportunity.metadata.get('current_price', 0)
-                
-                result = TradeResult(
-                    opportunity=opportunity,
-                    status=TradeStatus.EXECUTED,
-                    order_id=execution_result.get('order_id'),
-                    execution_price=current_price,
-                    execution_time=datetime.now()
-                )
-            else:
-                result = TradeResult(
+            if not execution_result or not execution_result.get('success'):
+                error_msg = execution_result.get('error', 'Unknown error during stock order submission')
+                self.logger.error(f"Failed to submit stock order for {opportunity.symbol}: {error_msg}")
+                return TradeResult(
                     opportunity=opportunity,
                     status=TradeStatus.FAILED,
-                    error_message=execution_result.get('error', 'Unknown stock execution error')
+                    order_id=None,
+                    error_message=f"Order submission failed: {error_msg}"
                 )
+
+            order_id = execution_result.get('order_id')
+            self.logger.info(f"Stock order {order_id} submitted for {opportunity.symbol}. Polling for fill...")
+
+            # Poll for order status
+            filled_avg_price = None
+            actual_filled_qty = 0
+            final_status = None
+            max_retries = 60  # Poll for up to 60 seconds for stocks (market orders should fill quickly)
+            retries = 0
+            while retries < max_retries:
+                time.sleep(1) # Wait 1 second between polls
+                status_result = self.order_executor.get_order_status(order_id)
+                if status_result and status_result.get('success'):
+                    final_status = status_result.get('status')
+                    if final_status == 'filled':
+                        filled_avg_price = status_result.get('filled_avg_price')
+                        actual_filled_qty = int(float(status_result.get('filled_qty', 0))) # Stocks are whole shares
+                        self.logger.info(f"Stock order {order_id} for {opportunity.symbol} filled. Price: {filled_avg_price}, Qty: {actual_filled_qty}")
+                        break
+                    elif final_status in ['canceled', 'expired', 'rejected', 'done_for_day']:
+                        self.logger.warning(f"Stock order {order_id} for {opportunity.symbol} did not fill. Final status: {final_status}")
+                        break
+                    # Add handling for partially_filled if necessary, though less common for market day orders for liquid stocks
+                else:
+                    self.logger.warning(f"Could not get status for stock order {order_id}. Retrying...")
+                retries += 1
+            
+            result_status = TradeStatus.FAILED
+            error_msg_result = None
+            updated_opportunity = opportunity # Keep original opportunity by default
+
+            if filled_avg_price and actual_filled_qty > 0:
+                result_status = TradeStatus.EXECUTED
+                # Update the opportunity within the result to reflect actual filled quantity
+                updated_opportunity = dataclasses.replace(opportunity, quantity=actual_filled_qty)
+            else:
+                self.logger.error(f"Stock order {order_id} for {opportunity.symbol} did not fill adequately. Final status: {final_status}, Filled Qty: {actual_filled_qty}")
+                error_msg_result = f"Order {order_id} failed to fill adequately. Status: {final_status}, Filled Qty: {actual_filled_qty}"
+
+            # Create trade result
+            # P&L is not calculated at the point of a single trade execution here; it's done on exit.
+            # For entry trades, pnl should be None or 0. For exit trades handled by _execute_stock_exit, pnl will be calculated there.
+            result = TradeResult(
+                opportunity=updated_opportunity, # Use opportunity with actual filled qty
+                status=result_status,
+                order_id=order_id,
+                execution_price=filled_avg_price if result_status == TradeStatus.EXECUTED else None,
+                execution_time=datetime.now(), # Ideally, get execution time from order status if available
+                error_message=error_msg_result,
+                pnl=None, # P&L is handled by the calling exit function or remains None for entries
+                pnl_pct=None
+            )
             
             # 🧠 ML DATA COLLECTION: Save trade with enhanced parameter context
-            if result.success:
-                trade_id = self._save_ml_enhanced_stock_trade(opportunity, result)
+            # result.success checks (status == EXECUTED and pnl > 0). For entries, pnl is None, so result.success will be False here.
+            # The ML data saving logic might need adjustment if it expects success on mere execution for entries.
+            # However, _save_ml_enhanced_stock_trade already sets profit_loss=0.0 for entries, which is fine.
+            if result.status == TradeStatus.EXECUTED: # Check for execution, not profitability, for saving entry trade ML data
+                trade_id = self._save_ml_enhanced_stock_trade(updated_opportunity, result) # Pass updated_opportunity
                 # Store trade_id in result metadata for position tracking
                 if not hasattr(result, 'metadata'):
                     result.metadata = {}
@@ -707,10 +757,12 @@ class StocksModule(TradingModule):
             return result
                 
         except Exception as e:
+            self.logger.error(f"Stock execution error for {opportunity.symbol}: {e}", exc_info=True)
             return TradeResult(
                 opportunity=opportunity,
-                status=TradeStatus.FAILED,
-                error_message=f"Stock execution error: {e}"
+                status=TradeStatus.ERROR, # Changed from FAILED to ERROR for clarity
+                order_id=None,
+                error_message=f"Stock execution error: {str(e)}"
             )
     
     def _save_ml_enhanced_stock_trade(self, opportunity: TradeOpportunity, result: TradeResult):
@@ -1039,50 +1091,121 @@ class StocksModule(TradingModule):
     def _execute_stock_exit(self, position: Dict, exit_reason: str) -> Optional[TradeResult]:
         """Execute stock position exit"""
         try:
-            symbol = position.get('symbol', '')
-            qty = abs(position.get('qty', 0))
+            symbol = position.get('symbol')
+            if not symbol:
+                self.logger.error("Cannot execute stock exit: position symbol is missing.")
+                return None
+
+            # Original quantity from the position dict before attempting to close
+            # This is primarily for creating the initial TradeOpportunity
+            original_qty_from_position = abs(float(position.get('qty', 0)))
             
-            if qty == 0:
+            if original_qty_from_position == 0:
+                self.logger.warning(f"Attempting to exit stock position with zero quantity for {symbol}")
                 return None
             
-            # Create exit opportunity
+            # Determine side based on the position's quantity sign
+            side_to_close = TradeAction.SELL if float(position.get('qty', 0)) > 0 else TradeAction.BUY
+
+            # Create exit opportunity with the original quantity we intend to close
             exit_opportunity = TradeOpportunity(
                 symbol=symbol,
-                action=TradeAction.SELL if position.get('qty', 0) > 0 else TradeAction.BUY,
-                quantity=qty,
-                confidence=0.6,  # Medium confidence for exits
+                action=side_to_close,
+                quantity=original_qty_from_position, # This is the target quantity to close
+                confidence=0.6,  # Medium confidence for exits, can be refined
                 strategy='stock_exit'
             )
             
-            # Execute exit
+            # Execute exit - _execute_stock_trade now handles polling and returns actual fill price
+            # and updates opportunity.quantity in the result to actual_filled_qty.
             result = self._execute_stock_trade(exit_opportunity)
             
-            if result.success:
-                # Update with exit information
-                result.pnl = position.get('unrealized_pl', 0)
-                result.pnl_pct = position.get('unrealized_pl', 0) / max(abs(position.get('market_value', 1)), 1)
-                result.exit_reason = self._get_exit_reason_enum(exit_reason)
-                
-                # Update daily P&L tracking for intraday trading
-                if result.pnl:
-                    self._daily_pnl += result.pnl_pct or 0.0
-                    self._daily_trade_count += 1
-                
-                # Update strategy performance
-                strategy = self._infer_position_strategy(symbol)
-                if strategy in self._strategy_performance:
-                    if result.pnl and result.pnl > 0:
-                        self._strategy_performance[strategy]['wins'] += 1
-                    self._strategy_performance[strategy]['total_pnl'] += result.pnl or 0
-                
-                self.logger.info(f"Intraday stock exit: {symbol} {exit_reason} P&L: ${result.pnl:.2f} ({result.pnl_pct:.1%}) "
-                               f"Daily P&L: {self._daily_pnl:.1%} Trades: {self._daily_trade_count}")
+            # Check if the trade execution itself failed (e.g., order rejected, no fill)
+            if not result or result.status != TradeStatus.EXECUTED:
+                self.logger.error(f"Stock exit trade for {symbol} failed or was not executed. Status: {result.status if result else 'N/A'}")
+                # Return the result from _execute_stock_trade, which contains error details
+                return result 
+
+            # At this point, result.status == TradeStatus.EXECUTED
+            # result.execution_price is the actual average fill price
+            # result.opportunity.quantity is the actual filled quantity
+
+            actual_filled_qty = result.opportunity.quantity
+            exit_fill_price = result.execution_price
+
+            if actual_filled_qty == 0 or exit_fill_price is None:
+                self.logger.error(f"Stock exit for {symbol} reported as EXECUTED but has zero filled quantity or no fill price.")
+                # Update result to reflect this inconsistency if not already FAILED
+                result.status = TradeStatus.FAILED
+                result.error_message = result.error_message or "Executed with zero quantity or no fill price."
+                return result
+
+            # Calculate REAL P&L
+            entry_price = float(position.get('avg_entry_price', 0))
+            if entry_price == 0:
+                self.logger.warning(f"avg_entry_price for stock {symbol} is 0. P&L calculation will be inaccurate.")
+
+            # P&L = (exit_price - entry_price) * quantity_sold (for long)
+            # P&L = (entry_price - exit_price) * quantity_bought_back (for short)
+            if side_to_close == TradeAction.SELL: # Closing a long position
+                realized_pnl = (exit_fill_price - entry_price) * actual_filled_qty
+            else: # Closing a short position (buy to cover)
+                realized_pnl = (entry_price - exit_fill_price) * actual_filled_qty
             
-            return result
+            cost_basis = entry_price * actual_filled_qty
+            pnl_pct = (realized_pnl / cost_basis) * 100 if cost_basis != 0 else 0
+
+            # Update the result object with the calculated P&L and correct exit reason
+            result.pnl = realized_pnl
+            result.pnl_pct = pnl_pct
+            result.exit_reason = self._get_exit_reason_enum(exit_reason)
+            
+            # Now, result.success will correctly evaluate based on the new P&L
+            if result.success: # This now checks pnl > 0
+                self.logger.info(f"Profitable stock exit: {symbol} {exit_reason} P&L: ${result.pnl:.2f} ({result.pnl_pct:.1%})")
+            else:
+                self.logger.info(f"Stock exit (loss/breakeven): {symbol} {exit_reason} P&L: ${result.pnl:.2f} ({result.pnl_pct:.1%})")
+
+            # Update daily P&L tracking for intraday trading
+            # This uses the now-correct result.pnl_pct
+            if result.pnl is not None: # Ensure pnl is calculated
+                self._daily_pnl += result.pnl_pct # pnl_pct is already a percentage
+                self._daily_trade_count += 1
+            
+            # Update strategy performance
+            # This uses the now-correct result.pnl
+            strategy_name_for_metrics = self._infer_position_strategy(symbol) 
+            if strategy_name_for_metrics in self._strategy_performance:
+                self._strategy_performance[strategy_name_for_metrics]['trades'] = self._strategy_performance[strategy_name_for_metrics].get('trades', 0) + 1
+                if result.pnl is not None and result.pnl > 0:
+                    self._strategy_performance[strategy_name_for_metrics]['wins'] = self._strategy_performance[strategy_name_for_metrics].get('wins', 0) + 1
+                self._strategy_performance[strategy_name_for_metrics]['total_pnl'] = self._strategy_performance[strategy_name_for_metrics].get('total_pnl', 0) + (result.pnl or 0)
+            
+            self.logger.info(f"Stock exit processed: {symbol} {exit_reason} P&L: ${result.pnl:.2f} ({result.pnl_pct:.1%}) "
+                           f"Daily P&L Sum (pct): {self._daily_pnl:.2f}% Trades: {self._daily_trade_count}")
+            
+            return result # This result now has accurate P&L
             
         except Exception as e:
-            self.logger.error(f"Error executing stock exit: {e}")
-            return None
+            self.logger.error(f"Error executing stock exit for {position.get('symbol', 'UNKNOWN')}: {e}", exc_info=True)
+            # Fallback if something unexpected happens
+            symbol = position.get('symbol', 'UNKNOWN_STOCK')
+            qty = abs(float(position.get('qty', 0)))
+            action_on_error = TradeAction.SELL if float(position.get('qty', 0)) > 0 else TradeAction.BUY
+
+            error_opportunity = TradeOpportunity(
+                symbol=symbol,
+                action=action_on_error,
+                quantity=qty if qty > 0 else 1,
+                confidence=0.0,
+                strategy='stock_exit_error'
+            )
+            return TradeResult(
+                opportunity=error_opportunity,
+                status=TradeStatus.ERROR,
+                order_id=None,
+                error_message=str(e)
+            )
     
     # Utility methods
     

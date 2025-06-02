@@ -122,6 +122,155 @@ class ModuleConfig:
     custom_params: Dict[str, Any] = field(default_factory=dict)
 
 
+
+def calculate_optimal_position_size(self, opportunity, portfolio_value):
+    """
+    Calculate optimal position size based on:
+    - 1-2% risk per trade (research best practice)
+    - Portfolio allocation limits
+    - Confidence-based sizing
+    """
+    # Maximum risk per trade: 1.5% of portfolio
+    max_risk_per_trade = portfolio_value * 0.015
+    
+    # Base position size: 2% of portfolio for high confidence trades
+    base_position_pct = 0.02 if opportunity.confidence > 0.7 else 0.01
+    base_position_size = portfolio_value * base_position_pct
+    
+    # Adjust for volatility (reduce size for volatile assets)
+    if hasattr(opportunity, 'volatility') and opportunity.volatility:
+        volatility_adjustment = min(1.5, max(0.5, 1.0 / opportunity.volatility))
+        base_position_size *= volatility_adjustment
+    
+    # Ensure we don't exceed risk limits
+    position_size = min(base_position_size, max_risk_per_trade)
+    
+    # Additional safety: never more than 5% of portfolio in single position
+    max_position = portfolio_value * 0.05
+    position_size = min(position_size, max_position)
+    
+    return position_size
+
+
+
+def implement_automatic_stop_loss(self, symbol, entry_price, quantity, stop_loss_pct=0.15):
+    """
+    Implement automatic stop loss for position
+    - Default 15% stop loss (research recommended)
+    - Trailing stop option for profitable positions
+    """
+    try:
+        stop_price = entry_price * (1 - stop_loss_pct)
+        
+        # Submit stop loss order
+        if hasattr(self, 'api') and self.api:
+            time_in_force = 'gtc' if 'USD' in symbol else 'day'
+            
+            order = self.api.submit_order(
+                symbol=symbol,
+                qty=abs(quantity),
+                side='sell',
+                type='stop',
+                stop_price=round(stop_price, 2),
+                time_in_force=time_in_force
+            )
+            
+            self.logger.info(f"🛡️ Stop loss set for {symbol}: ${stop_price:.2f} ({stop_loss_pct*100:.1f}%)")
+            return order.id
+        
+    except Exception as e:
+        self.logger.error(f"❌ Failed to set stop loss for {symbol}: {e}")
+        return None
+
+def update_trailing_stop(self, symbol, current_price, entry_price, stop_loss_order_id):
+    """
+    Update trailing stop loss as position becomes profitable
+    """
+    try:
+        profit_pct = (current_price - entry_price) / entry_price
+        
+        # If position is 10%+ profitable, tighten stop to break-even
+        if profit_pct >= 0.10:
+            new_stop_price = entry_price * 1.02  # 2% above entry (small profit)
+            
+            # Cancel old stop and create new one
+            self.api.cancel_order(stop_loss_order_id)
+            
+            new_order = self.api.submit_order(
+                symbol=symbol,
+                qty=abs(quantity),
+                side='sell', 
+                type='stop',
+                stop_price=round(new_stop_price, 2),
+                time_in_force='gtc' if 'USD' in symbol else 'day'
+            )
+            
+            self.logger.info(f"🎯 Trailing stop updated for {symbol}: ${new_stop_price:.2f}")
+            return new_order.id
+            
+    except Exception as e:
+        self.logger.error(f"❌ Failed to update trailing stop for {symbol}: {e}")
+    
+    return stop_loss_order_id
+
+
+
+def implement_profit_taking_strategy(self, position_data):
+    """
+    Implement systematic profit taking based on research:
+    - Take 25% profits at 15% gain
+    - Take 50% profits at 25% gain  
+    - Take 75% profits at 40% gain
+    - Let 25% run with trailing stop
+    """
+    try:
+        symbol = position_data['symbol']
+        current_price = position_data['current_price']
+        entry_price = position_data['avg_entry_price']
+        quantity = abs(position_data['qty'])
+        
+        profit_pct = (current_price - entry_price) / entry_price
+        
+        if profit_pct >= 0.40:  # 40% gain - take 75% profits
+            sell_qty = quantity * 0.75
+            self._execute_partial_profit_taking(symbol, sell_qty, "75% at 40% gain")
+            
+        elif profit_pct >= 0.25:  # 25% gain - take 50% profits
+            sell_qty = quantity * 0.50
+            self._execute_partial_profit_taking(symbol, sell_qty, "50% at 25% gain")
+            
+        elif profit_pct >= 0.15:  # 15% gain - take 25% profits
+            sell_qty = quantity * 0.25
+            self._execute_partial_profit_taking(symbol, sell_qty, "25% at 15% gain")
+        
+        return profit_pct
+        
+    except Exception as e:
+        self.logger.error(f"❌ Error in profit taking for {symbol}: {e}")
+        return 0
+
+def _execute_partial_profit_taking(self, symbol, quantity, reason):
+    """Execute partial profit taking order"""
+    try:
+        if hasattr(self, 'api') and self.api and quantity > 0:
+            time_in_force = 'gtc' if 'USD' in symbol else 'day'
+            
+            order = self.api.submit_order(
+                symbol=symbol,
+                qty=quantity,
+                side='sell',
+                type='market',
+                time_in_force=time_in_force
+            )
+            
+            self.logger.info(f"💰 Profit taking executed for {symbol}: {quantity} shares ({reason})")
+            return order.id
+            
+    except Exception as e:
+        self.logger.error(f"❌ Failed profit taking for {symbol}: {e}")
+        return None
+
+
 class TradingModule(ABC):
     """
     Abstract base class for all trading modules.

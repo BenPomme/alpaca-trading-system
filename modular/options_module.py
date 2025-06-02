@@ -1094,37 +1094,163 @@ class OptionsModule(TradingModule):
     def _execute_position_exit(self, position: Dict, exit_reason: str) -> Optional[TradeResult]:
         """Execute position exit with ML-enhanced exit analysis"""
         try:
-            # Create exit trade result
-            # This is simplified - in production would execute actual closing order
+            symbol = position.get('symbol')
+            if not symbol:
+                self.logger.error("Cannot execute exit: position symbol is missing.")
+                return None
+
+            # Determine quantity and side for closing order
+            # Alpaca positions qty is positive for long, negative for short.
+            # For options, we are typically long calls or puts, so qty is positive.
+            # To close, we sell. If it were a short option position (negative qty), we'd buy to close.
+            position_qty = float(position.get('qty', 0))
+            if position_qty == 0:
+                self.logger.warning(f"Attempting to exit position with zero quantity for {symbol}")
+                return None # Or handle as an error/already closed
+
+            side_to_close = 'sell' if position_qty > 0 else 'buy'
+            qty_to_close = abs(position_qty)
+
+            # Prepare order data to close the options position
+            order_data = {
+                'symbol': symbol,  # This is the options contract symbol
+                'qty': qty_to_close,
+                'side': side_to_close,
+                'type': 'market',  # Market order to ensure exit
+                'time_in_force': 'day'  # Day order for options
+            }
+
+            self.logger.info(f"Attempting to close position {symbol}: {side_to_close} {qty_to_close} contracts.")
+            execution_result = self.order_executor.execute_order(order_data)
+
+            if not execution_result or not execution_result.get('success'):
+                error_msg = execution_result.get('error', 'Unknown error during order submission')
+                self.logger.error(f"Failed to submit closing order for {symbol}: {error_msg}")
+                # Create a TradeOpportunity for the TradeResult even if order submission fails
+                failed_opportunity = TradeOpportunity(
+                    symbol=symbol,
+                    action=TradeAction.SELL if side_to_close == 'sell' else TradeAction.BUY, # Reflects the action we tried
+                    quantity=qty_to_close,
+                    confidence=1.0, # High confidence as it's a directed exit
+                    strategy='position_exit'
+                )
+                return TradeResult(
+                    opportunity=failed_opportunity,
+                    status=TradeStatus.FAILED,
+                    order_id=None,
+                    error_message=f"Order submission failed: {error_msg}"
+                )
+
+            order_id = execution_result.get('order_id')
+            self.logger.info(f"Closing order {order_id} submitted for {symbol}. Polling for fill...")
+
+            # Poll for order status
+            filled_avg_price = None
+            actual_filled_qty = 0
+            final_status = None
+            max_retries = 60  # Poll for up to 60 seconds (adjust as needed)
+            retries = 0
+            while retries < max_retries:
+                time.sleep(1) # Wait 1 second between polls
+                status_result = self.order_executor.get_order_status(order_id)
+                if status_result and status_result.get('success'):
+                    final_status = status_result.get('status')
+                    if final_status == 'filled':
+                        filled_avg_price = status_result.get('filled_avg_price')
+                        actual_filled_qty = float(status_result.get('filled_qty', 0))
+                        self.logger.info(f"Order {order_id} for {symbol} filled. Price: {filled_avg_price}, Qty: {actual_filled_qty}")
+                        break
+                    elif final_status in ['canceled', 'expired', 'rejected', 'done_for_day']:
+                        self.logger.warning(f"Order {order_id} for {symbol} did not fill. Final status: {final_status}")
+                        break
+                else:
+                    self.logger.warning(f"Could not get status for order {order_id}. Retrying...")
+                retries += 1
             
-            fake_opportunity = TradeOpportunity(
-                symbol=position.get('symbol', ''),
-                action=TradeAction.SELL,
-                quantity=abs(position.get('qty', 0)),
-                confidence=0.5,
-                strategy='position_exit'
+            if not filled_avg_price or actual_filled_qty == 0:
+                self.logger.error(f"Closing order {order_id} for {symbol} did not fill or filled with zero quantity. Final status: {final_status}")
+                # Create a TradeOpportunity for the TradeResult
+                opportunity_for_result = TradeOpportunity(
+                    symbol=symbol,
+                    action=TradeAction.SELL if side_to_close == 'sell' else TradeAction.BUY,
+                    quantity=qty_to_close,
+                    confidence=1.0, 
+                    strategy='position_exit'
+                )
+                return TradeResult(
+                    opportunity=opportunity_for_result,
+                    status=TradeStatus.FAILED, # Or a more specific status if available
+                    order_id=order_id,
+                    error_message=f"Order {order_id} failed to fill with valid price/qty. Status: {final_status}"
+                )
+
+            # Calculate P&L
+            entry_price = float(position.get('avg_entry_price', 0))
+            if entry_price == 0:
+                self.logger.warning(f"avg_entry_price for {symbol} is 0. P&L calculation will be inaccurate.")
+            
+            # P&L = (exit_price - entry_price) * quantity_sold (for long positions)
+            # P&L = (entry_price - exit_price) * quantity_bought_back (for short positions)
+            # Since options are typically long, and we determined side_to_close:
+            if side_to_close == 'sell': # Closing a long position
+                realized_pnl = (filled_avg_price - entry_price) * actual_filled_qty
+            else: # Closing a short position (buy to cover)
+                realized_pnl = (entry_price - filled_avg_price) * actual_filled_qty
+            
+            # P&L percentage
+            cost_basis = entry_price * actual_filled_qty
+            pnl_pct = (realized_pnl / cost_basis) * 100 if cost_basis != 0 else 0
+
+            self.logger.info(f"Exit P&L for {symbol}: Entry: {entry_price}, Exit: {filled_avg_price}, Qty: {actual_filled_qty}, P&L: {realized_pnl:.2f} ({pnl_pct:.2f}%)")
+
+            # Create TradeOpportunity for the TradeResult
+            exit_opportunity = TradeOpportunity(
+                symbol=symbol,
+                action=TradeAction.SELL if side_to_close == 'sell' else TradeAction.BUY,
+                quantity=actual_filled_qty, # Use actual filled quantity
+                confidence=1.0, # High confidence as it's a directed exit
+                strategy='position_exit',
+                metadata={'entry_price': entry_price, 'exit_reason': exit_reason}
             )
             
             result = TradeResult(
-                opportunity=fake_opportunity,
-                status=TradeStatus.EXECUTED,
-                order_id=f"exit_{datetime.now().timestamp()}",
-                execution_price=position.get('market_value', 0) / max(abs(position.get('qty', 1)), 1),
-                execution_time=datetime.now(),
-                pnl=position.get('unrealized_pl', 0),
-                pnl_pct=position.get('unrealized_pl', 0) / max(abs(position.get('market_value', 1)), 1),
-                exit_reason=ExitReason.PROFIT_TARGET if exit_reason == 'profit_target' else ExitReason.STOP_LOSS
+                opportunity=exit_opportunity,
+                status=TradeStatus.EXECUTED if final_status == 'filled' else TradeStatus.FAILED,
+                order_id=order_id,
+                execution_price=filled_avg_price,
+                execution_time=datetime.now(), # Or ideally, get execution time from order status if available
+                pnl=realized_pnl,
+                pnl_pct=pnl_pct,
+                exit_reason=ExitReason[exit_reason.upper()] if exit_reason.upper() in ExitReason.__members__ else ExitReason.UNKNOWN
             )
             
             # 🧠 ML DATA COLLECTION: Save exit analysis for parameter optimization
-            if result.success:
+            # This part was already here, ensure it uses the new `result`
+            if result.success: # result.success now correctly checks P&L
                 self._save_ml_enhanced_options_exit(position, result, exit_reason)
             
             return result
             
         except Exception as e:
-            self.logger.error(f"Error executing position exit: {e}")
-            return None
+            self.logger.error(f"Error executing position exit for {position.get('symbol', 'UNKNOWN')}: {e}", exc_info=True)
+            # Fallback TradeResult if a major exception occurs
+            symbol = position.get('symbol', 'UNKNOWN_SYMBOL')
+            qty = abs(float(position.get('qty', 0)))
+            action_on_error = TradeAction.SELL if float(position.get('qty', 0)) > 0 else TradeAction.BUY
+
+            error_opportunity = TradeOpportunity(
+                symbol=symbol,
+                action=action_on_error,
+                quantity=qty if qty > 0 else 1, # Avoid zero quantity
+                confidence=0.0,
+                strategy='position_exit_error'
+            )
+            return TradeResult(
+                opportunity=error_opportunity,
+                status=TradeStatus.ERROR,
+                order_id=None,
+                error_message=str(e)
+            )
     
     def _save_ml_enhanced_options_exit(self, position: Dict, result: TradeResult, exit_reason: str):
         """Save options exit with ML-critical exit analysis data"""
