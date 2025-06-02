@@ -4,6 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Critical Guidelines
 
+NEVER USE ANY MOCK DATA OR HARDCODED DATA IN THIS PROJECT> ONLY REAL DATA AND REAL CALCULATIONS>
+
 **BEFORE making any changes to this codebase:**
 1. **Read QA.md thoroughly** - Contains 11 critical bug prevention rules from major production issues
 2. **Apply ALL QA rules** - Essential for preventing inheritance, data contract, and API integration bugs
@@ -25,7 +27,7 @@ Production-grade system targeting 5-10% monthly returns through AI-powered tradi
 ```
 ModularOrchestrator (Production Entry Point)
 ├── OptionsModule (30% max allocation)
-├── CryptoModule (20% max allocation, 1.5x leverage)  
+├── CryptoModule (SMART ALLOCATION: 20-60% based on performance, 2x leverage)  
 ├── StocksModule (unlimited positions, no daily trade limits)
 ├── MarketIntelligenceModule (OpenAI-powered analysis)
 ├── MLOptimizer (profit-based learning)
@@ -75,13 +77,22 @@ python test_modular_framework.py
 python test_ml_integration_full.py
 python test_market_intelligence.py
 
+# Smart leverage system testing
+python test_institutional_trading_system.py
+python test_institutional_crypto_strategy.py
+
 # Individual module tests
-python tests/modules/test_crypto_module.py
+python tests/modules/test_crypto_module.py  # Includes mean reversion tests
 python tests/modules/test_options_module.py
 python tests/modules/test_stocks_module.py
 
-# Performance analysis (mandatory weekly)
-python analyze_trading_performance.py
+# Integration and performance tests
+python test_phase4_complete.py  # Full system integration
+python test_production_intelligence.py  # Market intelligence testing
+python analyze_trading_performance.py  # Performance analysis (mandatory weekly)
+
+# Run single test example
+python -m pytest tests/modules/test_crypto_module.py::TestCryptoModule::test_calculate_crypto_mean_reversion_oversold -v
 ```
 
 ### Emergency Commands
@@ -293,16 +304,32 @@ curl https://your-app.railway.app/intelligence/signals
 🎯 Cycle X completed: {'total_opportunities': N, 'successful_trades': M}
 ```
 
-## Risk Management Configuration
+## Smart Leverage System (5% Monthly ROI Target)
 
-### Portfolio Allocation Limits
+### Performance-Based Crypto Allocation
+- **Emergency Mode** (Monthly loss >5%): 20% allocation
+- **Learning Phase** (Win rate <45%): 25% allocation  
+- **Stable Phase** (Win rate 45-60%): 40% allocation
+- **Profitable Phase** (Win rate >60%): 60% allocation
+
+### 5% Monthly ROI Mathematics
+```python
+# Allocation vs Required Crypto Returns for 5% Monthly Portfolio ROI:
+# 25% allocation → 20% monthly crypto returns needed
+# 40% allocation → 12.5% monthly crypto returns needed  
+# 60% allocation → 8.3% monthly crypto returns needed
+```
+
+### Risk Management Configuration
+
+#### Portfolio Allocation Limits
 - **Options**: 30% maximum exposure
-- **Crypto**: 20% maximum with 1.5x leverage  
+- **Crypto**: SMART ALLOCATION (20-60% performance-based) with 2x leverage  
 - **Stocks**: 50% maximum, unlimited positions
 - **Sector Limits**: 40% maximum per sector
 - **Position Limits**: 15% maximum per symbol
 
-### Exit Management (Allocation-Aware)
+#### Exit Management (Allocation-Aware)
 - **Over-allocated Crypto**: 2% profit exits (vs 25% normal)
 - **Over-allocated Stocks**: 1.5% profit exits  
 - **Over-allocated Options**: 25% profit exits (vs 100% normal)
@@ -339,17 +366,36 @@ trade_id = module.save_ml_enhanced_trade(trade_data)
 module.update_ml_trade_outcome(trade_id, {'profit_loss': actual_pnl})
 ```
 
-## Current Production Status (June 1, 2025)
+### Smart Allocation Methods (Critical Implementation)
+```python
+# Core methods for 5% monthly ROI targeting:
+def _get_smart_allocation_limit(self) -> float:
+    """Performance-based allocation control (20-60%)"""
+    
+def _calculate_current_win_rate(self) -> float:
+    """Real win rate tracking across sessions"""
+    
+def _calculate_monthly_performance(self) -> float:
+    """Monthly P&L for allocation decisions"""
+```
 
-### ✅ Fully Operational
+## Current Production Status (June 2, 2025)
+
+### ✅ Smart Leverage System Operational
 - **Live Trading**: Confirmed with real Alpaca order IDs
 - **Portfolio Value**: $98,845 with $258,944 buying power
+- **Smart Allocation**: Performance-based crypto allocation (20-60%)
+- **5% ROI Target**: Intelligent leverage system deployed
 - **Market Intelligence**: OpenAI o4-mini integration active
 - **ML Learning**: Entry-exit trade linking for profit optimization
 - **Data Freshness**: Real-time quote validation implemented
 - **Health Monitoring**: Comprehensive debug endpoints deployed
 
-### Recent Critical Fixes
+### Recent Critical Fixes (June 2025)
+- **SMART LEVERAGE**: Implemented performance-based allocation for 5% monthly ROI
+- **ALLOCATION CONTROL**: Fixed uncontrolled 82.5% crypto allocation issue
+- **CRYPTO ANALYSIS**: Fixed missing `_calculate_crypto_momentum` method bug
+- **PERFORMANCE TARGETING**: Added intelligent allocation tiers based on win rates
 - Fixed profit rate calculation bug (was counting execution as profit)
 - Implemented real-time data freshness validation
 - Added OpenAI Market Intelligence with comprehensive debug signals

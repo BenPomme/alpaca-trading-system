@@ -1100,11 +1100,32 @@ class StocksModule(TradingModule):
     def _is_market_open(self) -> bool:
         """Check if US stock market is currently open"""
         try:
+            if not self.api:
+                # Fallback timezone check if no API
+                import datetime
+                import pytz
+                et = pytz.timezone('US/Eastern')
+                now_et = datetime.datetime.now(et)
+                is_weekday = now_et.weekday() < 5  # Monday=0, Friday=4
+                is_trading_hours = 9 <= now_et.hour < 16  # 9 AM to 4 PM ET
+                self.logger.info(f"Market hours fallback: {now_et.strftime('%Y-%m-%d %H:%M %Z')}, weekday: {is_weekday}, hours: {is_trading_hours}")
+                return is_weekday and is_trading_hours
+            
             clock = self.api.get_clock()
-            return getattr(clock, 'is_open', False)
+            is_open = getattr(clock, 'is_open', False)
+            self.logger.info(f"Market status from Alpaca: {is_open} (clock: {clock})")
+            return is_open
         except Exception as e:
-            self.logger.debug(f"Error checking market hours: {e}")
-            return False  # Assume closed if unable to check
+            self.logger.error(f"Error checking market hours: {e}")
+            # Fallback to timezone calculation
+            import datetime
+            import pytz
+            et = pytz.timezone('US/Eastern')
+            now_et = datetime.datetime.now(et)
+            is_weekday = now_et.weekday() < 5
+            is_trading_hours = 9 <= now_et.hour < 16
+            self.logger.warning(f"Using fallback market hours: {now_et.strftime('%Y-%m-%d %H:%M %Z')}, open: {is_weekday and is_trading_hours}")
+            return is_weekday and is_trading_hours
     
     def _minutes_until_market_close(self) -> int:
         """Get minutes until market close for day trading logic"""

@@ -278,10 +278,10 @@ class OptionsModule(TradingModule):
             if not current_price:
                 return None
             
-            # Get intelligence scores (simplified for now)
-            technical_score = 0.7  # Would come from technical_indicators module
-            regime_score = 0.6 if market_regime == 'bullish' else 0.4
-            pattern_score = 0.5   # Would come from pattern_recognition module
+            # Calculate REAL confidence from actual market data
+            technical_score = self._calculate_technical_confidence(symbol, current_price)
+            regime_score = self._calculate_regime_confidence(market_regime, symbol)
+            pattern_score = self._calculate_pattern_confidence(symbol, current_price)
             
             overall_confidence = (technical_score * 0.4 + regime_score * 0.4 + pattern_score * 0.2)
             
@@ -446,6 +446,83 @@ class OptionsModule(TradingModule):
             return max(0, underlying_price - contract.strike)
         else:
             return max(0, contract.strike - underlying_price)
+    
+    def _calculate_technical_confidence(self, symbol: str, current_price: float) -> float:
+        """Calculate technical confidence from REAL market data"""
+        try:
+            # Get real price movement data
+            bars = self.api.get_bars(symbol, '1Day', limit=20).df
+            if bars.empty:
+                return 0.5  # Neutral if no data
+            
+            # Calculate real RSI
+            price_changes = bars['close'].diff()
+            gains = price_changes.where(price_changes > 0, 0).rolling(14).mean()
+            losses = (-price_changes.where(price_changes < 0, 0)).rolling(14).mean()
+            rs = gains / losses
+            rsi = 100 - (100 / (1 + rs)).iloc[-1]
+            
+            # Calculate real momentum
+            price_20_days_ago = bars['close'].iloc[0]
+            momentum = (current_price - price_20_days_ago) / price_20_days_ago
+            
+            # Combine indicators for confidence
+            rsi_confidence = (rsi - 50) / 50  # -1 to 1 scale
+            momentum_confidence = max(-1, min(1, momentum * 10))  # Cap at +/-1
+            
+            return max(0, min(1, 0.5 + (rsi_confidence + momentum_confidence) / 4))
+            
+        except Exception as e:
+            self.logger.error(f"Error calculating technical confidence for {symbol}: {e}")
+            return 0.5  # Default neutral
+    
+    def _calculate_regime_confidence(self, market_regime: str, symbol: str) -> float:
+        """Calculate regime confidence from REAL market conditions"""
+        try:
+            # Get VIX or similar volatility indicator
+            spy_bars = self.api.get_bars('SPY', '1Day', limit=5).df
+            if spy_bars.empty:
+                return 0.5
+                
+            # Calculate real volatility
+            returns = spy_bars['close'].pct_change().dropna()
+            volatility = returns.std() * (252 ** 0.5)  # Annualized volatility
+            
+            # Low volatility = high confidence
+            if volatility < 0.15:  # Low vol
+                return 0.8 if market_regime == 'bullish' else 0.3
+            elif volatility < 0.25:  # Medium vol
+                return 0.6 if market_regime == 'bullish' else 0.4  
+            else:  # High vol
+                return 0.4 if market_regime == 'bullish' else 0.6
+                
+        except Exception as e:
+            self.logger.error(f"Error calculating regime confidence: {e}")
+            return 0.5
+    
+    def _calculate_pattern_confidence(self, symbol: str, current_price: float) -> float:
+        """Calculate pattern confidence from REAL price patterns"""
+        try:
+            # Get recent price data
+            bars = self.api.get_bars(symbol, '1Hour', limit=24).df
+            if bars.empty:
+                return 0.5
+                
+            # Calculate support/resistance levels
+            highs = bars['high'].rolling(5).max()
+            lows = bars['low'].rolling(5).min()
+            
+            # Price position relative to range
+            recent_high = highs.max()
+            recent_low = lows.min()
+            price_position = (current_price - recent_low) / (recent_high - recent_low) if recent_high > recent_low else 0.5
+            
+            # Higher position = higher bullish confidence
+            return max(0.2, min(0.8, price_position))
+            
+        except Exception as e:
+            self.logger.error(f"Error calculating pattern confidence for {symbol}: {e}")
+            return 0.5
     
     def _select_options_strategy(self, market_regime: str, confidence: float, 
                                options_chain: Dict) -> Optional[OptionsStrategy]:

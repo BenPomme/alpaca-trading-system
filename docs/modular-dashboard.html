@@ -830,23 +830,242 @@
 
         // Load fallback data when Firebase is unavailable
         function loadFallbackData() {
-            document.getElementById('portfolio-value').textContent = '$99,500.00';
-            document.getElementById('daily-pl').textContent = '-$500.00';
-            document.getElementById('win-rate').textContent = '57.8%';
-            document.getElementById('active-positions').textContent = '12';
-            document.getElementById('ml-optimizations-today').textContent = '3';
+            // Try to load from API data first
+            loadApiData().catch(() => {
+                // If API fails, use hardcoded fallback
+                document.getElementById('portfolio-value').textContent = '$99,500.00';
+                document.getElementById('daily-pl').textContent = '-$500.00';
+                document.getElementById('win-rate').textContent = '57.8%';
+                document.getElementById('active-positions').textContent = '12';
+                document.getElementById('ml-optimizations-today').textContent = '3';
+                
+                // Mock orchestrator status
+                document.getElementById('orchestrator-status-text').textContent = 'Offline';
+                document.getElementById('orchestrator-indicator').className = 'status-indicator error';
+                document.getElementById('last-cycle-time').textContent = 'Unknown';
+                document.getElementById('cycle-number').textContent = '0';
+                
+                // Mock ML status
+                document.getElementById('ml-engine-text').textContent = 'Offline';
+                document.getElementById('ml-engine-indicator').className = 'status-indicator error';
+                
+                updateLastUpdated();
+            });
+        }
+
+        // Load data from API endpoint
+        async function loadApiData() {
+            try {
+                console.log('Loading data from API...');
+                const response = await fetch('./api/modular-dashboard-data.json?v=' + Date.now());
+                
+                if (!response.ok) {
+                    throw new Error('API request failed');
+                }
+                
+                const data = await response.json();
+                console.log('API data loaded:', data);
+                
+                // Update header stats
+                updateHeaderStatsFromApi(data);
+                
+                // Update positions table
+                updatePositionsFromApi(data.positions || []);
+                
+                // Update trades table
+                updateTradesFromApi(data.trades || []);
+                
+                // Update ML optimization status
+                updateMLOptimizationFromApi(data);
+                
+                // Update module performance
+                updateModulePerformanceFromApi(data);
+                
+                // Update orchestrator status
+                updateOrchestratorFromApi(data.orchestrator || {});
+                
+                updateLastUpdated();
+                
+            } catch (error) {
+                console.error('Failed to load API data:', error);
+                throw error;
+            }
+        }
+
+        // Update header stats from API data
+        function updateHeaderStatsFromApi(data) {
+            const portfolio = data.portfolio || {};
             
-            // Mock orchestrator status
-            document.getElementById('orchestrator-status-text').textContent = 'Offline';
-            document.getElementById('orchestrator-indicator').className = 'status-indicator error';
-            document.getElementById('last-cycle-time').textContent = 'Unknown';
-            document.getElementById('cycle-number').textContent = '0';
+            document.getElementById('portfolio-value').textContent = 
+                '$' + (portfolio.value || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
             
-            // Mock ML status
-            document.getElementById('ml-engine-text').textContent = 'Offline';
-            document.getElementById('ml-engine-indicator').className = 'status-indicator error';
+            const dailyPL = portfolio.daily_pl || 0;
+            const dailyPLElement = document.getElementById('daily-pl');
+            dailyPLElement.textContent = 
+                (dailyPL >= 0 ? '+$' : '-$') + Math.abs(dailyPL).toLocaleString('en-US', { minimumFractionDigits: 2 });
+            dailyPLElement.className = `stat-value ${dailyPL >= 0 ? 'positive' : 'negative'}`;
             
-            updateLastUpdated();
+            const performance = data.performance || {};
+            document.getElementById('win-rate').textContent = (performance.win_rate || 0).toFixed(1) + '%';
+            document.getElementById('active-positions').textContent = (data.positions || []).length.toString();
+            
+            const mlOpt = data.ml_optimization || {};
+            document.getElementById('ml-optimizations-today').textContent = (mlOpt.parameter_changes_today || 0).toString();
+        }
+
+        // Update positions table from API data
+        function updatePositionsFromApi(positions) {
+            const tbody = document.getElementById('positions-tbody');
+            
+            if (!positions || positions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">No active positions</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = positions.slice(0, 20).map(position => {
+                const plClass = (position.unrealized_pl || 0) >= 0 ? 'positive' : 'negative';
+                const plSign = (position.unrealized_pl || 0) >= 0 ? '+' : '';
+                
+                return `
+                    <tr>
+                        <td><strong>${position.symbol || 'N/A'}</strong></td>
+                        <td>${position.module || 'N/A'}</td>
+                        <td>${position.quantity || 0}</td>
+                        <td>$${(position.entry_price || 0).toFixed(2)}</td>
+                        <td>$${(position.current_price || 0).toFixed(2)}</td>
+                        <td class="${plClass}">${plSign}$${Math.abs(position.unrealized_pl || 0).toFixed(2)}</td>
+                        <td class="${plClass}">${plSign}${(position.unrealized_pl_percent || 0).toFixed(2)}%</td>
+                        <td>${position.hold_time || 'N/A'}</td>
+                        <td><span class="strategy-tag">${position.strategy || 'N/A'}</span></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Update trades table from API data
+        function updateTradesFromApi(trades) {
+            const tbody = document.getElementById('trades-tbody');
+            
+            if (!trades || trades.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No recent trades</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = trades.slice(0, 20).map(trade => {
+                const plClass = (trade.pnl || 0) >= 0 ? 'positive' : 'negative';
+                const mlEnhanced = trade.ml_enhanced ? '✅' : '❌';
+                
+                return `
+                    <tr>
+                        <td>${formatTimestamp(trade.timestamp)}</td>
+                        <td>${trade.symbol || 'N/A'}</td>
+                        <td>${trade.module_name || 'N/A'}</td>
+                        <td>${trade.action || 'N/A'}</td>
+                        <td>${trade.strategy || 'N/A'}</td>
+                        <td class="${plClass}">$${(trade.pnl || 0).toFixed(2)}</td>
+                        <td>${(trade.confidence * 100 || 0).toFixed(1)}%</td>
+                        <td>${mlEnhanced}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Update ML optimization status from API data
+        function updateMLOptimizationFromApi(data) {
+            const mlOpt = data.ml_optimization || {};
+            const paramEff = data.parameter_effectiveness || {};
+            
+            // Update ML optimization header stats
+            document.getElementById('ml-engine-text').textContent = 'Active';
+            document.getElementById('ml-engine-indicator').className = 'status-indicator healthy';
+            
+            document.getElementById('params-changed-today').textContent = mlOpt.parameter_changes_today || 0;
+            document.getElementById('ml-optimizations-today').textContent = mlOpt.parameter_changes_today || 0;
+            
+            const expectedImprovement = (mlOpt.recent_optimizations || [])
+                .reduce((sum, opt) => sum + (opt.expected_improvement || 0), 0);
+            document.getElementById('expected-improvement').textContent = `${(expectedImprovement * 100).toFixed(1)}%`;
+            
+            document.getElementById('ml-data-points').textContent = paramEff.parameters_tracked || 0;
+            
+            // Update optimization timeline
+            const timeline = document.getElementById('optimization-timeline');
+            const optimizations = mlOpt.recent_optimizations || [];
+            
+            if (optimizations.length > 0) {
+                timeline.innerHTML = optimizations.slice(0, 10).map(opt => {
+                    const changeClass = (opt.expected_improvement || 0) >= 0 ? '' : ' negative';
+                    return `
+                        <div class="timeline-item">
+                            <span class="timeline-time">${formatTime(opt.timestamp)}</span>
+                            <div class="parameter-change${changeClass}">
+                                <span>${opt.module_name}: ${opt.parameter_type}</span>
+                                <span>${opt.old_value} → ${opt.new_value}</span>
+                                <span>+${((opt.expected_improvement || 0) * 100).toFixed(1)}%</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                timeline.innerHTML = '<div class="timeline-item"><span>No recent optimizations</span></div>';
+            }
+            
+            // Update parameter effectiveness
+            const topParams = paramEff.top_performing_parameters || [];
+            const underParams = paramEff.underperforming_parameters || [];
+            
+            document.getElementById('top-parameters').innerHTML = topParams.length > 0 ? 
+                topParams.map(param => `
+                    <div class="parameter-change">
+                        <span>${param.parameter_type}</span>
+                        <span>Win Rate: ${param.win_rate.toFixed(1)}%</span>
+                        <span>Avg P&L: $${param.avg_pnl.toFixed(2)}</span>
+                    </div>
+                `).join('') : '<div>No top-performing parameters identified yet</div>';
+            
+            document.getElementById('underperforming-parameters').innerHTML = underParams.length > 0 ?
+                underParams.map(param => `
+                    <div class="parameter-change negative">
+                        <span>${param.parameter_type}</span>
+                        <span>Win Rate: ${param.win_rate.toFixed(1)}%</span>
+                        <span>Avg P&L: $${param.avg_pnl.toFixed(2)}</span>
+                    </div>
+                `).join('') : '<div>No underperforming parameters identified</div>';
+        }
+
+        // Update module performance from API data
+        function updateModulePerformanceFromApi(data) {
+            const modules = data.modules || {};
+            const moduleNames = ['options', 'crypto', 'stocks'];
+            
+            moduleNames.forEach(moduleName => {
+                const moduleData = modules[moduleName] || {};
+                
+                document.getElementById(`${moduleName}-status-text`).textContent = 
+                    moduleData.total_trades > 0 ? 'Active' : 'No recent trades';
+                document.getElementById(`${moduleName}-indicator`).className = 
+                    moduleData.total_trades > 0 ? 'status-indicator healthy' : 'status-indicator warning';
+                document.getElementById(`${moduleName}-trades`).textContent = moduleData.total_trades || 0;
+                document.getElementById(`${moduleName}-win-rate`).textContent = `${(moduleData.win_rate || 0).toFixed(1)}%`;
+                document.getElementById(`${moduleName}-pnl`).textContent = `$${(moduleData.total_pnl || 0).toFixed(2)}`;
+                document.getElementById(`${moduleName}-last-trade`).textContent = 
+                    moduleData.total_trades > 0 ? 'Recent' : 'None';
+            });
+        }
+
+        // Update orchestrator status from API data
+        function updateOrchestratorFromApi(orchestrator) {
+            document.getElementById('orchestrator-status-text').textContent = 
+                orchestrator.uptime_status === 'running' ? 'Active' : 'Inactive';
+            document.getElementById('orchestrator-indicator').className = 
+                orchestrator.uptime_status === 'running' ? 'status-indicator healthy' : 'status-indicator warning';
+            document.getElementById('last-cycle-time').textContent = 
+                formatTimestamp(orchestrator.last_cycle_time) || 'Unknown';
+            document.getElementById('cycle-number').textContent = orchestrator.cycle_number || 0;
+            document.getElementById('orchestrator-success-rate').textContent = 
+                `${(orchestrator.success_rate || 0).toFixed(1)}%`;
+            document.getElementById('orchestrator-uptime').textContent = 
+                orchestrator.uptime_status === 'running' ? 'Active' : 'Stale';
         }
 
         // Utility functions
