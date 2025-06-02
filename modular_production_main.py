@@ -26,6 +26,7 @@ from modular.firebase_interface import ModularFirebaseInterface
 from firebase_database import FirebaseDatabase
 from production_config import ProductionConfig
 from production_health_check import HealthMonitor
+from data_mode_manager import DataModeManager
 
 # Legacy fallback imports
 import alpaca_trade_api as tradeapi
@@ -67,6 +68,11 @@ class ProductionTradingSystem:
         self.cycle_count = 0
         
         logger.info("🚀 Production Trading System initializing...")
+        
+        # Initialize data mode manager for subscription-aware optimization
+        self.data_mode_manager = DataModeManager(logger=logger)
+        logger.info("🔧 DELAYED DATA OPTIMIZATION: System configured for your subscription level")
+        logger.info(self.data_mode_manager.format_data_mode_status())
         
     def initialize_components(self) -> bool:
         """
@@ -536,11 +542,14 @@ class ProductionTradingSystem:
                     if cycle_results:
                         logger.info(f"🎯 Cycle {self.cycle_count} completed: {cycle_results.get('summary', 'No summary')}")
                 
-                # Calculate cycle delay - optimized for intraday trading
+                # Calculate cycle delay - OPTIMIZED FOR SUBSCRIPTION LEVEL
                 cycle_duration = time.time() - cycle_start
-                # Use 60-second cycles for intraday trading (instead of 120 seconds)
-                intraday_cycle_delay = self.config.get_int('INTRADAY_CYCLE_DELAY', 60)
-                cycle_delay = max(0, intraday_cycle_delay - cycle_duration)
+                # Use data mode manager to get optimized cycle delay
+                optimized_cycle_delay = self.data_mode_manager.get_cycle_delay()
+                cycle_delay = max(0, optimized_cycle_delay - cycle_duration)
+                
+                if cycle_delay != optimized_cycle_delay:
+                    logger.debug(f"⏱️ Cycle took {cycle_duration:.1f}s, next cycle in {cycle_delay:.1f}s")
                 
                 if cycle_delay > 0:
                     time.sleep(cycle_delay)
