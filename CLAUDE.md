@@ -188,7 +188,7 @@ ALPACA_BASE_URL="https://paper-api.alpaca.markets"
 # Trading System Configuration - ✅ CONFIGURED  
 EXECUTION_ENABLED="true"
 GLOBAL_TRADING="true"
-OPTIONS_TRADING="true"
+OPTIONS_TRADING="false"  # DISABLED: Focus on stocks and crypto first
 CRYPTO_TRADING="true"
 MARKET_TIER="2"
 MIN_CONFIDENCE="0.35"  # LOWERED for performance improvement
@@ -471,7 +471,7 @@ def _calculate_monthly_performance(self) -> float:
 - **Strategy Issue**: Poor performance requires immediate strategy optimization
 - **Firebase Integration**: Persistent trade history storage across deployments
 - **Market Intelligence**: OpenAI integration active with enhanced data sources
-- **All Modules Enabled**: Stocks, Options, Crypto trading all configured
+- **Focused Trading Strategy**: Stocks and Crypto modules enabled (Options disabled for focus)
 - **Performance Goal**: Improve from -5.61% to positive returns
 
 ### 🎯 Strategy Improvement Priorities

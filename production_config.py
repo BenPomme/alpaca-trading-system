@@ -237,7 +237,7 @@ class ProductionConfig:
     def get_module_config(self) -> Dict[str, bool]:
         """Get trading module configuration."""
         return {
-            'options': self.get_bool('OPTIONS_TRADING', True),
+            'options': self.get_bool('OPTIONS_TRADING', False),  # DISABLED: Focus on stocks and crypto
             'crypto': self.get_bool('CRYPTO_TRADING', True),
             'stocks': self.get_bool('STOCKS_TRADING', True),
         }

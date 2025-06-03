@@ -271,16 +271,16 @@ class ProductionTradingSystem:
             # Import module configuration
             from modular.base_module import ModuleConfig
             
-            # Register Options Module
-            if modules_config.get('options', True):
+            # Register Options Module - DISABLED FOR FOCUSED STRATEGY
+            if modules_config.get('options', False):  # DISABLED: Focus on stocks and crypto first
                 try:
                     logger.info("🎯 Initializing Options module...")
                     
                     options_config = ModuleConfig(
                         module_name="options",
                         enabled=True,
-                        max_allocation_pct=70.0,  # Higher allocation for 100% buying power
-                        min_confidence=0.55,     # Lower for more opportunities
+                        max_allocation_pct=50.0,  # REDUCED: Simpler strategies, better execution
+                        min_confidence=0.45,     # LOWERED: Much more opportunities for recovery
                         max_positions=15,        # More positions
                         default_stop_loss_pct=0.08,
                         default_profit_target_pct=0.15,
@@ -313,23 +313,24 @@ class ProductionTradingSystem:
                     crypto_config = ModuleConfig(
                         module_name="crypto",
                         enabled=True,
-                        max_allocation_pct=30.0,  # Market hours: conservative 30%
-                        min_confidence=0.6,
+                        max_allocation_pct=60.0,  # DOUBLED: Aggressive recovery mode (was 30%)
+                        min_confidence=0.45,      # LOWERED: Much more opportunities (was 0.6)
                         max_positions=15,  # Increased for aggressive after-hours trading
                         default_stop_loss_pct=0.10,
                         default_profit_target_pct=0.20,
                         custom_params={
                             'session_thresholds': {
-                                'asia': 0.45,
-                                'europe': 0.50,
-                                'us': 0.40
+                                'asia': 0.35,    # LOWERED for more Asia opportunities
+                                'europe': 0.40,  # LOWERED for more Europe opportunities  
+                                'us': 0.35       # LOWERED for more US opportunities
                             },
-                            # AGGRESSIVE AFTER-HOURS PARAMETERS
+                            # AGGRESSIVE RECOVERY PARAMETERS
                             'after_hours_max_allocation_pct': 90.0,  # Use 90% of buying power after hours
+                            'recovery_mode_allocation_pct': 90.0,    # EMERGENCY: 90% when portfolio down >5%
                             'leverage_multiplier': 1.5,  # Standard leverage during market hours
                             'after_hours_leverage': 3.5,  # MAXIMUM leverage after hours
-                            'max_allocation_pct': 30.0,  # Conservative during market hours
-                            'volatility_threshold': 3.0  # Lower threshold for more opportunities
+                            'max_allocation_pct': 60.0,  # AGGRESSIVE during all hours
+                            'volatility_threshold': 2.0  # LOWERED threshold for many more opportunities
                         }
                     )
                     
@@ -357,17 +358,19 @@ class ProductionTradingSystem:
                     stocks_config = ModuleConfig(
                         module_name="stocks",
                         enabled=True,
-                        max_allocation_pct=40.0,  # REDUCED: Prevent insufficient balance
-                        min_confidence=0.35,     # LOWERED: More opportunities
+                        max_allocation_pct=70.0,  # AGGRESSIVE: Bull market positioning (was 40%)
+                        min_confidence=0.30,     # LOWERED: Even more opportunities (was 0.35)
                         max_positions=30,        # Maximum diversification
                         default_stop_loss_pct=0.08,
                         default_profit_target_pct=0.15,
                         custom_params={
                             'sector_limits': {
-                                'technology': 40.0,
-                                'healthcare': 30.0,
-                                'financials': 25.0
-                            }
+                                'technology': 60.0,  # INCREASED: Tech momentum
+                                'healthcare': 40.0,  # INCREASED: Defensive growth
+                                'financials': 35.0   # INCREASED: Interest rate plays
+                            },
+                            'recovery_mode_enabled': True,      # NEW: Aggressive recovery mode
+                            'bull_market_multiplier': 1.5      # NEW: Larger positions in bull market
                         }
                     )
                     
@@ -403,13 +406,15 @@ class ProductionTradingSystem:
                         module_name="market_intelligence",
                         enabled=True,
                         max_allocation_pct=0.0,  # Intelligence module doesn't trade directly
-                        min_confidence=0.6,
+                        min_confidence=0.50,     # LOWERED: More signals for recovery (was 0.6)
                         max_positions=0,  # No position limits for intelligence
                         custom_params={
-                            'intelligence_cycle_hours': int(self.config.get('INTELLIGENCE_CYCLE_HOURS', '6')),
+                            'intelligence_cycle_hours': int(self.config.get('INTELLIGENCE_CYCLE_HOURS', '3')),  # MORE FREQUENT
                             'openai_model': self.config.get('OPENAI_MODEL', 'o4-mini'),
                             'enable_pre_market': True,
-                            'enable_post_market': True
+                            'enable_post_market': True,
+                            'recovery_mode_signals': True,    # NEW: More aggressive signals during losses
+                            'signal_urgency_multiplier': 1.5  # NEW: Amplify signals during recovery
                         }
                     )
                     
@@ -593,8 +598,9 @@ class ProductionTradingSystem:
                 logger.error("❌ System initialization failed")
                 return False
             
-            # EMERGENCY CHECK: Verify account allocation 
+            # EMERGENCY CHECK: Verify account allocation and enable recovery mode
             self._emergency_allocation_check()
+            self._check_and_enable_recovery_mode()
             
             self.running = True
             
@@ -835,6 +841,48 @@ class ProductionTradingSystem:
             
         except Exception as e:
             logger.error(f"❌ Emergency allocation check failed: {e}")
+    
+    def _check_and_enable_recovery_mode(self):
+        """Check if recovery mode should be enabled based on portfolio performance"""
+        try:
+            logger.info("🚨 PORTFOLIO RECOVERY MODE CHECK")
+            
+            # Get account info
+            account = self.alpaca_api.get_account()
+            portfolio_value = float(account.portfolio_value)
+            
+            # Assume $1M baseline (adjust if different)
+            baseline_value = 1000000.0
+            current_loss_pct = ((portfolio_value - baseline_value) / baseline_value) * 100
+            
+            logger.info(f"💰 Portfolio: ${portfolio_value:,.0f}")
+            logger.info(f"📉 Loss from baseline: {current_loss_pct:.2f}%")
+            
+            # Enable recovery mode if down more than 2%
+            if current_loss_pct < -2.0:
+                logger.error("🚨 RECOVERY MODE ACTIVATED!")
+                logger.error(f"🔥 Portfolio down {abs(current_loss_pct):.2f}% - enabling AGGRESSIVE recovery")
+                
+                # Update orchestrator for recovery mode if available
+                if self.orchestrator:
+                    # Signal recovery mode to all modules
+                    active_modules = self.orchestrator.registry.get_active_modules()
+                    for module in active_modules:
+                        if hasattr(module, 'enable_recovery_mode'):
+                            module.enable_recovery_mode(abs(current_loss_pct))
+                            logger.info(f"✅ Recovery mode enabled for {module.module_name}")
+                
+                logger.error("⚡ RECOVERY MODE EFFECTS:")
+                logger.error("   - Increased position sizes")  
+                logger.error("   - Lowered confidence thresholds")
+                logger.error("   - Higher allocation limits")
+                logger.error("   - More aggressive risk taking")
+                logger.error("   - Faster trade execution")
+            else:
+                logger.info(f"✅ Portfolio stable ({current_loss_pct:.2f}%) - normal trading mode")
+            
+        except Exception as e:
+            logger.error(f"❌ Recovery mode check failed: {e}")
 
 
 def signal_handler(signum, frame):
