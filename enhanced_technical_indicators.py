@@ -395,6 +395,112 @@ class EnhancedTechnicalIndicators:
             analysis['strength'] = 'neutral'
         
         return analysis
+    
+    def analyze_comprehensive(self, symbol: str, price_data: List[float], 
+                            volume_data: List[float] = None, timeframe: str = 'intraday') -> Dict[str, Any]:
+        """
+        Comprehensive analysis method expected by stocks module
+        Compatible interface for modular integration
+        """
+        try:
+            if not price_data or len(price_data) < 20:
+                # Return neutral analysis for insufficient data
+                return {
+                    'combined_score': 0.5,
+                    'trend_strength': 0.5,
+                    'momentum_score': 0.5,
+                    'signals_count': 0,
+                    'indicators_count': 0,
+                    'analysis_quality': 'insufficient_data',
+                    'timeframe': timeframe
+                }
+            
+            # Convert price data to OHLC format (simplified)
+            # For intraday, we'll use price_data as close prices and estimate OHLC
+            close_prices = np.array(price_data)
+            high_prices = close_prices * 1.005  # Estimate 0.5% high
+            low_prices = close_prices * 0.995   # Estimate 0.5% low
+            
+            # Get comprehensive analysis
+            analysis = self.get_comprehensive_analysis(
+                high=high_prices.tolist(),
+                low=low_prices.tolist(), 
+                close=close_prices.tolist(),
+                volume=volume_data
+            )
+            
+            # Convert to expected format for stocks module
+            signals = analysis.get('signals', {})
+            indicators = analysis.get('indicators', {})
+            
+            # Calculate combined score based on signal strength
+            bullish_count = sum(1 for signal in signals.values() if signal == 'bullish')
+            bearish_count = sum(1 for signal in signals.values() if signal == 'bearish')
+            total_signals = len(signals)
+            
+            if total_signals > 0:
+                combined_score = (bullish_count + 0.5 * (total_signals - bullish_count - bearish_count)) / total_signals
+            else:
+                combined_score = 0.5
+            
+            # Calculate trend strength from moving averages
+            trend_strength = 0.5
+            if 'moving_averages' in indicators:
+                mas = indicators['moving_averages']
+                current_price = close_prices[-1]
+                if 20 in mas and 50 in mas:
+                    ma20 = mas[20]
+                    ma50 = mas[50]
+                    if current_price > ma20 > ma50:
+                        trend_strength = 0.8  # Strong uptrend
+                    elif current_price < ma20 < ma50:
+                        trend_strength = 0.2  # Strong downtrend
+                    else:
+                        trend_strength = 0.5  # Neutral/mixed
+            
+            # Calculate momentum score from RSI and MACD
+            momentum_score = 0.5
+            if 'rsi' in indicators:
+                rsi = indicators['rsi']
+                if rsi < 30:
+                    momentum_score = 0.8  # Oversold bounce potential
+                elif rsi > 70:
+                    momentum_score = 0.2  # Overbought weakness
+                else:
+                    momentum_score = 0.5 + (50 - rsi) / 100  # Centered around 50
+            
+            # Adjust for MACD momentum
+            if 'macd' in indicators:
+                macd_data = indicators['macd']
+                if macd_data['histogram'] > 0:
+                    momentum_score = min(1.0, momentum_score + 0.1)
+                else:
+                    momentum_score = max(0.0, momentum_score - 0.1)
+            
+            return {
+                'combined_score': max(0.0, min(1.0, combined_score)),
+                'trend_strength': max(0.0, min(1.0, trend_strength)),
+                'momentum_score': max(0.0, min(1.0, momentum_score)),
+                'signals_count': len(signals),
+                'indicators_count': len(indicators),
+                'analysis_quality': 'good' if len(indicators) >= 3 else 'limited',
+                'timeframe': timeframe,
+                'raw_signals': signals,
+                'raw_indicators': indicators
+            }
+            
+        except Exception as e:
+            self.logger.error(f"❌ Comprehensive analysis failed for {symbol}: {e}")
+            # Return neutral fallback
+            return {
+                'combined_score': 0.5,
+                'trend_strength': 0.5,
+                'momentum_score': 0.5,
+                'signals_count': 0,
+                'indicators_count': 0,
+                'analysis_quality': 'error',
+                'error': str(e)
+            }
 
 
 # Singleton instance for modular system integration

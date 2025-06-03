@@ -654,6 +654,214 @@ class EnhancedMLFramework:
             }
         
         return summary
+    
+    def predict_stock_movement(self, symbol: str, market_data: Dict[str, Any], 
+                              technical_indicators: Dict[str, Any], market_regime: str,
+                              sector_context: Dict[str, Any] = None) -> Dict[str, Any]:
+        """
+        Predict stock movement direction and confidence using ML models
+        Compatible interface for stocks module integration
+        """
+        try:
+            # Extract features from market data and technical indicators
+            features = self._extract_stock_features(
+                market_data, technical_indicators, market_regime, sector_context
+            )
+            
+            if features is None or len(features) == 0:
+                # Return neutral prediction if no features available
+                return {
+                    'confidence': 0.5,
+                    'direction': 'neutral',
+                    'price_target': market_data.get('current_price', 100.0),
+                    'time_horizon_hours': 1,
+                    'regime_alignment': 0.5,
+                    'model_used': 'fallback',
+                    'feature_quality': 'insufficient'
+                }
+            
+            # Try to make prediction with best available model
+            best_prediction = None
+            model_used = 'none'
+            
+            # Use the most recent model if available
+            if self.models:
+                recent_model_id = max(self.models.keys(), 
+                                    key=lambda x: self.model_metadata[x]['created'])
+                
+                try:
+                    prediction, probabilities = self.predict(recent_model_id, features)
+                    if prediction is not None:
+                        best_prediction = prediction
+                        model_used = recent_model_id
+                        
+                        # Convert model output to trading signals
+                        if probabilities is not None and len(probabilities) >= 3:
+                            # Assuming 3-class output: [Sell, Hold, Buy]
+                            sell_prob = probabilities[0]
+                            hold_prob = probabilities[1] 
+                            buy_prob = probabilities[2]
+                            
+                            if buy_prob > max(sell_prob, hold_prob):
+                                direction = 'bullish'
+                                confidence = float(buy_prob)
+                            elif sell_prob > max(buy_prob, hold_prob):
+                                direction = 'bearish'
+                                confidence = float(sell_prob)
+                            else:
+                                direction = 'neutral'
+                                confidence = float(hold_prob)
+                        else:
+                            direction = 'neutral'
+                            confidence = 0.5
+                            
+                except Exception as e:
+                    self.logger.warning(f"⚠️ ML prediction failed for {symbol}: {e}")
+            
+            # Fallback to technical analysis if ML prediction failed
+            if best_prediction is None:
+                confidence, direction = self._fallback_technical_prediction(technical_indicators)
+                model_used = 'technical_fallback'
+            
+            # Calculate price target based on direction and current price
+            current_price = market_data.get('current_price', 100.0)
+            if direction == 'bullish':
+                price_target = current_price * 1.02  # 2% upside target
+            elif direction == 'bearish':
+                price_target = current_price * 0.98  # 2% downside target
+            else:
+                price_target = current_price  # Neutral
+            
+            # Calculate regime alignment
+            regime_alignment = self._calculate_regime_alignment(market_regime, direction)
+            
+            return {
+                'confidence': max(0.0, min(1.0, confidence)),
+                'direction': direction,
+                'price_target': price_target,
+                'time_horizon_hours': 1,  # 1-hour horizon for intraday
+                'regime_alignment': regime_alignment,
+                'model_used': model_used,
+                'feature_quality': 'good' if len(features) > 5 else 'limited',
+                'raw_features_count': len(features)
+            }
+            
+        except Exception as e:
+            self.logger.error(f"❌ Stock movement prediction failed for {symbol}: {e}")
+            # Return safe neutral prediction
+            return {
+                'confidence': 0.5,
+                'direction': 'neutral',
+                'price_target': market_data.get('current_price', 100.0),
+                'time_horizon_hours': 1,
+                'regime_alignment': 0.5,
+                'model_used': 'error_fallback',
+                'error': str(e)
+            }
+    
+    def _extract_stock_features(self, market_data: Dict[str, Any], 
+                               technical_indicators: Dict[str, Any], 
+                               market_regime: str, sector_context: Dict[str, Any]) -> Optional[np.ndarray]:
+        """Extract numerical features for ML model from market data"""
+        try:
+            features = []
+            
+            # Market data features
+            if market_data:
+                features.extend([
+                    market_data.get('current_price', 100.0),
+                    market_data.get('volume', 1000000),
+                    market_data.get('volatility', 0.02),
+                    market_data.get('spread', 0.01)
+                ])
+            
+            # Technical indicator features
+            if technical_indicators:
+                indicators = technical_indicators.get('raw_indicators', {})
+                
+                # RSI
+                features.append(indicators.get('rsi', 50.0))
+                
+                # MACD
+                macd_data = indicators.get('macd', {})
+                features.extend([
+                    macd_data.get('macd', 0.0),
+                    macd_data.get('signal', 0.0),
+                    macd_data.get('histogram', 0.0)
+                ])
+                
+                # Bollinger Bands
+                bb_data = indicators.get('bollinger_bands', {})
+                features.extend([
+                    bb_data.get('position', 50.0),  # Position within bands
+                    bb_data.get('bandwidth', 10.0)  # Band width
+                ])
+                
+                # Moving averages
+                mas = indicators.get('moving_averages', {})
+                current_price = market_data.get('current_price', 100.0)
+                features.extend([
+                    current_price / mas.get(20, current_price) - 1,  # Price vs MA20
+                    current_price / mas.get(50, current_price) - 1,  # Price vs MA50
+                    mas.get(20, current_price) / mas.get(50, current_price) - 1  # MA20 vs MA50
+                ])
+            
+            # Market regime features
+            regime_mapping = {'bull': 1.0, 'bear': -1.0, 'sideways': 0.0, 'uncertain': 0.0}
+            features.append(regime_mapping.get(market_regime, 0.0))
+            
+            # Sector context features
+            if sector_context:
+                features.extend([
+                    sector_context.get('sector_momentum', 0.0),
+                    sector_context.get('sector_volatility', 0.02),
+                    1.0 if sector_context.get('rotation_signal') == 'positive' else 0.0
+                ])
+            
+            # Ensure we have enough features
+            while len(features) < 10:
+                features.append(0.0)  # Pad with zeros
+            
+            return np.array(features).reshape(1, -1)
+            
+        except Exception as e:
+            self.logger.error(f"❌ Feature extraction failed: {e}")
+            return None
+    
+    def _fallback_technical_prediction(self, technical_indicators: Dict[str, Any]) -> Tuple[float, str]:
+        """Fallback prediction based on technical indicators only"""
+        try:
+            signals = technical_indicators.get('raw_signals', {})
+            
+            bullish_count = sum(1 for signal in signals.values() if signal == 'bullish')
+            bearish_count = sum(1 for signal in signals.values() if signal == 'bearish')
+            total_signals = len(signals)
+            
+            if total_signals == 0:
+                return 0.5, 'neutral'
+            
+            if bullish_count > bearish_count:
+                confidence = 0.5 + (bullish_count - bearish_count) / total_signals * 0.3
+                return confidence, 'bullish'
+            elif bearish_count > bullish_count:
+                confidence = 0.5 + (bearish_count - bullish_count) / total_signals * 0.3
+                return confidence, 'bearish'
+            else:
+                return 0.5, 'neutral'
+                
+        except Exception:
+            return 0.5, 'neutral'
+    
+    def _calculate_regime_alignment(self, market_regime: str, predicted_direction: str) -> float:
+        """Calculate how well the prediction aligns with market regime"""
+        regime_bias = {
+            'bull': {'bullish': 0.8, 'neutral': 0.6, 'bearish': 0.2},
+            'bear': {'bullish': 0.2, 'neutral': 0.4, 'bearish': 0.8},
+            'sideways': {'bullish': 0.5, 'neutral': 0.7, 'bearish': 0.5},
+            'uncertain': {'bullish': 0.5, 'neutral': 0.5, 'bearish': 0.5}
+        }
+        
+        return regime_bias.get(market_regime, {}).get(predicted_direction, 0.5)
 
 
 # Singleton instance for modular system integration
