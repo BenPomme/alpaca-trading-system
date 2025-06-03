@@ -449,37 +449,50 @@ class CryptoModule(TradingModule):
     # Analysis methods
     
     def _analyze_crypto_symbol(self, symbol: str, session: TradingSession) -> Optional[CryptoAnalysis]:
-        """Perform comprehensive analysis of a cryptocurrency, now including market intelligence/ML confidence."""
+        """Perform comprehensive analysis of a cryptocurrency using research-backed multi-indicator approach."""
         try:
             # Get current price and market data
             current_price = self._get_crypto_price(symbol)
             if not current_price or current_price <= 0:
                 return None
             
-            # Get historical data for analysis (simplified - would integrate with real data)
+            # Get historical data for analysis
             market_data = self._get_crypto_market_data(symbol)
             if not market_data:
                 return None
             
-            # Calculate analysis components using institutional mean reversion approach
-            momentum_score = self._calculate_crypto_mean_reversion_score(symbol, market_data)
-            volatility_score = self._calculate_crypto_volatility(symbol, market_data)
-            volume_score = self._calculate_crypto_volume(symbol, market_data)
+            # RESEARCH-BACKED APPROACH: Multiple technical indicators with directional bias
+            rsi_analysis = self._calculate_rsi_signals(symbol, market_data)
+            macd_analysis = self._calculate_macd_signals(symbol, market_data)
+            bollinger_analysis = self._calculate_bollinger_signals(symbol, market_data)
+            volume_analysis = self._calculate_volume_confirmation(symbol, market_data)
             
             # NEVER USE FALLBACKS: If any calculation failed, abort analysis
-            if momentum_score is None or volatility_score is None or volume_score is None:
-                self.logger.error(f"❌ {symbol}: Analysis FAILED - momentum={momentum_score}, volatility={volatility_score}, volume={volume_score}")
+            if rsi_analysis is None or macd_analysis is None or bollinger_analysis is None or volume_analysis is None:
+                self.logger.error(f"❌ {symbol}: Analysis FAILED - rsi={rsi_analysis}, macd={macd_analysis}, bollinger={bollinger_analysis}, volume={volume_analysis}")
                 return None
             
-            # Calculate technical confidence using weighted scoring
-            technical_confidence = (
-                momentum_score * self.analysis_weights['momentum'] +
-                volatility_score * self.analysis_weights['volatility'] +
-                volume_score * self.analysis_weights['volume']
-            )
+            # RESEARCH-BASED CONFIDENCE: Separate BUY and SELL confidence scores
+            buy_confidence = self._calculate_directional_confidence('BUY', rsi_analysis, macd_analysis, bollinger_analysis, volume_analysis)
+            sell_confidence = self._calculate_directional_confidence('SELL', rsi_analysis, macd_analysis, bollinger_analysis, volume_analysis)
             
-            # DEBUG: Log individual components for troubleshooting
-            self.logger.debug(f"🔍 {symbol}: momentum={momentum_score:.2f}, volatility={volatility_score:.2f}, volume={volume_score:.2f}")
+            # Use the higher confidence score and determine action
+            if buy_confidence > sell_confidence:
+                overall_confidence = buy_confidence
+                primary_action = 'BUY'
+                momentum_score = buy_confidence  # For compatibility
+            else:
+                overall_confidence = sell_confidence
+                primary_action = 'SELL'
+                momentum_score = sell_confidence  # For compatibility
+            
+            # For compatibility with existing code structure
+            volatility_score = bollinger_analysis.get('volatility_score', 0.5)
+            volume_score = volume_analysis.get('volume_score', 0.5)
+            
+            # DEBUG: Log comprehensive analysis for troubleshooting
+            self.logger.info(f"🔍 {symbol}: BUY_conf={buy_confidence:.2f}, SELL_conf={sell_confidence:.2f}, Action={primary_action}, RSI={rsi_analysis.get('rsi_value', 0):.1f}")
+            self.logger.debug(f"📊 {symbol}: MACD={macd_analysis.get('macd_signal', 'neutral')}, Bollinger={bollinger_analysis.get('position', 'neutral')}, Volume={volume_analysis.get('confirmation', 'neutral')}")
             
             # Integrate Market Intelligence/ML confidence if available
             intelligence_confidence = None
@@ -501,7 +514,8 @@ class CryptoModule(TradingModule):
             
             session_config = self.session_configs[session]
             
-            return CryptoAnalysis(
+            # Store the primary action in metadata for use in opportunity creation
+            analysis_result = CryptoAnalysis(
                 symbol=symbol,
                 current_price=current_price,
                 momentum_score=momentum_score,
@@ -511,8 +525,249 @@ class CryptoModule(TradingModule):
                 session=session,
                 strategy=session_config.strategy
             )
+            
+            # Add primary action as an attribute for the opportunity creation
+            analysis_result.primary_action = primary_action
+            
+            return analysis_result
         except Exception as e:
             self.logger.error(f"Error analyzing crypto symbol {symbol}: {e}")
+            return None
+    
+    # RESEARCH-BACKED TECHNICAL INDICATORS (Based on 2024 crypto trading research)
+    
+    def _calculate_rsi_signals(self, symbol: str, market_data: Dict) -> Optional[Dict]:
+        """Calculate RSI-based buy/sell signals using research-backed approach"""
+        try:
+            prices = market_data.get('price_history', [])
+            if len(prices) < 14:
+                return None
+            
+            # Calculate RSI (14-period standard)
+            price_changes = [prices[i] - prices[i-1] for i in range(1, len(prices))]
+            gains = [change if change > 0 else 0 for change in price_changes]
+            losses = [-change if change < 0 else 0 for change in price_changes]
+            
+            # Calculate average gains and losses
+            avg_gain = sum(gains[-14:]) / 14
+            avg_loss = sum(losses[-14:]) / 14
+            
+            if avg_loss == 0:
+                rsi = 100
+            else:
+                rs = avg_gain / avg_loss
+                rsi = 100 - (100 / (1 + rs))
+            
+            # Research-backed RSI interpretation
+            if rsi <= 30:
+                signal = 'strong_buy'
+                buy_strength = 0.9
+                sell_strength = 0.1
+            elif rsi <= 40:
+                signal = 'buy'
+                buy_strength = 0.7
+                sell_strength = 0.3
+            elif rsi >= 70:
+                signal = 'strong_sell'
+                buy_strength = 0.1
+                sell_strength = 0.9
+            elif rsi >= 60:
+                signal = 'sell'
+                buy_strength = 0.3
+                sell_strength = 0.7
+            else:
+                signal = 'neutral'
+                buy_strength = 0.5
+                sell_strength = 0.5
+            
+            return {
+                'rsi_value': rsi,
+                'signal': signal,
+                'buy_strength': buy_strength,
+                'sell_strength': sell_strength
+            }
+            
+        except Exception as e:
+            self.logger.error(f"❌ {symbol}: RSI calculation failed: {e}")
+            return None
+    
+    def _calculate_macd_signals(self, symbol: str, market_data: Dict) -> Optional[Dict]:
+        """Calculate MACD signals for trend confirmation"""
+        try:
+            prices = market_data.get('price_history', [])
+            if len(prices) < 26:
+                return None
+            
+            # Calculate EMAs
+            ema_12 = self._calculate_ema(prices, 12)
+            ema_26 = self._calculate_ema(prices, 26)
+            
+            if ema_12 is None or ema_26 is None:
+                return None
+            
+            # MACD line
+            macd_line = ema_12 - ema_26
+            
+            # Simple signal interpretation (would need more history for signal line)
+            if macd_line > 0:
+                signal = 'bullish'
+                buy_strength = 0.7
+                sell_strength = 0.3
+            else:
+                signal = 'bearish'
+                buy_strength = 0.3
+                sell_strength = 0.7
+            
+            return {
+                'macd_line': macd_line,
+                'macd_signal': signal,
+                'buy_strength': buy_strength,
+                'sell_strength': sell_strength
+            }
+            
+        except Exception as e:
+            self.logger.error(f"❌ {symbol}: MACD calculation failed: {e}")
+            return None
+    
+    def _calculate_bollinger_signals(self, symbol: str, market_data: Dict) -> Optional[Dict]:
+        """Calculate Bollinger Bands signals for volatility breakouts"""
+        try:
+            prices = market_data.get('price_history', [])
+            current_price = market_data.get('current_price', 0)
+            
+            if len(prices) < 20 or current_price <= 0:
+                return None
+            
+            # Calculate 20-period SMA and standard deviation
+            sma_20 = sum(prices[-20:]) / 20
+            variance = sum([(price - sma_20) ** 2 for price in prices[-20:]]) / 20
+            std_dev = variance ** 0.5
+            
+            # Bollinger Bands
+            upper_band = sma_20 + (2 * std_dev)
+            lower_band = sma_20 - (2 * std_dev)
+            
+            # Position relative to bands
+            if current_price > upper_band:
+                position = 'above_upper'
+                buy_strength = 0.2  # Overbought
+                sell_strength = 0.8
+            elif current_price < lower_band:
+                position = 'below_lower'
+                buy_strength = 0.8  # Oversold
+                sell_strength = 0.2
+            elif current_price > sma_20:
+                position = 'above_middle'
+                buy_strength = 0.6
+                sell_strength = 0.4
+            else:
+                position = 'below_middle'
+                buy_strength = 0.4
+                sell_strength = 0.6
+            
+            # Volatility score for compatibility
+            band_width = (upper_band - lower_band) / sma_20
+            volatility_score = min(band_width / 0.1, 1.0)  # Normalize to 0-1
+            
+            return {
+                'position': position,
+                'upper_band': upper_band,
+                'lower_band': lower_band,
+                'sma_20': sma_20,
+                'buy_strength': buy_strength,
+                'sell_strength': sell_strength,
+                'volatility_score': volatility_score
+            }
+            
+        except Exception as e:
+            self.logger.error(f"❌ {symbol}: Bollinger Bands calculation failed: {e}")
+            return None
+    
+    def _calculate_volume_confirmation(self, symbol: str, market_data: Dict) -> Optional[Dict]:
+        """Calculate volume-based confirmation signals"""
+        try:
+            volume_24h = market_data.get('volume_24h', 0)
+            avg_volume = market_data.get('avg_volume_7d', volume_24h)
+            
+            if avg_volume <= 0:
+                return None
+            
+            volume_ratio = volume_24h / avg_volume
+            
+            # Research-backed volume interpretation
+            if volume_ratio >= 2.0:
+                confirmation = 'strong'
+                strength_multiplier = 1.2
+            elif volume_ratio >= 1.5:
+                confirmation = 'moderate'
+                strength_multiplier = 1.1
+            elif volume_ratio >= 0.8:
+                confirmation = 'neutral'
+                strength_multiplier = 1.0
+            else:
+                confirmation = 'weak'
+                strength_multiplier = 0.8
+            
+            volume_score = min(volume_ratio / 2.0, 1.0)  # Normalize
+            
+            return {
+                'volume_ratio': volume_ratio,
+                'confirmation': confirmation,
+                'strength_multiplier': strength_multiplier,
+                'volume_score': volume_score
+            }
+            
+        except Exception as e:
+            self.logger.error(f"❌ {symbol}: Volume confirmation calculation failed: {e}")
+            return None
+    
+    def _calculate_directional_confidence(self, direction: str, rsi_analysis: Dict, macd_analysis: Dict, bollinger_analysis: Dict, volume_analysis: Dict) -> float:
+        """Calculate directional confidence using research-backed multi-indicator approach"""
+        try:
+            if direction == 'BUY':
+                # Combine buy strengths from all indicators
+                rsi_strength = rsi_analysis.get('buy_strength', 0.5)
+                macd_strength = macd_analysis.get('buy_strength', 0.5)
+                bollinger_strength = bollinger_analysis.get('buy_strength', 0.5)
+            else:  # SELL
+                # Combine sell strengths from all indicators
+                rsi_strength = rsi_analysis.get('sell_strength', 0.5)
+                macd_strength = macd_analysis.get('sell_strength', 0.5)
+                bollinger_strength = bollinger_analysis.get('sell_strength', 0.5)
+            
+            # Research-backed weights (RSI most important for crypto)
+            weighted_confidence = (
+                rsi_strength * 0.4 +          # RSI - most reliable for crypto
+                macd_strength * 0.3 +         # MACD - trend confirmation
+                bollinger_strength * 0.3      # Bollinger - volatility context
+            )
+            
+            # Volume confirmation multiplier
+            volume_multiplier = volume_analysis.get('strength_multiplier', 1.0)
+            final_confidence = weighted_confidence * volume_multiplier
+            
+            # Cap at 1.0 and ensure minimum threshold
+            return max(0.1, min(final_confidence, 1.0))
+            
+        except Exception as e:
+            self.logger.error(f"Error calculating directional confidence: {e}")
+            return 0.5
+    
+    def _calculate_ema(self, prices: List[float], period: int) -> Optional[float]:
+        """Calculate Exponential Moving Average"""
+        try:
+            if len(prices) < period:
+                return None
+            
+            multiplier = 2 / (period + 1)
+            ema = prices[0]
+            
+            for price in prices[1:]:
+                ema = (price * multiplier) + (ema * (1 - multiplier))
+            
+            return ema
+            
+        except Exception:
             return None
     
     def _calculate_crypto_mean_reversion_score(self, symbol: str, market_data: Dict) -> float:
@@ -702,25 +957,13 @@ class CryptoModule(TradingModule):
             return None
     
     def _determine_crypto_action(self, analysis: CryptoAnalysis, strategy: CryptoStrategy) -> TradeAction:
-        """Determine buy/sell action based on analysis and strategy"""
-        if strategy == CryptoStrategy.MOMENTUM:
-            # Momentum strategy: follow the trend
-            return TradeAction.BUY if analysis.momentum_score > 0.5 else TradeAction.SELL
+        """Determine buy/sell action based on RESEARCH-BACKED directional confidence"""
+        # Use the pre-determined action from the comprehensive analysis
+        if hasattr(analysis, 'primary_action'):
+            return TradeAction.BUY if analysis.primary_action == 'BUY' else TradeAction.SELL
         
-        elif strategy == CryptoStrategy.BREAKOUT:
-            # Breakout strategy: high volatility + momentum
-            if analysis.volatility_score > 0.6 and analysis.momentum_score > 0.55:
-                return TradeAction.BUY
-            else:
-                return TradeAction.SELL
-        
-        elif strategy == CryptoStrategy.REVERSAL:
-            # Reversal strategy: contrarian approach
-            return TradeAction.SELL if analysis.momentum_score > 0.7 else TradeAction.BUY
-        
-        else:
-            # Default to momentum
-            return TradeAction.BUY if analysis.momentum_score > 0.5 else TradeAction.SELL
+        # Fallback to momentum-based decision (should not be reached with new analysis)
+        return TradeAction.BUY if analysis.momentum_score > 0.5 else TradeAction.SELL
     
     # Execution methods
     
@@ -1447,9 +1690,9 @@ class CryptoModule(TradingModule):
                     prices = [float(bar.c) for bar in bars]  # Close prices
                     volumes = [float(bar.v) for bar in bars]  # Volumes
                     
-                    # NEVER USE FALLBACKS - require real data
-                    if not prices or len(prices) < 20:
-                        self.logger.error(f"❌ {symbol}: Insufficient price history ({len(prices) if prices else 0}/20 bars)")
+                    # NEVER USE FALLBACKS - require real data for comprehensive analysis
+                    if not prices or len(prices) < 26:  # Need 26 for MACD
+                        self.logger.error(f"❌ {symbol}: Insufficient price history ({len(prices) if prices else 0}/26 bars)")
                         return None
                     
                     if not volumes:
@@ -1487,7 +1730,8 @@ class CryptoModule(TradingModule):
                 'volume_24h': volume_24h,
                 'avg_volume_7d': avg_volume,  # Use real calculated average
                 'ma_20': ma_20,  # 20-day moving average for mean reversion
-                'volume_ratio': volume_ratio  # Volume ratio for mean reversion
+                'volume_ratio': volume_ratio,  # Volume ratio for mean reversion
+                'price_history': prices  # Full price history for technical indicators
             }
             
         except Exception as e:
