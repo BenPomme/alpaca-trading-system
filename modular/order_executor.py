@@ -28,15 +28,17 @@ class ModularOrderExecutor:
     while handling the underlying Alpaca API interactions.
     """
     
-    def __init__(self, api_client, logger=None):
+    def __init__(self, api_client, firebase_db=None, logger=None):
         """
         Initialize the order executor with comprehensive trade history tracking.
         
         Args:
             api_client: Alpaca API client
+            firebase_db: Firebase database instance for persistent storage
             logger: Logger instance
         """
         self.api = api_client
+        self.firebase_db = firebase_db
         self.logger = logger or logging.getLogger(__name__)
         
         # Execution configuration
@@ -47,17 +49,19 @@ class ModularOrderExecutor:
         self.pending_orders = {}
         self.executed_orders = {}
         
-        # CRITICAL SAFETY: Initialize comprehensive trade history tracker
+        # CRITICAL SAFETY: Initialize comprehensive trade history tracker with Firebase
         # This prevents the rapid-fire trading that caused $36,462 loss
         self.trade_tracker = TradeHistoryTracker(
-            data_file="data/trade_history.json",
+            firebase_db=self.firebase_db,
+            data_file="data/trade_history.json",  # Fallback
             logger=self.logger
         )
         
         # Legacy safety controls (now supplemented by trade_tracker)
         self.emergency_stop = False
         
-        self.logger.info("✅ Modular Order Executor initialized with trade history tracking")
+        storage_type = "Firebase" if self.firebase_db else "Local JSON"
+        self.logger.info(f"✅ Modular Order Executor initialized with {storage_type} trade history tracking")
         
     def execute_order(self, order_data: Dict[str, Any]) -> Dict[str, Any]:
         """

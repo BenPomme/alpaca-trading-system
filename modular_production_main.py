@@ -222,9 +222,13 @@ class ProductionTradingSystem:
             from risk_manager import RiskManager
             risk_mgr = RiskManager(api_client=self.alpaca_api, db=None, logger=logger)
             
-            # Initialize order executor
+            # Initialize order executor with Firebase database for trade history
             from modular.order_executor import ModularOrderExecutor
-            order_executor = ModularOrderExecutor(api_client=self.alpaca_api, logger=logger)
+            order_executor = ModularOrderExecutor(
+                api_client=self.alpaca_api, 
+                firebase_db=self.firebase_db,  # Pass Firebase for persistent trade history
+                logger=logger
+            )
             
             # Configure execution mode based on environment
             execution_enabled = self.config.get_bool('EXECUTION_ENABLED', True)

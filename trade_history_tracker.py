@@ -24,6 +24,13 @@ import logging
 # Set precision for accurate financial calculations
 getcontext().prec = 28
 
+# Import Firebase for persistent storage
+try:
+    from firebase_database import FirebaseDatabase
+    FIREBASE_AVAILABLE = True
+except ImportError:
+    FIREBASE_AVAILABLE = False
+
 class TradeHistoryTracker:
     """
     Tracks all trade activity to prevent rapid-fire trading incidents.
@@ -35,16 +42,27 @@ class TradeHistoryTracker:
     - Excessive position sizes ($23K+ per trade)
     """
     
-    def __init__(self, data_file: str = "data/trade_history.json", logger=None):
+    def __init__(self, firebase_db=None, data_file: str = "data/trade_history.json", logger=None):
         """
-        Initialize trade history tracker.
+        Initialize trade history tracker with Firebase integration.
         
         Args:
-            data_file: Path to persistent storage file
+            firebase_db: Firebase database instance (preferred)
+            data_file: Fallback local storage file
             logger: Logger instance
         """
+        self.firebase_db = firebase_db
         self.data_file = data_file
         self.logger = logger or logging.getLogger(__name__)
+        
+        # Initialize Firebase if not provided
+        if not self.firebase_db and FIREBASE_AVAILABLE:
+            try:
+                self.firebase_db = FirebaseDatabase()
+                self.logger.info("🔥 Connected to Firebase for trade history storage")
+            except Exception as e:
+                self.logger.warning(f"⚠️ Firebase connection failed: {e}, falling back to local storage")
+                self.firebase_db = None
         
         # Trade tracking data structures
         self.trade_history: Dict[str, List[Dict]] = {}  # symbol -> trades
@@ -54,15 +72,16 @@ class TradeHistoryTracker:
         
         # Safety configuration - Based on loss analysis
         self.cooldown_minutes = 5       # 5-minute cooldown (was causing 10 trades/min)
-        self.max_position_value = 8000  # $8K limit (was $23K+ causing excessive losses)
-        self.max_daily_trades = 6       # 6 trades per symbol per day (was 50 in 5 min)
+        self.max_position_value = None  # REMOVED: No position size limits
+        self.max_daily_trades = None    # REMOVED: No daily trade limits
         self.max_trades_per_hour = 2    # 2 trades per hour max per symbol
         self.rapid_trade_threshold = 3  # Flag as rapid if 3+ trades in 10 minutes
         
         # Load existing data
         self.load_history()
         
-        self.logger.info("🔍 Trade History Tracker initialized")
+        storage_type = "Firebase" if self.firebase_db else "Local JSON"
+        self.logger.info(f"🔍 Trade History Tracker initialized using {storage_type}")
         self.logger.info(f"📊 Tracking {len(self.trade_history)} symbols")
         
     def can_trade_symbol(self, symbol: str, trade_value: float) -> tuple[bool, str]:
@@ -87,16 +106,11 @@ class TradeHistoryTracker:
                 minutes_ago = (datetime.now() - last_time).total_seconds() / 60
                 return False, f"COOLDOWN: {symbol} last traded {minutes_ago:.1f}min ago (need {self.cooldown_minutes}min)"
         
-        # Check 2: Position value limits (prevents excessive position sizes)
-        current_value = float(self.position_values.get(symbol, Decimal('0')))
-        total_exposure = current_value + trade_value
-        if abs(total_exposure) > self.max_position_value:
-            return False, f"POSITION_LIMIT: {symbol} exposure ${abs(total_exposure):,.0f} exceeds ${self.max_position_value:,.0f} limit"
+        # Check 2: Position value limits - REMOVED per user request
+        # No position size limits
         
-        # Check 3: Daily trade limits (prevents overtrading)
-        daily_count = self.daily_trade_counts.get(symbol, 0)
-        if daily_count >= self.max_daily_trades:
-            return False, f"DAILY_LIMIT: {symbol} already has {daily_count} trades today (max {self.max_daily_trades})"
+        # Check 3: Daily trade limits - REMOVED per user request  
+        # No daily trade limits
         
         # Check 4: Hourly trade limits (prevents rapid patterns)
         hourly_count = self._get_hourly_trade_count(symbol)
@@ -161,8 +175,15 @@ class TradeHistoryTracker:
         if len(self.trade_history[symbol]) > 50:
             self.trade_history[symbol] = self.trade_history[symbol][-50:]
         
-        # Persist to disk
+        # Persist to Firebase/disk
         self.save_history()
+        
+        # Also save individual trade to Firebase for detailed tracking
+        if self.firebase_db:
+            try:
+                self._save_trade_to_firebase(trade_record, symbol)
+            except Exception as e:
+                self.logger.warning(f"⚠️ Failed to save trade to Firebase: {e}")
         
         self.logger.info(f"📝 TRADE RECORDED: {symbol} {side.upper()} {quantity:,.4f} @ ${price:.2f}")
         self.logger.info(f"💰 Position Value: {symbol} = ${float(self.position_values[symbol]):,.2f}")
@@ -271,8 +292,8 @@ class TradeHistoryTracker:
             'symbols_on_cooldown': symbols_on_cooldown,
             'safety_limits': {
                 'cooldown_minutes': self.cooldown_minutes,
-                'max_position_value': self.max_position_value,
-                'max_daily_trades': self.max_daily_trades,
+                'max_position_value': None,  # REMOVED
+                'max_daily_trades': None,    # REMOVED
                 'max_hourly_trades': self.max_trades_per_hour
             },
             'symbols': {symbol: self.get_symbol_status(symbol) for symbol in self.trade_history.keys()}
@@ -284,7 +305,95 @@ class TradeHistoryTracker:
         self.logger.info("🔄 Daily trade counters reset")
     
     def save_history(self):
-        """Save trade history to persistent storage."""
+        """Save trade history to Firebase or local storage."""
+        if self.firebase_db:
+            self._save_to_firebase()
+        else:
+            self._save_to_local_file()
+    
+    def load_history(self):
+        """Load trade history from Firebase or local storage."""
+        if self.firebase_db:
+            self._load_from_firebase()
+        else:
+            self._load_from_local_file()
+    
+    def _save_to_firebase(self):
+        """Save trade history to Firebase database."""
+        try:
+            # Prepare data for Firebase
+            save_data = {
+                'trade_history_summary': self.trade_history,
+                'position_values': {k: str(v) for k, v in self.position_values.items()},
+                'daily_trade_counts': self.daily_trade_counts,
+                'last_trade_times': {k: v.isoformat() for k, v in self.last_trade_times.items()},
+                'last_updated': datetime.now().isoformat(),
+                'safety_limits': {
+                    'cooldown_minutes': self.cooldown_minutes,
+                    'max_trades_per_hour': self.max_trades_per_hour
+                }
+            }
+            
+            # Save to Firebase under 'trade_history_tracker' collection
+            doc_ref = self.firebase_db.db.collection('trade_history_tracker').document('current_status')
+            doc_ref.set(save_data)
+            
+            self.logger.debug("💾 Trade history saved to Firebase")
+                
+        except Exception as e:
+            self.logger.error(f"❌ Failed to save trade history to Firebase: {e}")
+            # Fallback to local storage
+            self._save_to_local_file()
+    
+    def _load_from_firebase(self):
+        """Load trade history from Firebase database."""
+        try:
+            # Load from Firebase
+            doc_ref = self.firebase_db.db.collection('trade_history_tracker').document('current_status')
+            doc = doc_ref.get()
+            
+            if doc.exists:
+                data = doc.to_dict()
+                
+                self.trade_history = data.get('trade_history_summary', {})
+                
+                # Convert position values back to Decimal
+                position_data = data.get('position_values', {})
+                self.position_values = {k: Decimal(v) for k, v in position_data.items()}
+                
+                self.daily_trade_counts = data.get('daily_trade_counts', {})
+                
+                # Convert last trade times back to datetime
+                time_data = data.get('last_trade_times', {})
+                self.last_trade_times = {k: datetime.fromisoformat(v) for k, v in time_data.items()}
+                
+                self.logger.info(f"🔥 Loaded trade history from Firebase: {len(self.trade_history)} symbols")
+            else:
+                self.logger.info("🔥 No existing Firebase trade history - starting fresh")
+                
+        except Exception as e:
+            self.logger.error(f"❌ Failed to load trade history from Firebase: {e}")
+            # Fallback to local storage
+            self._load_from_local_file()
+    
+    def _save_trade_to_firebase(self, trade_record: Dict, symbol: str):
+        """Save individual trade to Firebase for detailed audit trail."""
+        try:
+            # Add to trade_history_details collection for complete audit trail
+            trade_doc = {
+                **trade_record,
+                'symbol': symbol,
+                'timestamp_stored': datetime.now().isoformat()
+            }
+            
+            # Store in Firebase with auto-generated ID
+            self.firebase_db.db.collection('trade_history_details').add(trade_doc)
+            
+        except Exception as e:
+            self.logger.warning(f"⚠️ Failed to save individual trade to Firebase: {e}")
+    
+    def _save_to_local_file(self):
+        """Fallback: Save trade history to local JSON file."""
         try:
             # Ensure data directory exists
             if self.data_file and os.path.dirname(self.data_file):
@@ -303,10 +412,10 @@ class TradeHistoryTracker:
                 json.dump(save_data, f, indent=2)
                 
         except Exception as e:
-            self.logger.error(f"❌ Failed to save trade history: {e}")
+            self.logger.error(f"❌ Failed to save trade history to local file: {e}")
     
-    def load_history(self):
-        """Load trade history from persistent storage."""
+    def _load_from_local_file(self):
+        """Fallback: Load trade history from local JSON file."""
         try:
             if not os.path.exists(self.data_file):
                 self.logger.info("📂 No existing trade history file - starting fresh")
@@ -327,10 +436,10 @@ class TradeHistoryTracker:
             time_data = data.get('last_trade_times', {})
             self.last_trade_times = {k: datetime.fromisoformat(v) for k, v in time_data.items()}
             
-            self.logger.info(f"📂 Loaded trade history: {len(self.trade_history)} symbols")
+            self.logger.info(f"📂 Loaded trade history from local file: {len(self.trade_history)} symbols")
             
         except Exception as e:
-            self.logger.error(f"❌ Failed to load trade history: {e}")
+            self.logger.error(f"❌ Failed to load trade history from local file: {e}")
             self.logger.info("📂 Starting with empty trade history")
 
 if __name__ == "__main__":
