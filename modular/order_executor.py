@@ -53,7 +53,6 @@ class ModularOrderExecutor:
         # This prevents the rapid-fire trading that caused $36,462 loss
         self.trade_tracker = TradeHistoryTracker(
             firebase_db=self.firebase_db,
-            data_file="data/trade_history.json",  # Fallback
             logger=self.logger
         )
         

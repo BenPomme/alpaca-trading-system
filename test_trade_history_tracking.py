@@ -26,7 +26,7 @@ def test_rapid_trading_prevention():
     print()
     
     # Initialize tracker
-    tracker = TradeHistoryTracker(data_file="test_trade_history.json", logger=logger)
+    tracker = TradeHistoryTracker(logger=logger)
     
     # Test symbols from the actual loss incident
     test_symbols = ['AVAXUSD', 'ETHUSD', 'DOTUSD', 'UNIUSD', 'LINKUSD', 'SOLUSD', 'AAVEUSD']

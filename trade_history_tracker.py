@@ -390,58 +390,8 @@ class TradeHistoryTracker:
         except Exception as e:
             self.logger.warning(f"⚠️ Failed to save individual trade to Firebase: {e}")
     
-    def _save_to_local_file(self):
-        """Fallback: Save trade history to local JSON file."""
-        try:
-            # Ensure data directory exists
-            if self.data_file and os.path.dirname(self.data_file):
-                os.makedirs(os.path.dirname(self.data_file), exist_ok=True)
-            
-            # Prepare data for JSON serialization
-            save_data = {
-                'trade_history': self.trade_history,
-                'position_values': {k: str(v) for k, v in self.position_values.items()},
-                'daily_trade_counts': self.daily_trade_counts,
-                'last_trade_times': {k: v.isoformat() for k, v in self.last_trade_times.items()},
-                'last_updated': datetime.now().isoformat()
-            }
-            
-            with open(self.data_file, 'w') as f:
-                json.dump(save_data, f, indent=2)
-                
-        except Exception as e:
-            self.logger.error(f"❌ Failed to save trade history to local file: {e}")
-    
-    def _load_from_local_file(self):
-        """Fallback: Load trade history from local JSON file."""
-        try:
-            if not os.path.exists(self.data_file):
-                self.logger.info("📂 No existing trade history file - starting fresh")
-                return
-            
-            with open(self.data_file, 'r') as f:
-                data = json.load(f)
-            
-            self.trade_history = data.get('trade_history', {})
-            
-            # Convert position values back to Decimal
-            position_data = data.get('position_values', {})
-            self.position_values = {k: Decimal(v) for k, v in position_data.items()}
-            
-            self.daily_trade_counts = data.get('daily_trade_counts', {})
-            
-            # Convert last trade times back to datetime
-            time_data = data.get('last_trade_times', {})
-            self.last_trade_times = {k: datetime.fromisoformat(v) for k, v in time_data.items()}
-            
-            self.logger.info(f"📂 Loaded trade history from local file: {len(self.trade_history)} symbols")
-            
-        except Exception as e:
-            self.logger.error(f"❌ Failed to load trade history from local file: {e}")
-            self.logger.info("📂 Starting with empty trade history")
-
+# Demo usage for testing
 if __name__ == "__main__":
-    # Demo usage
     logging.basicConfig(level=logging.INFO)
     tracker = TradeHistoryTracker()
     
@@ -472,4 +422,4 @@ if __name__ == "__main__":
     print(f"\n📊 System Status:")
     status = tracker.get_all_status()
     print(f"Total symbols tracked: {status['total_symbols']}")
-    print(f"Symbols on cooldown: {status['symbols_on_cooldown']}")
+    print(f"Symbols on cooldown: {status['symbols_on_cooldown']}")    # LOCAL FILE FUNCTIONS REMOVED - FIREBASE-ONLY STORAGE (GOLDEN RULE 1)
