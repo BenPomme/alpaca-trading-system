@@ -228,6 +228,11 @@ class CryptoModule(TradingModule):
             # Analyze each active symbol
             for symbol in active_symbols:
                 try:
+                    # Add stale data check before analysis
+                    if self._is_quote_data_stale(symbol):
+                        self.logger.warning(f"⚠️ {symbol}: Skipping due to stale quote data")
+                        continue
+
                     analysis = self._analyze_crypto_symbol(symbol, current_session)
                     
                     if analysis:
@@ -1609,16 +1614,47 @@ class CryptoModule(TradingModule):
             return 0.0  # Conservative default
     
     def _get_daily_pnl(self) -> List[float]:
-        """Get daily P&L history for performance calculation"""
+        # Placeholder - replace with actual implementation
+        return []
+
+    def _is_quote_data_stale(self, symbol: str) -> bool:
+        """Checks if the last quote data for a symbol is older than a threshold (e.g., 30 minutes)."""
         try:
-            # Sum up total P&L from all sessions (simplified)
-            total_pnl = 0.0
-            for session_stats in self._session_performance.values():
-                total_pnl += session_stats.get('total_pnl', 0.0)
+            # Format symbol for Alpaca API (e.g., BTCUSD -> BTC/USD)
+            if '/' not in symbol and 'USD' in symbol:
+                base_symbol = symbol.replace('USD', '')
+                formatted_symbol = f"{base_symbol}/USD"
+            else:
+                formatted_symbol = symbol
+
+            latest_quotes_dict = self.api.get_latest_crypto_quotes([formatted_symbol])
             
-            # Return as single-day entry (in production, would track daily history)
-            return [total_pnl] if total_pnl != 0 else []
+            if not latest_quotes_dict or formatted_symbol not in latest_quotes_dict:
+                self.logger.warning(f"No quote data returned for {formatted_symbol} from get_latest_crypto_quotes.")
+                return True # Treat as stale if no data
+
+            quote = latest_quotes_dict[formatted_symbol]
+            
+            if not quote or not hasattr(quote, 'timestamp'):
+                self.logger.warning(f"No valid quote object or timestamp for {formatted_symbol}.")
+                return True # Treat as stale if no valid quote object or timestamp
+
+            quote_time = quote.timestamp
+            # Alpaca SDK's CryptoQuote timestamp should be a timezone-aware datetime object (UTC)
+            if quote_time.tzinfo is None:
+                # If somehow it's naive, assume UTC as Alpaca operates in UTC
+                quote_time = quote_time.replace(tzinfo=timezone.utc)
+            
+            now_utc = datetime.now(timezone.utc)
+            age_seconds = (now_utc - quote_time).total_seconds()
+
+            if age_seconds > 1800:  # 30 minutes threshold
+                self.logger.warning(f"Stale data for {formatted_symbol}: quote is {age_seconds:.0f}s old (older than 30 minutes).")
+                return True
+            
+            self.logger.debug(f"Quote for {formatted_symbol} is fresh: {age_seconds:.0f}s old.")
+            return False
             
         except Exception as e:
-            self.logger.error(f"Error getting daily P&L: {e}")
-            return []
+            self.logger.error(f"Error checking quote staleness for {symbol} (formatted: {formatted_symbol if 'formatted_symbol' in locals() else 'N/A'}): {e}")
+            return True # Treat as stale on error

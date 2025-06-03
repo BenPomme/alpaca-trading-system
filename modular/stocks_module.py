@@ -12,6 +12,7 @@ from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
 from enum import Enum
 import time
+import os
 
 from modular.base_module import (
     TradingModule, ModuleConfig, TradeOpportunity, TradeResult,

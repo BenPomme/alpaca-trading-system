@@ -173,4 +173,25 @@ The reported win rate is a dismal 30%, and the portfolio is currently showing a 
 *   **Next Step:** Summarize findings and roadmap. The most critical issues impacting direct financial performance have likely been covered.
 *   **Challenge:** Difficulty in retrieving full file contents via available tools. Will attempt to read specific line ranges.
 
+## 5. Deployment, Packaging, and Code Quality Improvements
+
+* **Absolute Imports and Python Packaging:**
+  - Converted all relative imports in `modular/` modules to absolute imports to avoid top-level import errors in production.
+  - Added `__init__.py` in `modular/` and `utils/` directories to ensure Python package recognition.
+* **Utils Package Consolidation:**
+  - Moved `technical_indicators.py` and `pattern_recognition.py` into a `utils` package.
+  - Added a stub `news_sentiment.py` to support import resolution (placeholder implementation).
+* **Environment Variable Configuration:**
+  - Introduced `IGNORE_DAILY_LOSS` env var to bypass the 5% daily loss limit for special sessions.
+  - Updated Firebase initialization to prioritize `FIREBASE_SERVICE_ACCOUNT_PATH`, then `GOOGLE_APPLICATION_CREDENTIALS`, falling back to individual env vars.
+* **CI/CD and Branching Best Practices:**
+  - Established a `staging` branch workflow: create, test, merge to `main`.
+  - Ensure Railway auto-deploys from `main` after merge and pass health checks.
+* **Logging and Monitoring Enhancements:**
+  - Added periodic ML state persistence in `ml_adaptive_framework.py` and cleanup hooks in `ModularOrchestrator`.
+* **Next Steps:**
+  - Execute full end-to-end testing in staging.
+  - Implement CI health checks and automated regression tests.
+  - Monitor production logs to verify import resolution and risk management overrides.
+
 --- 

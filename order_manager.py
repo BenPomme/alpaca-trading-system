@@ -113,6 +113,41 @@ class OrderManager:
             print(f"⚠️ Position sizing error: {e}")
             return 0
     
+    def place_order_with_retry(self, order_details: Dict) -> Optional[Dict]:
+        """Place an order with exponential backoff retry logic."""
+        retry_attempts = 5
+        delay_seconds = 3  # Initial delay
+        for attempt in range(retry_attempts):
+            try:
+                order = self.api.submit_order(
+                    symbol=order_details['symbol'],
+                    qty=order_details['qty'],
+                    side=order_details['side'],
+                    type=order_details['type'],
+                    time_in_force=order_details['time_in_force'],
+                    limit_price=order_details.get('limit_price'), # Optional for limit orders
+                    stop_price=order_details.get('stop_price')    # Optional for stop orders
+                )
+                print(f"✅ Order submitted: {order.symbol} {order.side} {order.qty} shares @ {order.type}")
+                if self.db:
+                    self.db.log_order(order_details['symbol'], order_details['type'], order_details['side'], 
+                                      order_details['qty'], entry_price=order_details.get('limit_price', order_details.get('stop_price', 0)), 
+                                      strategy=order_details.get('strategy', 'N/A'), status='submitted', order_id=order.id)
+                return order # Return the Alpaca order object
+            except Exception as e:
+                print(f"⚠️ Order attempt {attempt + 1}/{retry_attempts} failed for {order_details.get('symbol', 'N/A')}: {e}")
+                if attempt < retry_attempts - 1:
+                    print(f"   Retrying in {delay_seconds}s...")
+                    time.sleep(delay_seconds)
+                    delay_seconds *= 2  # Exponential backoff
+                else:
+                    print(f"🚫 Failed to place order for {order_details.get('symbol', 'N/A')} after {retry_attempts} attempts.")
+                    if self.db:
+                        self.db.log_order(order_details['symbol'], order_details['type'], order_details['side'], 
+                                      order_details['qty'], entry_price=order_details.get('limit_price', order_details.get('stop_price', 0)), 
+                                      strategy=order_details.get('strategy', 'N/A'), status='failed', error_message=str(e))
+                    return None
+    
     def check_position_limits(self, symbol: str) -> bool:
         """Check if we can open a new position"""
         # Update current positions
@@ -264,297 +299,195 @@ class OrderManager:
             return 0
     
     def execute_buy_order(self, symbol: str, strategy: str, confidence: float, cycle_id: int = None) -> Dict:
-        """Execute a buy order with proper risk management"""
-        print(f"🚀 EXECUTE_BUY_ORDER CALLED: {symbol}")
-        print(f"   Strategy: {strategy}, Confidence: {confidence:.1%}")
-        
+        """Execute a buy order if conditions are met"""
         try:
-            # CRITICAL CHECK 1: Market Hours (prevent closed market trading)
-            print(f"   🕐 Checking market hours...")
             if not self.is_market_open():
-                print(f"   ❌ Market is closed - order rejected")
-                return {'status': 'failed', 'message': 'Market is closed'}
-            print(f"   ✅ Market is open")
+                print(f"⚠️ Market closed - cannot buy {symbol}")
+                return {'status': 'market_closed', 'symbol': symbol}
             
-            # CRITICAL CHECK 2: Pending Orders (prevent duplicates)
-            print(f"   📋 Checking for pending orders...")
-            pending_orders = self.api.list_orders(status='new')
-            for order in pending_orders:
-                if order.symbol == symbol and order.side == 'buy':
-                    print(f"   ❌ Pending buy order already exists for {symbol}")
-                    return {'status': 'failed', 'message': f'Pending order already exists for {symbol}'}
-            print(f"   ✅ No pending orders for {symbol}")
-            
-            # Check position limits
-            print(f"   📊 Checking position limits...")
             if not self.check_position_limits(symbol):
-                print(f"   ❌ Position limits exceeded")
-                return {'status': 'failed', 'message': 'Position limits exceeded'}
-            print(f"   ✅ Position limits OK")
+                print(f"⚠️ Position limits reached - cannot buy {symbol}")
+                return {'status': 'limit_reached', 'symbol': symbol}
             
-            # Get current quote
-            print(f"   📈 Getting market quote...")
-            quote = self.api.get_latest_quote(symbol)
-            if not quote or not quote.ask_price:
-                print(f"   ❌ No market data available")
-                return {'status': 'failed', 'message': 'No market data available'}
-            
-            entry_price = float(quote.ask_price)
-            print(f"   ✅ Quote: ${entry_price:.2f}")
-            
-            # Calculate position size
-            print(f"   💰 Calculating position size...")
+            # Get current price for sizing
+            # CRITICAL FIX: Use reliable real-time price source
+            try:
+                quote = self.api.get_latest_quote(symbol) # Changed from get_last_trade
+                entry_price = float(quote.ap) # ask price for buying
+                if entry_price == 0: # Fallback if ask price is zero
+                    trade = self.api.get_latest_trade(symbol)
+                    entry_price = float(trade.price)
+                print(f"📊 Current Ask Price for {symbol}: ${entry_price:.2f}")
+            except Exception as e:
+                print(f"⚠️ Failed to get current price for {symbol}: {e} - using fallback")
+                # Fallback: last trade price (less ideal for buys)
+                try:
+                    trade = self.api.get_latest_trade(symbol)
+                    entry_price = float(trade.price)
+                    print(f"📊 Fallback Last Trade Price for {symbol}: ${entry_price:.2f}")
+                except Exception as e_trade:
+                     print(f"🚫 Failed to get any price for {symbol}: {e_trade}")
+                     return {'status': 'price_error', 'symbol': symbol, 'error': str(e_trade)}
+
+            if entry_price == 0:
+                print(f"🚫 Zero price for {symbol}, cannot place order.")
+                return {'status': 'price_error', 'symbol': symbol, 'error': 'Zero price'}
+
             shares = self.calculate_position_size(symbol, entry_price, strategy)
-            print(f"   📊 Position size: {shares} shares")
-            if shares <= 0:
-                print(f"   ❌ Insufficient buying power")
-                return {'status': 'failed', 'message': 'Insufficient buying power'}
+            if shares == 0:
+                print(f"⚠️ Calculated 0 shares for {symbol} - cannot buy")
+                return {'status': 'zero_shares', 'symbol': symbol}
             
-            # Create buy order
-            print(f"   🔥 Submitting buy order to Alpaca API...")
-            print(f"      Symbol: {symbol}, Qty: {shares}, Side: buy, Type: market")
-            order = self.api.submit_order(
-                symbol=symbol,
-                qty=shares,
-                side='buy',
-                type='market',
-                time_in_force='day'
-            )
-            print(f"   ✅ Order submitted successfully! Order ID: {order.id}")
+            print(f"🚀 Attempting BUY: {shares} shares of {symbol} @ approx ${entry_price:.2f}")
             
-            # Log the order
-            order_info = {
+            order_details = {
                 'symbol': symbol,
-                'side': 'buy',
                 'qty': shares,
-                'price': entry_price,
-                'strategy': strategy,
-                'confidence': confidence,
-                'order_id': order.id,
-                'timestamp': datetime.now().isoformat(),
-                'cycle_id': cycle_id
+                'side': 'buy',
+                'type': 'market', # Market order for simplicity and higher fill rate
+                'time_in_force': 'day', # Day order
+                'strategy': strategy # For logging
             }
-            
-            # Store in database
-            if self.db:
-                self.db.store_virtual_trade(
-                    symbol=symbol,
-                    action='buy',
-                    price=entry_price,
-                    strategy=strategy,
-                    regime='active',  # Assuming active if we're buying
-                    confidence=confidence,
-                    cycle_id=cycle_id
-                )
-            
-            print(f"✅ BUY ORDER EXECUTED: {symbol}")
-            print(f"   Shares: {shares}")
-            print(f"   Price: ${entry_price:.2f}")
-            print(f"   Total: ${shares * entry_price:,.2f}")
-            print(f"   Strategy: {strategy}")
-            print(f"   Order ID: {order.id}")
-            
-            result = {
-                'status': 'success',  # Fixed: match expected key name
-                'order_id': order.id,
-                'symbol': symbol,
-                'shares': shares,
-                'price': entry_price,
-                'total_value': shares * entry_price,
-                'strategy': strategy
-            }
-            
-            print(f"   🎯 Returning success result: {result}")
-            return result
-            
+
+            order_response = self.place_order_with_retry(order_details)
+
+            if order_response and hasattr(order_response, 'id'):
+                print(f"✅ BUY order for {shares} {symbol} submitted successfully.")
+                self.active_positions[symbol] = {
+                    'qty': shares,
+                    'avg_entry_price': entry_price, # Approximate, will update on fill
+                    'side': 'long'
+                }
+                self.pending_orders[order_response.id] = order_details
+                
+                if self.db:
+                    self.db.log_trade(symbol, 'buy', shares, entry_price, strategy, confidence, status='submitted', order_id=order_response.id, cycle_id=cycle_id)
+                return {
+                    'status': 'success',
+                    'order_id': order_response.id,
+                    'symbol': symbol,
+                    'shares': shares,
+                    'price': entry_price,
+                    'side': 'buy'
+                }
+            else:
+                print(f"🚫 BUY order for {shares} {symbol} failed.")
+                error_msg = "Order placement failed" if not order_response else str(order_response)
+                if self.db:
+                    self.db.log_trade(symbol, 'buy', shares, entry_price, strategy, confidence, status='failed', error_message=error_msg, cycle_id=cycle_id)
+                return {
+                    'status': 'failed',
+                    'symbol': symbol,
+                    'shares': shares,
+                    'error': error_msg
+                }
+
         except Exception as e:
-            error_msg = f"Buy order failed for {symbol}: {e}"
-            print(f"❌ EXCEPTION in execute_buy_order: {error_msg}")
-            print(f"   Exception type: {type(e).__name__}")
-            print(f"   Exception details: {str(e)}")
-            result = {'status': 'failed', 'message': error_msg}
-            print(f"   🎯 Returning error result: {result}")
-            return result
+            print(f"🚫 GENERAL ERROR executing BUY for {symbol}: {e}")
+            if self.db:
+                self.db.log_trade(symbol, 'buy', 0, 0, strategy, confidence, status='error', error_message=str(e), cycle_id=cycle_id)
+            return {
+                'status': 'error',
+                'symbol': symbol,
+                'error': str(e)
+            }
     
     def execute_sell_order(self, symbol: str, reason: str = 'strategy', cycle_id: int = None) -> Dict:
-        """Execute a sell order for existing position"""
+        """Execute a sell order to close an existing position"""
         try:
-            # CRITICAL FIX: Use live Alpaca positions instead of internal tracking
-            # Get actual positions from Alpaca
-            positions = self.api.list_positions()
-            position = None
-            for pos in positions:
-                if pos.symbol == symbol:
-                    position = pos
-                    break
+            if not self.is_market_open():
+                print(f"⚠️ Market closed - cannot sell {symbol}")
+                return {'status': 'market_closed', 'symbol': symbol}
+
+            self.log_current_positions() # Refresh active positions
             
-            if not position:
-                return {'success': False, 'reason': f'No position in {symbol}'}
+            if symbol not in self.active_positions:
+                print(f"⚠️ No active position for {symbol} to sell")
+                return {'status': 'no_position', 'symbol': symbol}
             
-            shares = abs(int(float(position.qty)))  # Ensure positive quantity from Alpaca position
+            position = self.active_positions[symbol]
+            shares = abs(float(position['qty'])) # Ensure positive qty for selling
+            side = 'sell' # Always sell to close a long position
             
-            if shares <= 0:
-                return {'success': False, 'reason': 'No shares to sell'}
-            
-            # EMERGENCY FIX: Check if shares are actually available for trading
-            # The "insufficient qty available" error suggests position exists but shares are locked
+            # Get current price for logging/approximate P&L
+            # CRITICAL FIX: Use reliable real-time price source
             try:
-                # Check position side - can't sell short positions with regular sell
-                if hasattr(position, 'side') and position.side == 'short':
-                    return {'success': False, 'reason': f'Cannot sell short position {symbol} with regular sell order'}
-                
-                # Validate quantity is real and not zero
-                raw_qty = float(position.qty)
-                if raw_qty == 0:
-                    return {'success': False, 'reason': f'Position {symbol} has zero quantity'}
-                
-                # Log position details for debugging
-                print(f"🔍 Position validation for {symbol}:")
-                print(f"   📊 Quantity: {raw_qty}")
-                print(f"   💰 Market Value: ${float(position.market_value)}")
-                print(f"   📈 Unrealized P&L: ${float(position.unrealized_pl)}")
-                
-                # Additional check: verify position is not pending closure
-                if hasattr(position, 'unrealized_pl') and float(position.market_value) == 0:
-                    return {'success': False, 'reason': f'Position {symbol} appears to be closing (zero market value)'}
-                
-                # CRITICAL: Check for pending orders that might lock the position
+                quote = self.api.get_latest_quote(symbol)
+                exit_price = float(quote.bp) # bid price for selling
+                if exit_price == 0: # Fallback if bid price is zero
+                    trade = self.api.get_latest_trade(symbol)
+                    exit_price = float(trade.price)
+                print(f"📊 Current Bid Price for {symbol}: ${exit_price:.2f}")
+            except Exception as e:
+                print(f"⚠️ Failed to get current price for {symbol}: {e} - using fallback")
                 try:
-                    pending_orders = self.api.list_orders(status='open', symbols=[symbol])
-                    if pending_orders:
-                        print(f"⚠️ Found {len(pending_orders)} pending orders for {symbol}:")
-                        sell_orders = []
-                        buy_orders = []
-                        
-                        for order in pending_orders:
-                            print(f"   📋 Order {order.id}: {order.side} {order.qty} shares @ {order.order_type}")
-                            if order.side == 'sell':
-                                sell_orders.append(order)
-                            else:
-                                buy_orders.append(order)
-                        
-                        # If there are pending sell orders, cancel them and retry
-                        if sell_orders:
-                            print(f"🧹 CANCELING {len(sell_orders)} pending sell orders for {symbol} to free up shares...")
-                            for sell_order in sell_orders:
-                                try:
-                                    self.api.cancel_order(sell_order.id)
-                                    print(f"   ✅ Cancelled sell order {sell_order.id}")
-                                except Exception as cancel_error:
-                                    print(f"   ❌ Failed to cancel order {sell_order.id}: {cancel_error}")
-                            
-                            # Wait a moment for orders to cancel
-                            import time
-                            time.sleep(1)
-                            print(f"✅ Cleared pending sell orders for {symbol} - proceeding with new sell order")
-                        
-                        # If there are only buy orders, shares should still be available
-                        if buy_orders and not sell_orders:
-                            print(f"   ℹ️ Only buy orders pending - shares should be available for selling")
-                            
-                except Exception as order_check_error:
-                    print(f"⚠️ Could not check pending orders for {symbol}: {order_check_error}")
-                
-                # Check account status
-                try:
-                    account = self.api.get_account()
-                    if hasattr(account, 'trading_blocked') and account.trading_blocked:
-                        return {'success': False, 'reason': 'Account trading is blocked'}
-                    if hasattr(account, 'pattern_day_trader') and account.pattern_day_trader:
-                        print(f"⚠️ Account marked as Pattern Day Trader")
-                except Exception as account_check_error:
-                    print(f"⚠️ Could not check account status: {account_check_error}")
-                    
-            except Exception as validation_error:
-                print(f"⚠️ Position validation error for {symbol}: {validation_error}")
-                # Continue with sell attempt even if validation fails
-            
-            # Get current quote for sell price
-            quote = self.api.get_latest_quote(symbol)
-            if not quote or not quote.bid_price:
-                return {'success': False, 'reason': 'No market data available'}
-            
-            sell_price = float(quote.bid_price)
-            
-            # Calculate P&L using correct Alpaca position attributes FIRST
-            # Get entry price from Alpaca position (same logic as intelligent exit manager)
-            try:
-                if hasattr(position, 'avg_entry_price'):
-                    entry_price = float(position.avg_entry_price)
-                elif hasattr(position, 'cost_basis'):
-                    entry_price = float(position.cost_basis)
-                elif hasattr(position, 'avg_cost'):
-                    entry_price = float(position.avg_cost)
-                else:
-                    # Calculate from market_value and qty as fallback
-                    entry_price = float(position.market_value) / float(position.qty) if float(position.qty) != 0 else sell_price
-            except:
-                entry_price = sell_price  # Fallback to break-even
-            
-            profit_loss = (sell_price - entry_price) * shares
-            profit_pct = (profit_loss / (entry_price * shares)) * 100 if entry_price > 0 else 0
-            
-            # Create sell order
-            print(f"🔥 Submitting SELL order to Alpaca API...")
-            print(f"   Symbol: {symbol}, Qty: {shares}, Side: sell, Type: market")
-            print(f"   Entry: ${entry_price:.2f}, Current: ${sell_price:.2f}, P&L: {profit_pct:+.1f}%")
-            
-            order = self.api.submit_order(
-                symbol=symbol,
-                qty=shares,
-                side='sell',
-                type='market',
-                time_in_force='day'
-            )
-            
-            print(f"✅ SELL Order submitted successfully! Order ID: {order.id}")
-            print(f"✅ SELL ORDER EXECUTED: {symbol}")
-            print(f"   Shares: {shares}")
-            print(f"   Price: ${sell_price:.2f}")
-            print(f"   P&L: {profit_pct:+.1f}%")
-            print(f"   Reason: {reason}")
-            print(f"   Order ID: {order.id}")
-            
-            # Store in database
-            if self.db:
-                self.db.store_virtual_trade(
-                    symbol=symbol,
-                    action='sell',
-                    price=sell_price,
-                    strategy=reason,
-                    regime='active',
-                    confidence=0.0,
-                    cycle_id=cycle_id
-                )
-            
-            print(f"✅ SELL ORDER EXECUTED: {symbol}")
-            print(f"   Shares: {shares}")
-            print(f"   Sell Price: ${sell_price:.2f}")
-            print(f"   Entry Price: ${entry_price:.2f}")
-            print(f"   P&L: ${profit_loss:+.2f} ({profit_pct:+.1f}%)")
-            print(f"   Reason: {reason}")
-            print(f"   Order ID: {order.id}")
-            
-            # Remove from active positions (will be updated on next position check)
-            if symbol in self.active_positions:
-                del self.active_positions[symbol]
-            
-            return {
-                'success': True,
-                'order_id': order.id,
+                    trade = self.api.get_latest_trade(symbol)
+                    exit_price = float(trade.price)
+                    print(f"📊 Fallback Last Trade Price for {symbol}: ${exit_price:.2f}")
+                except Exception as e_trade:
+                    print(f"🚫 Failed to get any price for {symbol}: {e_trade}")
+                    return {'status': 'price_error', 'symbol': symbol, 'error': str(e_trade)}
+
+            if exit_price == 0:
+                print(f"🚫 Zero price for {symbol}, cannot place sell order.")
+                return {'status': 'price_error', 'symbol': symbol, 'error': 'Zero price'}
+
+            print(f"🚀 Attempting SELL: {shares} shares of {symbol} @ approx ${exit_price:.2f} (Reason: {reason})")
+
+            order_details = {
                 'symbol': symbol,
-                'shares': shares,
-                'sell_price': sell_price,
-                'entry_price': entry_price,
-                'profit_loss': profit_loss,
-                'profit_pct': profit_pct,
-                'reason': reason
+                'qty': shares,
+                'side': side,
+                'type': 'market', # Market order for simplicity and higher fill rate
+                'time_in_force': 'day', # Day order
+                'strategy': reason # For logging, use reason as strategy
             }
+
+            order_response = self.place_order_with_retry(order_details)
             
+            if order_response and hasattr(order_response, 'id'):
+                print(f"✅ SELL order for {shares} {symbol} submitted successfully.")
+                # Remove from active positions, will be confirmed by fill event or reconciliation
+                # self.active_positions.pop(symbol, None) 
+                # Instead of popping, mark as pending close or let reconciliation handle
+                self.pending_orders[order_response.id] = order_details
+
+                entry_price = float(position.get('avg_entry_price', 0))
+                pnl_estimate = (exit_price - entry_price) * shares if entry_price else 0
+                
+                if self.db:
+                    self.db.log_trade(symbol, 'sell', shares, exit_price, reason, 0, status='submitted', order_id=order_response.id, related_trade_id=position.get('db_id'), pnl=pnl_estimate, cycle_id=cycle_id)
+                return {
+                    'status': 'success',
+                    'order_id': order_response.id,
+                    'symbol': symbol,
+                    'shares': shares,
+                    'price': exit_price,
+                    'side': 'sell',
+                    'pnl_estimate': pnl_estimate
+                }
+            else:
+                print(f"🚫 SELL order for {shares} {symbol} failed.")
+                error_msg = "Order placement failed" if not order_response else str(order_response)
+                if self.db:
+                     self.db.log_trade(symbol, 'sell', shares, exit_price, reason, 0, status='failed', error_message=error_msg, related_trade_id=position.get('db_id'), cycle_id=cycle_id)
+                return {
+                    'status': 'failed',
+                    'symbol': symbol,
+                    'shares': shares,
+                    'error': error_msg
+                }
+
         except Exception as e:
-            error_msg = f"Sell order failed for {symbol}: {e}"
-            print(f"❌ {error_msg}")
-            return {'success': False, 'reason': error_msg}
+            print(f"🚫 GENERAL ERROR executing SELL for {symbol}: {e}")
+            position = self.active_positions.get(symbol, {})
+            if self.db:
+                self.db.log_trade(symbol, 'sell', 0, 0, reason, 0, status='error', error_message=str(e), related_trade_id=position.get('db_id'), cycle_id=cycle_id)
+            return {
+                'status': 'error',
+                'symbol': symbol,
+                'error': str(e)
+            }
     
     def check_stop_losses(self) -> List[Dict]:
         """Check and execute stop losses for all positions"""

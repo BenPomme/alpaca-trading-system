@@ -51,6 +51,14 @@ class RiskManager:
         self.intraday_position_multiplier = 1.5  # 50% larger positions for intraday
         self.end_of_day_liquidation_hour = 15.5  # 3:30 PM ET (30 min before close)
         
+        # Performance-based leverage adjustment
+        self.performance_leverage_config = {
+            'enable': True,
+            'min_win_rate_for_full_leverage': 0.50, # Win rate below this reduces leverage
+            'reduced_leverage_factor': 0.75,       # Factor to apply if win rate is low
+            'min_trades_for_assessment': 20       # Min trades before adjusting
+        }
+        
         # Initialize intraday capabilities
         self._initialize_intraday_trading()
         
@@ -131,8 +139,11 @@ class RiskManager:
         # Confidence-based adjustment (scale with confidence 0.5-1.0 → 0.7-1.3)
         confidence_multiplier = 0.7 + (confidence * 0.6)
         
-        # Calculate adjusted risk with intraday multiplier
-        adjusted_risk = base_risk_amount * strategy_multiplier * confidence_multiplier * sizing_multiplier
+        # Performance-based leverage adjustment
+        performance_leverage_factor = self.get_performance_adjusted_leverage_factor()
+
+        # Calculate adjusted risk with intraday multiplier and performance factor
+        adjusted_risk = base_risk_amount * strategy_multiplier * confidence_multiplier * sizing_multiplier * performance_leverage_factor
         
         # Position size limits
         target_position_value = min(adjusted_risk, max_position_value)
@@ -688,6 +699,50 @@ class RiskManager:
         except Exception as e:
             print(f"⚠️ Error getting intraday positions: {e}")
             return []
+
+    def get_recent_performance_metrics(self) -> Dict:
+        """ 
+        Fetches or calculates recent performance metrics.
+        Placeholder: Ideally, this would query self.db for win rate and P&L.
+        For now, returns a simulated or default value.
+        """
+        # TODO: Integrate with TradingDatabase to get actual recent performance
+        # self.logger.info("Fetching recent performance metrics (currently simulated).")
+        # For demonstration, simulate metrics:
+        simulated_win_rate = 0.45 # Simulate a win rate below 50%
+        simulated_total_trades = 25 # Simulate enough trades for assessment
+        return {
+            "win_rate": simulated_win_rate, 
+            "total_trades": simulated_total_trades,
+            "recent_pnl_pct": -0.02 # Simulate a slight recent loss
+        }
+
+    def get_performance_adjusted_leverage_factor(self) -> float:
+        """ 
+        Determines a leverage adjustment factor based on recent performance.
+        Returns a factor (e.g., 0.75 for reduced leverage, 1.0 for full).
+        """
+        if not self.performance_leverage_config.get('enable', False):
+            return 1.0
+
+        metrics = self.get_recent_performance_metrics()
+        win_rate = metrics.get("win_rate", 0.0)
+        total_trades = metrics.get("total_trades", 0)
+
+        min_trades = self.performance_leverage_config.get('min_trades_for_assessment', 20)
+        min_win_rate_full = self.performance_leverage_config.get('min_win_rate_for_full_leverage', 0.50)
+        reduced_factor = self.performance_leverage_config.get('reduced_leverage_factor', 0.75)
+
+        if total_trades < min_trades:
+            self.logger.info(f"Performance leverage: Not enough trades ({total_trades}/{min_trades}) for adjustment. Using full factor.")
+            return 1.0
+        
+        if win_rate < min_win_rate_full:
+            self.logger.warning(f"Performance leverage: Win rate {win_rate:.2%} < {min_win_rate_full:.2%}. Applying reduced leverage factor: {reduced_factor}.")
+            return reduced_factor
+        
+        self.logger.info(f"Performance leverage: Win rate {win_rate:.2%} meets threshold. Using full leverage factor.")
+        return 1.0
 
 def test_risk_manager():
     """Test risk management functionality"""

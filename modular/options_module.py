@@ -145,8 +145,8 @@ class OptionsModule(TradingModule):
             # Check if US market is open (options follow stock market hours)
             try:
                 market_clock = self.api.get_clock()
-                if not market_clock.is_open:
-                    self.logger.info("US market closed - no options opportunities")
+                if not market_clock.is_open and os.getenv('GLOBAL_TRADING','false').lower() != 'true':
+                    self.logger.info("US market closed - no options opportunities (overridden by GLOBAL_TRADING)")
                     return opportunities
             except Exception as e:
                 self.logger.warning(f"Could not check market status: {e}")

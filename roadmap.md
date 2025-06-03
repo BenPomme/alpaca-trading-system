@@ -73,23 +73,26 @@ These issues must be addressed urgently to stop financial losses, ensure data in
     2.  Log prominently when the system falls back to simulated data; consider critical alerts.
     3.  If simulation is vital for testing, enhance its realism. Minimize use in live trading.
 
-## 3. Phase 2: Short-Term (Stabilization & Validation)
+## 3. Phase 2: Packaging and Deployment Hardening
 
-Once critical fixes are in place and the system is more stable:
-
-### 3.1. Validate Performance Metrics
-*   With P&L corrected, re-evaluate all performance metrics (win rate, ROI, etc.) across all strategies.
-*   Ensure `_update_performance_metrics` (base module) and logging use corrected data.
-
-### 3.2. Review and Refine Risk Management
-*   Re-assess position sizing rules (with position limits now active).
-*   Ensure stop-loss/profit-target mechanisms function as expected with accurate P&L.
-*   Verify crypto stop-loss application (`crypto_trading_config`).
-
-### 3.3. ML System Review (Post Critical Fixes)
-*   Clear old, incorrectly learned ML model data from Firebase.
-*   Monitor ML system learning with correct data feeds and persistent states.
-*   Review `record_parameter_effectiveness` to ensure it uses accurate P&L.
+* **Absolute Imports & Package Initialization:**
+  - Convert all modules in `modular/` and top-level scripts to use absolute imports.
+  - Add `__init__.py` to every package directory (`modular/`, `utils/`).
+* **Utils Consolidation & Stubbing:**
+  - Consolidate utility scripts into a `utils` package and ensure all imported modules exist or stub appropriately.
+* **Environment Variable Flags:**
+  - Implement feature toggles via env vars (e.g., `IGNORE_DAILY_LOSS`) for session-specific overrides.
+  - Harden Firebase setup by prioritizing `FIREBASE_SERVICE_ACCOUNT_PATH` and supporting fallback env-based credentials.
+* **CI/CD Pipeline & Branching Strategy:**
+  - Establish automated tests and health checks in CI.
+  - Ensure `staging` branch is protected and reviewed before merging to `main`.
+  - Automate deployments: staging -> QA environment, `main` -> production on Railway.
+* **Monitoring & Observability:**
+  - Enhance logging for module imports and risk checks at startup.
+  - Set up alerting for critical errors (e.g., import failures, unused capital warnings).
+* **Documentation & Governance:**
+  - Update developer onboarding guides to reflect new package structure.
+  - Publish coding standards for import style and environment configuration.
 
 ## 4. Phase 3: Medium-Term (Optimization & Robustness)
 

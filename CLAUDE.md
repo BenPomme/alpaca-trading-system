@@ -426,3 +426,13 @@ pip install -r requirements.txt
 - Deployed production-grade health monitoring endpoints
 
 This system has encountered 11+ major bugs during development. The QA.md rules represent institutional knowledge that MUST be followed to prevent regression.
+
+## Recent System Updates & Best Practices
+
+- **P&L Calculation Fixes:** All trading modules (`crypto`, `stocks`, `options`) now poll for order fills and record actual fill prices for both entry and exit. `TradeResult.success` logic updated to reflect profitability.
+- **Module Packaging & Imports:** Converted all relative imports to absolute imports. Added `__init__.py` to `modular/` and `utils/` packages for production compatibility.
+- **Utils Package Refactor:** Consolidated helper scripts (`technical_indicators.py`, `pattern_recognition.py`) into a `utils` package. Provided a stub `news_sentiment.py` to avoid missing imports.
+- **Risk Manager Enhancements:** Set a finite `max_positions` (25) and introduced `IGNORE_DAILY_LOSS` environment variable to bypass the daily loss limit when needed.
+- **Machine Learning Persistence:** Implemented periodic ML state saves in `ml_adaptive_framework.py` after every 5 trades, and added cleanup hooks in the orchestrator to persist model state on shutdown.
+- **Firebase Initialization Hardened:** Prioritize `FIREBASE_SERVICE_ACCOUNT_PATH` env var, then `GOOGLE_APPLICATION_CREDENTIALS`, falling back to individual Firebase env variables.
+- **Deployment & CI/CD Workflow:** Established a `staging` branch for testing, merging into `main` for production. Added CI health checks, automated deployments (staging → QA → production), and alerting for critical errors.

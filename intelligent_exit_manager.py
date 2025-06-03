@@ -136,7 +136,9 @@ class IntelligentExitManager:
             analysis['analysis_components']['pattern'] = pattern_analysis
             
             # 5. Time-based Analysis
-            time_analysis = self._analyze_time_exit(hold_days, pl_pct)
+            # Determine asset_class (simple check for crypto)
+            asset_class = 'crypto' if 'USD' in symbol and '/' not in symbol and len(symbol) > 5 else 'stock' # Basic check
+            time_analysis = self._analyze_time_exit(hold_hours, pl_pct, asset_class) # Pass hold_hours and asset_class
             analysis['analysis_components']['time'] = time_analysis
             
             # 6. Combine all analyses for final decision
@@ -383,36 +385,50 @@ class IntelligentExitManager:
         except Exception as e:
             return {'error': f'pattern_analysis_failed: {e}', 'recommendation': 'hold'}
     
-    def _analyze_time_exit(self, hold_days: int, pl_pct: float) -> Dict:
-        """Analyze time-based exit conditions"""
+    def _analyze_time_exit(self, hold_hours: float, pl_pct: float, asset_class: str = 'stock') -> Dict:
+        """Analyze exit based on holding duration and asset class"""
         try:
+            # General time-based exit parameters
+            max_hold_days_default = 7  # Default max hold period in days (e.g., for stocks)
+            stagnation_threshold_pct = 0.01 # 1% P&L considered stagnant
+
             exit_signals = []
-            
-            # Maximum hold period (from risk manager)
-            max_hold_days = getattr(self.risk_manager, 'max_hold_days', 5)
-            
-            if hold_days >= max_hold_days:
-                exit_signals.append(f"max_hold_period_{hold_days}d")
-            
-            # Quick profit acceleration (higher profits faster)
-            if hold_days <= 1 and pl_pct >= self.base_quick_profit * 2:  # 6% in 1 day
-                exit_signals.append(f"accelerated_profit_{pl_pct:.2%}")
-            
-            # Stagnant position (no movement)
-            if hold_days >= 3 and abs(pl_pct) < 0.01:  # Flat for 3+ days
-                exit_signals.append(f"stagnant_position_{hold_days}d")
-            
-            # Time decay for options (if applicable)
-            if hold_days >= 2 and pl_pct > 0.05:  # Options profit protection
-                exit_signals.append(f"time_decay_protection")
-            
-            recommendation = 'sell' if exit_signals else 'hold'
-            
+            time_score = 0
+            recommendation = 'hold'
+            reason = 'within_hold_limits'
+
+            if asset_class == 'crypto':
+                crypto_max_hold_hours = 48
+                if hold_hours > crypto_max_hold_hours:
+                    exit_signals.append(f"crypto_max_hold_{hold_hours:.1f}h_exceeded_{crypto_max_hold_hours}h")
+                    time_score += 60 # Strong signal for crypto time stop
+                    recommendation = 'sell'
+                    reason = f'crypto_time_stop_{crypto_max_hold_hours}h'
+                elif hold_hours > crypto_max_hold_hours * 0.75 and abs(pl_pct) < stagnation_threshold_pct: # Stagnant crypto nearing time limit
+                    exit_signals.append(f"crypto_stagnant_near_timelimit_{hold_hours:.1f}h")
+                    time_score += 30
+                    recommendation = 'sell' # Consider exiting stagnant crypto
+                    reason = 'crypto_stagnant_near_timelimit'
+            else: # For stocks or other assets
+                hold_days = hold_hours / 24.0
+                if hold_days > max_hold_days_default:
+                    exit_signals.append(f"max_hold_days_{hold_days:.1f}d_exceeded")
+                    time_score += 40
+                    recommendation = 'sell'
+                    reason = f'max_hold_duration_exceeded_{max_hold_days_default}d'
+                elif hold_days > max_hold_days_default * 0.7 and abs(pl_pct) < stagnation_threshold_pct:
+                    exit_signals.append(f"stagnation_risk_days_{hold_days:.1f}d")
+                    time_score += 20
+                    recommendation = 'consider_sell' # Less aggressive than crypto time stop
+                    reason = 'stagnation_risk'
+
             return {
-                'hold_days': hold_days,
-                'max_hold_days': max_hold_days,
+                'hold_hours': round(hold_hours, 1),
+                'asset_class_analyzed': asset_class,
+                'time_score': time_score,
                 'exit_signals': exit_signals,
-                'recommendation': recommendation
+                'recommendation': recommendation,
+                'reason': reason
             }
             
         except Exception as e:
