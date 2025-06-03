@@ -273,9 +273,9 @@ class CryptoModule(TradingModule):
                             else:
                                 self.logger.info(f"❌ {symbol}: confidence {analysis.overall_confidence:.2f} < threshold {crypto_config['min_confidence']}")
                         else:
-                            self.logger.info(f"❌ {symbol}: not tradeable (confidence={analysis.overall_confidence:.2f})")
+                            self.logger.debug(f"❌ {symbol}: not tradeable (confidence={analysis.overall_confidence:.2f})")
                     else:
-                        self.logger.error(f"❌ {symbol}: analysis returned None")
+                        self.logger.warning(f"❌ {symbol}: analysis returned None - check market data quality")
                 
                 except Exception as e:
                     self.logger.error(f"Error analyzing crypto {symbol}: {e}")
@@ -466,6 +466,11 @@ class CryptoModule(TradingModule):
             volatility_score = self._calculate_crypto_volatility(symbol, market_data)
             volume_score = self._calculate_crypto_volume(symbol, market_data)
             
+            # NEVER USE FALLBACKS: If any calculation failed, abort analysis
+            if momentum_score is None or volatility_score is None or volume_score is None:
+                self.logger.error(f"❌ {symbol}: Analysis FAILED - momentum={momentum_score}, volatility={volatility_score}, volume={volume_score}")
+                return None
+            
             # Calculate technical confidence using weighted scoring
             technical_confidence = (
                 momentum_score * self.analysis_weights['momentum'] +
@@ -473,23 +478,26 @@ class CryptoModule(TradingModule):
                 volume_score * self.analysis_weights['volume']
             )
             
+            # DEBUG: Log individual components for troubleshooting
+            self.logger.debug(f"🔍 {symbol}: momentum={momentum_score:.2f}, volatility={volatility_score:.2f}, volume={volume_score:.2f}")
+            
             # Integrate Market Intelligence/ML confidence if available
             intelligence_confidence = None
             if hasattr(self, 'market_intelligence') and self.market_intelligence:
                 try:
                     intelligence_confidence = self.market_intelligence.get_position_risk_score(symbol)
-                    self.logger.info(f"🤖 {symbol}: Market Intelligence confidence={intelligence_confidence:.2f}")
+                    self.logger.debug(f"🤖 {symbol}: Market Intelligence confidence={intelligence_confidence:.2f}")
                 except Exception as e:
-                    self.logger.warning(f"⚠️ {symbol}: Market Intelligence confidence unavailable: {e}")
+                    self.logger.debug(f"⚠️ {symbol}: Market Intelligence unavailable: {e}")
                     intelligence_confidence = None
             
             # Combine technical and intelligence confidence (if available)
             if intelligence_confidence is not None:
                 overall_confidence = 0.5 * technical_confidence + 0.5 * intelligence_confidence
+                self.logger.info(f"📊 {symbol}: Tech={technical_confidence:.2f} + AI={intelligence_confidence:.2f} = Overall={overall_confidence:.2f}")
             else:
                 overall_confidence = technical_confidence
-            
-            self.logger.info(f"📊 {symbol}: Technical confidence={technical_confidence:.2f}, Overall confidence={overall_confidence:.2f}")
+                self.logger.info(f"📊 {symbol}: Technical-only confidence={overall_confidence:.2f} (momentum={momentum_score:.2f}, vol={volatility_score:.2f}, volume={volume_score:.2f})")
             
             session_config = self.session_configs[session]
             
@@ -543,12 +551,13 @@ class CryptoModule(TradingModule):
                 return 0.1
             
             else:
-                # Neutral zone - moderate score
-                return 0.4
+                # Neutral zone - moderate score based on proximity to MA
+                neutrality_score = 0.5 - abs(distance_from_ma) / 0.20  # Closer to MA = higher score
+                return max(neutrality_score, 0.1)
             
         except Exception as e:
-            self.logger.debug(f"Error calculating mean reversion for {symbol}: {e}")
-            return 0.3
+            self.logger.error(f"❌ {symbol}: Mean reversion calculation FAILED: {e}")
+            return None  # NEVER fallback - let caller handle failure
     
     def _calculate_crypto_volatility(self, symbol: str, market_data: Dict) -> float:
         """Calculate volatility score for cryptocurrency"""
@@ -558,8 +567,13 @@ class CryptoModule(TradingModule):
             low_24h = market_data.get('low_24h', 0)
             current_price = market_data.get('current_price', 0)
             
-            if current_price <= 0 or high_24h <= low_24h:
-                return 0.3  # Low volatility default
+            if current_price <= 0:
+                self.logger.error(f"❌ {symbol}: Invalid current_price={current_price} for volatility calculation")
+                return None
+            
+            if high_24h <= low_24h:
+                self.logger.error(f"❌ {symbol}: Invalid 24h range (high={high_24h}, low={low_24h}) for volatility calculation")
+                return None
             
             daily_range = (high_24h - low_24h) / current_price
             
@@ -569,8 +583,8 @@ class CryptoModule(TradingModule):
             return volatility_score
             
         except Exception as e:
-            self.logger.debug(f"Error calculating volatility for {symbol}: {e}")
-            return 0.3
+            self.logger.error(f"❌ {symbol}: Volatility calculation FAILED: {e}")
+            return None  # NEVER fallback - let caller handle failure
     
     def _calculate_crypto_volume(self, symbol: str, market_data: Dict) -> float:
         """Calculate volume score for cryptocurrency"""
@@ -580,7 +594,8 @@ class CryptoModule(TradingModule):
             avg_volume = market_data.get('avg_volume_7d', volume_24h)
             
             if avg_volume <= 0:
-                return 0.4  # Default volume score
+                self.logger.error(f"❌ {symbol}: Invalid avg_volume={avg_volume} for volume calculation")
+                return None
             
             volume_ratio = volume_24h / avg_volume
             
@@ -590,8 +605,8 @@ class CryptoModule(TradingModule):
             return volume_score
             
         except Exception as e:
-            self.logger.debug(f"Error calculating volume for {symbol}: {e}")
-            return 0.4
+            self.logger.error(f"❌ {symbol}: Volume calculation FAILED: {e}")
+            return None  # NEVER fallback - let caller handle failure
     
     def _create_crypto_opportunity(self, analysis: CryptoAnalysis, 
                                  crypto_config: Dict[str, Any]) -> Optional[TradeOpportunity]:

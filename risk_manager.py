@@ -637,14 +637,18 @@ class RiskManager:
         reduced_factor = self.performance_leverage_config.get('reduced_leverage_factor', 0.75)
 
         if total_trades < min_trades:
-            self.logger.info(f"Performance leverage: Not enough trades ({total_trades}/{min_trades}) for adjustment. Using full factor.")
+            self.logger.debug(f"Performance leverage: Not enough trades ({total_trades}/{min_trades}) for adjustment. Using full factor.")
             return 1.0
         
         if win_rate < min_win_rate_full:
-            self.logger.warning(f"Performance leverage: Win rate {win_rate:.2%} < {min_win_rate_full:.2%}. Applying reduced leverage factor: {reduced_factor}.")
+            # EMERGENCY FIX: Only log this once per minute to prevent spam
+            import time
+            if not hasattr(self, '_last_leverage_warning') or time.time() - self._last_leverage_warning > 60:
+                self.logger.warning(f"⚠️ PERFORMANCE: Win rate {win_rate:.2%} < {min_win_rate_full:.2%} - using {reduced_factor}x leverage (logged once/min)")
+                self._last_leverage_warning = time.time()
             return reduced_factor
         
-        self.logger.info(f"Performance leverage: Win rate {win_rate:.2%} meets threshold. Using full leverage factor.")
+        self.logger.debug(f"Performance leverage: Win rate {win_rate:.2%} meets threshold. Using full leverage factor.")
         return 1.0
 
 def test_risk_manager():
