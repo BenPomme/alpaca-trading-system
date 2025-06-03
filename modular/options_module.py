@@ -763,6 +763,24 @@ class OptionsModule(TradingModule):
                     error_message="No contracts specified in strategy"
                 )
             
+            # CRITICAL FIX: Validate buying power before order submission
+            if opportunity.action == TradeAction.BUY:
+                # Calculate total options cost for validation
+                total_cost = opportunity.quantity * opportunity.entry_price * 100  # Options contract multiplier
+                is_valid, error_msg = self.risk_manager.validate_position(
+                    opportunity.symbol, 
+                    total_cost, # Use total cost as quantity
+                    1.0  # Price = 1 since we're passing total cost as quantity
+                )
+                if not is_valid:
+                    self.logger.warning(f"🚫 Options trade blocked for {opportunity.symbol}: {error_msg}")
+                    return TradeResult(
+                        opportunity=opportunity,
+                        status=TradeStatus.FAILED,
+                        order_id=None,
+                        error_message=f"Risk validation failed: {error_msg}"
+                    )
+            
             # For multi-leg strategies, try multi-leg order first
             if len(contracts) > 1:
                 result = self._execute_multi_leg_order(opportunity, strategy_details)
@@ -1247,7 +1265,7 @@ class OptionsModule(TradingModule):
             )
             return TradeResult(
                 opportunity=error_opportunity,
-                status=TradeStatus.ERROR,
+                status=TradeStatus.FAILED,
                 order_id=None,
                 error_message=str(e)
             )

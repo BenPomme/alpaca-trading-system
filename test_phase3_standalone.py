@@ -4,9 +4,9 @@ import random
 from datetime import datetime
 
 # Test Phase 3 modules independently without Alpaca API dependency
-from technical_indicators import TechnicalIndicators
+from utils.technical_indicators import TechnicalIndicators
 from market_regime_detector import MarketRegimeDetector
-from pattern_recognition import PatternRecognition
+from utils.pattern_recognition import PatternRecognition
 
 def test_technical_indicators():
     """Test technical indicators module"""

@@ -23,10 +23,10 @@ class RiskManager:
         self.max_daily_trades = 20                # Maximum trades per day
         self.max_position_size_pct = 0.15         # 15% of portfolio per position
         self.max_sector_exposure = 0.60           # 60% exposure to any sector (aggressive target)
-        self.max_daily_loss_pct = 0.05            # 5% daily portfolio loss limit
-        # Bypass daily loss limit for this session
-        self.ignore_daily_loss = True
-        self.logger.warning("⚠️ Daily loss limit bypass enabled for this session")
+        self.max_daily_loss_pct = 0.02            # EMERGENCY FIX: 2% daily portfolio loss limit (reduced from 5%)
+        # EMERGENCY FIX: Enable daily loss circuit breaker
+        self.ignore_daily_loss = False
+        self.logger.info("✅ Daily loss circuit breaker ENABLED: 2% limit")
         self.position_risk_pct = 0.02             # 2% risk per trade
         
         # Stop Loss & Take Profit
@@ -258,99 +258,6 @@ class RiskManager:
         except Exception as e:
             return False, f"Risk check error: {e}"
     
-    def check_sector_exposure(self, symbol: str, target_value: float) -> Tuple[bool, str]:
-        """Check sector exposure limits"""
-        try:
-            # EMERGENCY FIX: Expanded sector mapping to prevent unknown sector clustering
-            sector_map = {
-                # Market ETFs
-                'SPY': 'market', 'QQQ': 'technology', 'IWM': 'small_cap', 'VTI': 'market',
-                'DIA': 'market', 'VEA': 'international', 'EFA': 'international', 'IEFA': 'international',
-                'VWO': 'emerging_markets', 'FXI': 'china', 'EWJ': 'japan', 'EWT': 'taiwan',
-                'EWY': 'korea', 'INDA': 'india',
-                
-                # Technology
-                'AAPL': 'technology', 'MSFT': 'technology', 'GOOGL': 'technology', 'GOOG': 'technology',
-                'AMZN': 'technology', 'TSLA': 'technology', 'META': 'technology', 'NVDA': 'technology',
-                'AMD': 'technology', 'INTC': 'technology', 'ORCL': 'technology', 'CRM': 'technology',
-                'CSCO': 'technology', 'AVGO': 'technology', 'ADBE': 'technology', 'PYPL': 'technology',
-                'ZM': 'technology', 'DOCU': 'technology', 'WDAY': 'technology', 'SNPS': 'technology',
-                'LRCX': 'technology', 'AMAT': 'technology', 'MRVL': 'technology',
-                
-                # Finance
-                'JPM': 'finance', 'BAC': 'finance', 'XLF': 'finance',
-                
-                # Healthcare
-                'JNJ': 'healthcare', 'PFE': 'healthcare', 'GILD': 'healthcare', 'MRNA': 'healthcare',
-                'XLV': 'healthcare',
-                
-                # Energy
-                'XOM': 'energy', 'XLE': 'energy',
-                
-                # Consumer
-                'DIS': 'consumer', 'SBUX': 'consumer', 'ABNB': 'consumer',
-                'EBAY': 'consumer', 'XLY': 'consumer',
-                
-                # Communications
-                'CMCSA': 'communications', 'T': 'communications', 'VZ': 'communications',
-                
-                # Industrial
-                'TXN': 'industrial',
-                
-                # Sector ETFs
-                'XLK': 'technology', 'XLV': 'healthcare', 'XLF': 'finance', 'XLE': 'energy',
-                'XLY': 'consumer',
-                
-                # Crypto (treat as separate asset class)
-                'BTCUSD': 'crypto', 'ETHUSD': 'crypto', 'SOLUSD': 'crypto', 'AAVEUSD': 'crypto'
-            }
-            
-            symbol_sector = sector_map.get(symbol, 'unknown')
-            
-            # EMERGENCY FIX: Special handling for unknown symbols
-            if symbol_sector == 'unknown':
-                # For unknown symbols, create individual "sectors" to prevent clustering
-                symbol_sector = f'unknown_{symbol}'
-                print(f"⚠️ Unknown symbol {symbol} - treating as individual sector")
-            
-            # Get current positions in same sector
-            positions = self.api.list_positions()
-            account = self.api.get_account()
-            portfolio_value = float(account.portfolio_value)
-            
-            # Calculate sector exposure with debugging
-            sector_exposure = 0.0
-            sector_positions = []
-            
-            for pos in positions:
-                pos_symbol = pos.symbol
-                pos_sector = sector_map.get(pos_symbol, f'unknown_{pos_symbol}')  # Individual sectors for unknown
-                
-                if pos_sector == symbol_sector:
-                    pos_value = float(pos.market_value)
-                    sector_exposure += pos_value
-                    sector_positions.append(f"{pos_symbol}(${pos_value:,.0f})")
-            
-            # Add target position
-            total_sector_exposure = sector_exposure + target_value
-            sector_exposure_pct = total_sector_exposure / portfolio_value
-            
-            # Debug logging
-            print(f"🔍 SECTOR EXPOSURE CHECK: {symbol} ({symbol_sector})")
-            print(f"   📊 Current sector positions: {sector_positions}")
-            print(f"   💰 Current exposure: ${sector_exposure:,.0f}")
-            print(f"   🎯 Target addition: ${target_value:,.0f}")
-            print(f"   📈 Total would be: ${total_sector_exposure:,.0f} ({sector_exposure_pct:.1%})")
-            print(f"   🚦 Limit: {self.max_sector_exposure:.1%}")
-            
-            if sector_exposure_pct > self.max_sector_exposure:
-                return False, f"Sector exposure too high ({sector_exposure_pct:.1%} > {self.max_sector_exposure:.1%})"
-            
-            return True, f"Sector exposure OK ({sector_exposure_pct:.1%})"
-            
-        except Exception as e:
-            return False, f"Sector check error: {e}"
-    
     def check_daily_loss_limit(self) -> Tuple[bool, str]:
         """Check if daily loss limit has been reached"""
         # Bypass daily loss limit if flagged
@@ -513,10 +420,6 @@ class RiskManager:
             # Position limits check
             position_ok, position_msg = self.check_position_limits(symbol, target_shares, entry_price)
             checks.append(('Position Limits', position_ok, position_msg))
-            
-            # Sector exposure check
-            sector_ok, sector_msg = self.check_sector_exposure(symbol, target_value)
-            checks.append(('Sector Exposure', sector_ok, sector_msg))
             
             # Daily loss check
             daily_ok, daily_msg = self.check_daily_loss_limit()

@@ -161,7 +161,7 @@ class CryptoModule(TradingModule):
         # Define missing attributes for compatibility
         self.max_crypto_allocation = self.base_crypto_allocation  # Default to base allocation
         self.after_hours_max_allocation = 0.90  # 90% for after hours aggressive trading
-        self.after_hours_leverage = 3.5  # 3.5x leverage for after hours
+        self.after_hours_leverage = 1.5  # EMERGENCY FIX: Reduced from 3.5x to 1.5x to limit losses
         
         total_cryptos = sum(len(symbols) for symbols in self.crypto_universe.values())
         self.logger.info(f"Crypto module initialized with {total_cryptos} cryptocurrencies")
@@ -648,6 +648,23 @@ class CryptoModule(TradingModule):
     def _execute_crypto_trade(self, opportunity: TradeOpportunity) -> TradeResult:
         """Execute cryptocurrency trade with ML-critical parameter data collection"""
         try:
+            # CRITICAL FIX: Validate buying power before order submission
+            if opportunity.action == TradeAction.BUY:
+                trade_value = float(opportunity.quantity) * opportunity.entry_price
+                is_valid, error_msg = self.risk_manager.validate_position(
+                    opportunity.symbol, 
+                    trade_value, # Use trade value for crypto instead of shares
+                    1.0  # Price = 1 since we're passing trade value as quantity
+                )
+                if not is_valid:
+                    self.logger.warning(f"🚫 Crypto trade blocked for {opportunity.symbol}: {error_msg}")
+                    return TradeResult(
+                        opportunity=opportunity,
+                        status=TradeStatus.FAILED,
+                        order_id=None,
+                        error_message=f"Risk validation failed: {error_msg}"
+                    )
+            
             # Prepare order data for crypto
             order_data = {
                 'symbol': opportunity.symbol,
@@ -1529,7 +1546,7 @@ class CryptoModule(TradingModule):
             return self.leverage_multiplier  # 1.5x
         else:
             # After hours: MAXIMUM leverage for crypto opportunities
-            return self.after_hours_leverage  # 3.5x
+            return self.after_hours_leverage  # 1.5x (emergency fix)
     
     def _should_close_positions_before_market_open(self) -> bool:
         """Check if we should close positions before market opens"""

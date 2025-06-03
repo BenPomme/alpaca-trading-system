@@ -12,9 +12,9 @@ from typing import Dict, List, Optional, Any, Tuple
 from phase2_trader import Phase2Trader
 
 # Import Phase 3 intelligence modules
-from technical_indicators import TechnicalIndicators
+from utils.technical_indicators import TechnicalIndicators
 from market_regime_detector import MarketRegimeDetector
-from pattern_recognition import PatternRecognition
+from utils.pattern_recognition import PatternRecognition
 
 # Import Phase 4.1 global market capability
 from global_market_manager import GlobalMarketManager

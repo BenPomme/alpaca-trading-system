@@ -10,6 +10,7 @@ leveraged ETFs, sector rotation, and momentum amplification.
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
+import dataclasses
 from enum import Enum
 import time
 import os
@@ -669,6 +670,22 @@ class StocksModule(TradingModule):
     def _execute_stock_trade(self, opportunity: TradeOpportunity) -> TradeResult:
         """Execute stock trade with ML-critical parameter data collection"""
         try:
+            # CRITICAL FIX: Validate buying power before order submission
+            if opportunity.action == TradeAction.BUY:
+                is_valid, error_msg = self.risk_manager.validate_position(
+                    opportunity.symbol, 
+                    int(opportunity.quantity), 
+                    opportunity.entry_price
+                )
+                if not is_valid:
+                    self.logger.warning(f"🚫 Stock trade blocked for {opportunity.symbol}: {error_msg}")
+                    return TradeResult(
+                        opportunity=opportunity,
+                        status=TradeStatus.FAILED,
+                        order_id=None,
+                        error_message=f"Risk validation failed: {error_msg}"
+                    )
+            
             # Prepare order data for stock trading
             order_data = {
                 'symbol': opportunity.symbol,
@@ -765,7 +782,7 @@ class StocksModule(TradingModule):
             self.logger.error(f"Stock execution error for {opportunity.symbol}: {e}", exc_info=True)
             return TradeResult(
                 opportunity=opportunity,
-                status=TradeStatus.ERROR, # Changed from FAILED to ERROR for clarity
+                status=TradeStatus.FAILED, # Fixed: TradeStatus.ERROR doesn't exist
                 order_id=None,
                 error_message=f"Stock execution error: {str(e)}"
             )
@@ -1207,7 +1224,7 @@ class StocksModule(TradingModule):
             )
             return TradeResult(
                 opportunity=error_opportunity,
-                status=TradeStatus.ERROR,
+                status=TradeStatus.FAILED,
                 order_id=None,
                 error_message=str(e)
             )

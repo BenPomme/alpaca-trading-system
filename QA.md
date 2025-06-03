@@ -769,59 +769,37 @@ def success(self) -> bool:
 
 ---
 
-### 13. Over-Allocation Exit Logic Bug (June 2, 2025)
+### 13. Crypto Confidence and Sell Order Bugs (June 2025)
 
-**Bug**: Railway logs show mass crypto exits during after-hours due to "over_allocation_rebalance" when allocation is 82.3% vs 90.0% available
+**Bug**: Crypto confidence was always ~0.65 (hardcoded/technical only), and all sell orders failed due to insufficient quantity or logic errors.
 
-**Observed Symptoms**:
-```
-📊 Monitoring 7 crypto positions for exits (AFTER-HOURS: 82.3%/90.0%)
-🚨 EXIT SIGNAL: BTCUSD - over_allocation_rebalance
-🚨 EXIT SIGNAL: ETHUSD - over_allocation_rebalance  
-🚨 EXIT SIGNAL: LINKUSD - over_allocation_rebalance
-```
+**Root Cause**:
+- Crypto confidence was calculated only from technical indicators, not from Market Intelligence/ML or OpenAI.
+- Sell order logic did not check for available quantity > 0 before attempting to sell, causing failures and insufficient balance errors.
 
-**Root Cause Analysis**: 
-1. **Incorrect Allocation Comparison**: `crypto_module.py` line 750 used static 30% threshold
-2. **Session-Awareness Missing**: Exit logic ignored after-hours 90% allocation limit
-3. **Logic Flow**: `over_allocation = current_allocation >= self.max_crypto_allocation` (30%)
-4. **Impact**: 82.3% > 30% triggered aggressive exits, but 82.3% < 90% should be normal
-
-**Research Done**: 
-- Traced allocation logic in `_analyze_crypto_exit()` method
-- Found session-aware allocation in `analyze_opportunities()` working correctly
-- Confirmed `_get_max_allocation_for_current_session()` returns 90% after-hours
-- Identified inconsistency between entry analysis (session-aware) and exit analysis (static)
-
-**Solution Applied**:
+**Fix Applied**:
 ```python
-# BEFORE (incorrect):
-over_allocation = current_allocation >= self.max_crypto_allocation  # Always 30%
+# In modular/crypto_module.py
+# After technical analysis, now integrates Market Intelligence/ML confidence:
+if hasattr(self, 'market_intelligence') and self.market_intelligence:
+    intelligence_confidence = self.market_intelligence.get_position_risk_score(symbol)
+    overall_confidence = 0.5 * technical_confidence + 0.5 * intelligence_confidence
+else:
+    overall_confidence = technical_confidence
 
-# AFTER (correct):
-max_allocation = self._get_max_allocation_for_current_session()  # 30% or 90%
-over_allocation = current_allocation >= max_allocation
+# In order_manager.py
+# Sell order logic now blocks zero-quantity sells:
+if shares <= 0:
+    print(f"🚫 Cannot sell {symbol}: available quantity is zero or negative.")
+    return {'status': 'insufficient_quantity', 'symbol': symbol, 'error': 'No shares available to sell'}
 ```
 
-**Additional Improvements**:
-- Raised profit exit threshold from 2% to 5% when over-allocated
-- Added better logging to show session-aware allocation comparison
-- Enhanced debugging with session type information
-
-**QA Rules Applied**: Rules 1, 5, 6 (attribute consistency, data contracts, logic validation)
-
-**Outcome**: 
-- ✅ **After-hours 90% allocation limit** now properly respected
-- ✅ **Reduced premature exits** of profitable positions (2-5% range)
-- ✅ **Session-aware exit logic** matches entry logic consistency
-- ✅ **Better position holding** for target profit levels (25%)
-
-**Prevention Rule Added**:
-> **RULE 13: Session-Aware Logic Consistency**
-> - When implementing session-aware entry logic, ensure exit logic matches
-> - Always use the same allocation calculation methods across entry/exit analysis
-> - Verify dynamic thresholds (time-based, market-based) are applied consistently
-> - Test allocation logic with boundary conditions (market open/close transitions)
+**Prevention Rule**:
+> **RULE 13: Integrate Intelligence and Validate Quantities**
+> - Always combine technical and ML/AI intelligence for confidence scores where possible
+> - Never attempt to sell more than available; check for positive quantity before placing sell orders
+> - Log both technical and intelligence confidence for transparency
+> - Add robust error handling for all order execution paths
 
 ---
 
