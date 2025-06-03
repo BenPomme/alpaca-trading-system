@@ -231,7 +231,6 @@ class EnhancedTechnicalIndicators:
         
         return indicators
     
-    @jit(nopython=True) if NUMBA_AVAILABLE else lambda x: x
     def _custom_rsi(self, prices: np.ndarray, period: int = 14) -> Optional[float]:
         """
         High-performance custom RSI implementation with Numba optimization

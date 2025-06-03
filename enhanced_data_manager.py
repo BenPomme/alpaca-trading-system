@@ -153,7 +153,9 @@ class EnhancedDataManager:
         # FALLBACK: Try yfinance if Alpaca failed and fallback enabled
         if quote is None and fallback and self.yfinance_available:
             try:
-                ticker = yf.Ticker(symbol)
+                # Convert crypto symbols from Alpaca format to yfinance format
+                yf_symbol = self._convert_symbol_for_yfinance(symbol)
+                ticker = yf.Ticker(yf_symbol)
                 info = ticker.fast_info
                 
                 quote = {
@@ -177,6 +179,26 @@ class EnhancedDataManager:
         else:
             self.logger.error(f"❌ All data sources failed for {symbol}")
             return None
+    
+    def _convert_symbol_for_yfinance(self, symbol: str) -> str:
+        """Convert symbol from Alpaca format to yfinance format"""
+        # Handle crypto symbols: BTCUSD -> BTC-USD
+        crypto_mappings = {
+            'BTCUSD': 'BTC-USD',
+            'ETHUSD': 'ETH-USD', 
+            'SOLUSD': 'SOL-USD',
+            'AVAXUSD': 'AVAX-USD',
+            'ADAUSD': 'ADA-USD',
+            'DOTUSD': 'DOT-USD',
+            'LINKUSD': 'LINK-USD',
+            'UNIUSD': 'UNI-USD',
+            'AAVEUSD': 'AAVE-USD',
+            'MATICUSD': 'MATIC-USD',
+            'ALGOUSD': 'ALGO-USD'
+        }
+        
+        # Return mapped symbol if it's a crypto, otherwise return as-is
+        return crypto_mappings.get(symbol, symbol)
     
     def get_historical_data(self, symbol: str, period: str = "1mo", 
                           interval: str = "1d", fallback: bool = True) -> Optional[pd.DataFrame]:
@@ -211,7 +233,9 @@ class EnhancedDataManager:
         # FALLBACK: Try yfinance
         if data is None and fallback and self.yfinance_available:
             try:
-                ticker = yf.Ticker(symbol)
+                # Convert crypto symbols for yfinance compatibility
+                yf_symbol = self._convert_symbol_for_yfinance(symbol)
+                ticker = yf.Ticker(yf_symbol)
                 data = ticker.history(period=period, interval=interval)
                 
                 if not data.empty:
