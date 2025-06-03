@@ -80,8 +80,7 @@ true
 CRYPTO_TRADING
 true
 
-MARKET_TIER
-2
+# MARKET_TIER removed - system now trades all available symbols
 
 MIN_CONFIDENCE
 0.6

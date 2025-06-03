@@ -981,6 +981,7 @@ class CryptoModule(TradingModule):
         try:
             # Determine trade direction - use momentum strategy for all crypto
             action = self._determine_crypto_action(analysis, crypto_config['strategy'])
+            self.logger.debug(f"🎯 {analysis.symbol}: Action determined = {action.value} (strategy={crypto_config['strategy'].value})")
             
             # CRITICAL FIX: Prevent SELL opportunities when no position exists
             if action == TradeAction.SELL:
@@ -1005,7 +1006,8 @@ class CryptoModule(TradingModule):
             
             # Check for invalid quantities
             if adjusted_quantity <= 0:
-                self.logger.warning(f"⚠️ {analysis.symbol}: Invalid quantity {adjusted_quantity} - cannot create opportunity")
+                self.logger.warning(f"⚠️ {analysis.symbol}: Invalid quantity {adjusted_quantity} - cannot create opportunity"
+                                  f" (base={base_quantity:.6f}, multiplier={crypto_config['position_size_multiplier']:.2f}, leverage={session_leverage:.2f})")
                 return None
             
             # Log aggressive positioning when market is closed
