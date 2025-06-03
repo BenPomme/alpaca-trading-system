@@ -520,11 +520,17 @@ class CryptoModule(TradingModule):
         try:
             # Get data for mean reversion analysis
             current_price = market_data.get('current_price', 0)
-            ma_20 = market_data.get('ma_20', current_price)  # 20-day moving average
-            volume_ratio = market_data.get('volume_ratio', 1.0)
+            ma_20 = market_data.get('ma_20', None)  # NEVER USE CURRENT PRICE AS FALLBACK
+            volume_ratio = market_data.get('volume_ratio', None)
+            
+            # NEVER USE FALLBACKS - require real market data
+            if ma_20 is None or volume_ratio is None:
+                self.logger.error(f"❌ {symbol}: Missing critical market data - ma_20={ma_20}, volume_ratio={volume_ratio}")
+                return None
             
             if ma_20 <= 0:
-                return 0.0
+                self.logger.error(f"❌ {symbol}: Invalid ma_20={ma_20} for mean reversion calculation")
+                return None
             
             # Calculate distance from moving average (key mean reversion metric)
             distance_from_ma = (current_price - ma_20) / ma_20
@@ -1412,55 +1418,35 @@ class CryptoModule(TradingModule):
                     prices = [float(bar.c) for bar in bars]  # Close prices
                     volumes = [float(bar.v) for bar in bars]  # Volumes
                     
-                    price_24h_ago = prices[0] if prices else current_price * 0.98
-                    high_24h = max(float(bar.h) for bar in bars) if bars else current_price * 1.02
-                    low_24h = min(float(bar.l) for bar in bars) if bars else current_price * 0.98
-                    volume_24h = sum(volumes) if volumes else 1000000
+                    # NEVER USE FALLBACKS - require real data
+                    if not prices or len(prices) < 20:
+                        self.logger.error(f"❌ {symbol}: Insufficient price history ({len(prices) if prices else 0}/20 bars)")
+                        return None
                     
-                    # Calculate mean reversion metrics for real data
-                    ma_20 = sum(prices[-20:]) / min(len(prices), 20) if prices else current_price
-                    avg_volume = sum(volumes) / len(volumes) if volumes else volume_24h
-                    volume_ratio = volume_24h / avg_volume if avg_volume > 0 else 1.0
+                    if not volumes:
+                        self.logger.error(f"❌ {symbol}: No volume data available")
+                        return None
+                    
+                    price_24h_ago = prices[0]
+                    high_24h = max(float(bar.h) for bar in bars)
+                    low_24h = min(float(bar.l) for bar in bars)
+                    volume_24h = sum(volumes)
+                    
+                    # Calculate mean reversion metrics ONLY from real data
+                    ma_20 = sum(prices[-20:]) / 20  # Exactly 20 periods
+                    avg_volume = sum(volumes) / len(volumes)
+                    volume_ratio = volume_24h / avg_volume
                     
                     self.logger.info(f"📊 {symbol}: Real 24h data - High: ${high_24h:.4f}, Low: ${low_24h:.4f}, Vol: {volume_24h:.0f}")
                     
                 else:
-                    # Fallback to simulated data with variation
-                    import hashlib
-                    hash_input = f"{symbol}{int(datetime.now().hour / 4)}"  # Changes every 4 hours
-                    price_seed = int(hashlib.md5(hash_input.encode()).hexdigest()[:8], 16)
-                    
-                    variation = (price_seed % 200) / 10000  # 0-2% variation
-                    momentum_factor = 0.96 + variation  # 96-98% for different momentum
-                    volatility_factor = 1.02 + (variation * 2)  # 2-6% daily range for different volatility
-                    
-                    price_24h_ago = current_price * momentum_factor
-                    high_24h = current_price * volatility_factor
-                    low_24h = current_price * (2 - volatility_factor)
-                    volume_24h = 800000 + (price_seed % 400000)  # Varying volume
-                    
-                    # Calculate mean reversion metrics for simulated data
-                    ma_20 = current_price * 0.98  # Approximate MA
-                    volume_ratio = 1.0 + ((price_seed % 100) / 1000)  # 1.0-1.1 ratio variation
-                    
-                    self.logger.info(f"📊 {symbol}: Simulated 24h data - momentum_factor: {momentum_factor:.4f}, volatility_factor: {volatility_factor:.4f}")
+                    # NEVER USE SIMULATED DATA - return None for missing data
+                    self.logger.error(f"❌ {symbol}: No real market data available from Alpaca API")
+                    return None
                 
             except Exception as api_error:
-                self.logger.debug(f"🔍 {symbol}: Crypto bars API failed: {api_error}, using varied simulation")
-                # Enhanced fallback with symbol-specific variation
-                import hashlib
-                hash_input = f"{symbol}{int(datetime.now().hour / 4)}"
-                price_seed = int(hashlib.md5(hash_input.encode()).hexdigest()[:8], 16)
-                
-                variation = (price_seed % 200) / 10000  # 0-2% variation per symbol
-                price_24h_ago = current_price * (0.96 + variation)
-                high_24h = current_price * (1.02 + variation * 2)
-                low_24h = current_price * (0.96 - variation)
-                volume_24h = 800000 + (price_seed % 400000)
-                
-                # Calculate mean reversion metrics for enhanced fallback
-                ma_20 = current_price * (0.97 + variation)  # Approximate MA with variation
-                volume_ratio = 1.0 + ((price_seed % 150) / 1500)  # 1.0-1.1 ratio variation
+                self.logger.error(f"❌ {symbol}: Crypto bars API failed: {api_error}")
+                return None
             
             # ma_20 and volume_ratio are now calculated in each data path above
             
@@ -1470,7 +1456,7 @@ class CryptoModule(TradingModule):
                 'high_24h': high_24h,
                 'low_24h': low_24h,
                 'volume_24h': volume_24h,
-                'avg_volume_7d': volume_24h * 0.8,  # Estimate weekly average
+                'avg_volume_7d': avg_volume,  # Use real calculated average
                 'ma_20': ma_20,  # 20-day moving average for mean reversion
                 'volume_ratio': volume_ratio  # Volume ratio for mean reversion
             }
