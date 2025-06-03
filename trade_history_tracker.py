@@ -42,17 +42,15 @@ class TradeHistoryTracker:
     - Excessive position sizes ($23K+ per trade)
     """
     
-    def __init__(self, firebase_db=None, data_file: str = "data/trade_history.json", logger=None):
+    def __init__(self, firebase_db=None, logger=None):
         """
         Initialize trade history tracker with Firebase integration.
         
         Args:
-            firebase_db: Firebase database instance (preferred)
-            data_file: Fallback local storage file
+            firebase_db: Firebase database instance (REQUIRED - no local fallback)
             logger: Logger instance
         """
         self.firebase_db = firebase_db
-        self.data_file = data_file
         self.logger = logger or logging.getLogger(__name__)
         
         # Initialize Firebase if not provided
@@ -305,18 +303,20 @@ class TradeHistoryTracker:
         self.logger.info("🔄 Daily trade counters reset")
     
     def save_history(self):
-        """Save trade history to Firebase or local storage."""
+        """Save trade history to Firebase (FIREBASE-ONLY - GOLDEN RULE 1)."""
         if self.firebase_db:
             self._save_to_firebase()
         else:
-            self._save_to_local_file()
+            self.logger.error("🚨 FIREBASE REQUIRED: Cannot save trade history - Firebase database not available")
+            raise RuntimeError("Firebase database required for data storage - no local fallbacks allowed")
     
     def load_history(self):
-        """Load trade history from Firebase or local storage."""
+        """Load trade history from Firebase (FIREBASE-ONLY - GOLDEN RULE 1)."""
         if self.firebase_db:
             self._load_from_firebase()
         else:
-            self._load_from_local_file()
+            self.logger.error("🚨 FIREBASE REQUIRED: Cannot load trade history - Firebase database not available")
+            raise RuntimeError("Firebase database required for data loading - no local fallbacks allowed")
     
     def _save_to_firebase(self):
         """Save trade history to Firebase database."""
@@ -341,9 +341,8 @@ class TradeHistoryTracker:
             self.logger.debug("💾 Trade history saved to Firebase")
                 
         except Exception as e:
-            self.logger.error(f"❌ Failed to save trade history to Firebase: {e}")
-            # Fallback to local storage
-            self._save_to_local_file()
+            self.logger.error(f"❌ CRITICAL: Failed to save trade history to Firebase: {e}")
+            raise RuntimeError(f"Firebase save failed - no local fallbacks allowed: {e}")
     
     def _load_from_firebase(self):
         """Load trade history from Firebase database."""
@@ -372,9 +371,8 @@ class TradeHistoryTracker:
                 self.logger.info("🔥 No existing Firebase trade history - starting fresh")
                 
         except Exception as e:
-            self.logger.error(f"❌ Failed to load trade history from Firebase: {e}")
-            # Fallback to local storage
-            self._load_from_local_file()
+            self.logger.error(f"❌ CRITICAL: Failed to load trade history from Firebase: {e}")
+            raise RuntimeError(f"Firebase load failed - no local fallbacks allowed: {e}")
     
     def _save_trade_to_firebase(self, trade_record: Dict, symbol: str):
         """Save individual trade to Firebase for detailed audit trail."""

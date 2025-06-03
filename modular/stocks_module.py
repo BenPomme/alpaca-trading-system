@@ -98,7 +98,7 @@ class StocksModule(TradingModule):
         # INSTITUTIONAL STOCKS CONFIGURATION - Research-backed approach
         self.max_stock_allocation = 0.40  # REDUCED from 50% to 40% (better concentration)
         self.aggressive_multiplier = 1.5  # REDUCED from 2.0 to 1.5 (more conservative)
-        self.market_tier = 2  # Focus on tier 1-2 only (core liquid stocks)
+        # MARKET_TIER removed - trade all available symbols for maximum opportunities
         
         # INSTITUTIONAL RISK MANAGEMENT
         self.stocks_stop_loss_pct = 0.08  # 8% stop loss (CRITICAL missing piece)
@@ -252,7 +252,7 @@ class StocksModule(TradingModule):
         
         total_symbols = sum(len(tier.symbols) for tier in self.symbol_tiers.values())
         self.logger.info(f"Stocks module initialized with {total_symbols} symbols across {len(self.symbol_tiers)} tiers")
-        self.logger.info(f"Market tier: {self.market_tier}, Aggressive multiplier: {self.aggressive_multiplier}x")
+        self.logger.info(f"Trading all available symbols, Aggressive multiplier: {self.aggressive_multiplier}x")
         self.logger.info(f"Institutional trading: {self.institutional_config['cycle_frequency_seconds']}s cycles, "
                         f"Monthly momentum approach (vs intraday scalping)")
     
@@ -262,11 +262,10 @@ class StocksModule(TradingModule):
     
     @property
     def supported_symbols(self) -> List[str]:
-        """Get all supported stock symbols based on current tier"""
+        """Get all supported stock symbols (MARKET_TIER removed - trade all symbols)"""
         symbols = []
-        for tier_level in range(1, self.market_tier + 1):
-            if tier_level in self.symbol_tiers:
-                symbols.extend(self.symbol_tiers[tier_level].symbols)
+        for tier in self.symbol_tiers.values():
+            symbols.extend(tier.symbols)
         return list(set(symbols))  # Remove duplicates
     
     def analyze_opportunities(self) -> List[TradeOpportunity]:
@@ -1324,12 +1323,11 @@ class StocksModule(TradingModule):
             return 'sideways'
     
     def _get_active_symbols(self) -> List[str]:
-        """Get active symbols based on current market tier"""
+        """Get all active symbols (MARKET_TIER removed - trade all symbols)"""
         try:
             symbols = []
-            for tier_level in range(1, min(self.market_tier + 1, 5)):
-                if tier_level in self.symbol_tiers:
-                    symbols.extend(self.symbol_tiers[tier_level].symbols)
+            for tier in self.symbol_tiers.values():
+                symbols.extend(tier.symbols)
             
             # Remove duplicates and return
             return list(set(symbols))
@@ -1433,7 +1431,7 @@ class StocksModule(TradingModule):
         """Get current strategy performance and configuration"""
         return {
             'module_name': self.module_name,
-            'market_tier': self.market_tier,
+            'market_tier_removed': 'Trading all symbols',
             'supported_symbols_count': len(self.supported_symbols),
             'max_allocation': self.max_stock_allocation,
             'aggressive_multiplier': self.aggressive_multiplier,

@@ -4,7 +4,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Critical Guidelines
 
-NEVER USE ANY MOCK DATA OR HARDCODED DATA IN THIS PROJECT> ONLY REAL DATA AND REAL CALCULATIONS>
+### 🚨 GOLDEN RULES - NEVER VIOLATE THESE 🚨
+
+**RULE 1: FIREBASE-ONLY DATA STORAGE**
+- ALL data MUST be stored in Firebase - NO local JSON files, CSV files, or local storage
+- NO fallback to local file systems - Firebase is the single source of truth
+- ALL analysis results, trade data, ML data, configurations MUST go to Firebase collections
+- If Firebase is unavailable, the system should fail gracefully, NOT create local files
+
+**RULE 2: NO FAKE, MOCK, OR HARDCODED DATA** 
+- NEVER USE ANY MOCK DATA OR HARDCODED DATA IN THIS PROJECT
+- ONLY REAL DATA AND REAL CALCULATIONS from live APIs
+- NO placeholder values, NO simulated data, NO fallback fake data
+- If real data is unavailable, log the error and skip the operation
+
+**RULE 3: REAL-TIME PRODUCTION DATA ONLY**
+- All market data MUST come from live APIs (Alpaca, Alpha Vantage, Finnhub)
+- All trading decisions MUST be based on real market conditions
+- NO backtesting data in production, NO historical simulations mixed with live trading
 
 **BEFORE making any changes to this codebase:**
 1. **Read QA.md thoroughly** - Contains 11 critical bug prevention rules from major production issues
