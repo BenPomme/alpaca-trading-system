@@ -672,9 +672,10 @@ class StocksModule(TradingModule):
         try:
             # CRITICAL FIX: Validate before ALL order submissions (BUY and SELL)
             if opportunity.action == TradeAction.BUY:
-                is_valid, error_msg = self.risk_manager.validate_position(
+                is_valid, error_msg, _ = self.risk_manager.should_execute_trade(
                     opportunity.symbol, 
-                    int(opportunity.quantity), 
+                    opportunity.strategy, 
+                    opportunity.confidence,
                     opportunity.entry_price
                 )
                 if not is_valid:

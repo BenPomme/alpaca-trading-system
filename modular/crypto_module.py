@@ -1060,11 +1060,11 @@ class CryptoModule(TradingModule):
         try:
             # CRITICAL FIX: Validate before ALL order submissions (BUY and SELL)
             if opportunity.action == TradeAction.BUY:
-                trade_value = float(opportunity.quantity) * opportunity.entry_price
-                is_valid, error_msg = self.risk_manager.validate_position(
+                is_valid, error_msg, _ = self.risk_manager.should_execute_trade(
                     opportunity.symbol, 
-                    trade_value, # Use trade value for crypto instead of shares
-                    1.0  # Price = 1 since we're passing trade value as quantity
+                    opportunity.strategy, 
+                    opportunity.confidence,
+                    opportunity.entry_price
                 )
                 if not is_valid:
                     self.logger.warning(f"🚫 Crypto trade blocked for {opportunity.symbol}: {error_msg}")
