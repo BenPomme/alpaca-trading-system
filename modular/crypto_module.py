@@ -467,10 +467,26 @@ class CryptoModule(TradingModule):
             bollinger_analysis = self._calculate_bollinger_signals(symbol, market_data)
             volume_analysis = self._calculate_volume_confirmation(symbol, market_data)
             
-            # NEVER USE FALLBACKS: If any calculation failed, abort analysis
-            if rsi_analysis is None or macd_analysis is None or bollinger_analysis is None or volume_analysis is None:
-                self.logger.error(f"❌ {symbol}: Analysis FAILED - rsi={rsi_analysis}, macd={macd_analysis}, bollinger={bollinger_analysis}, volume={volume_analysis}")
+            # RESILIENT ANALYSIS: Log failed indicators but continue with available data
+            failed_indicators = []
+            if rsi_analysis is None:
+                failed_indicators.append("RSI")
+            if macd_analysis is None:
+                failed_indicators.append("MACD")
+            if bollinger_analysis is None:
+                failed_indicators.append("Bollinger")
+            if volume_analysis is None:
+                failed_indicators.append("Volume")
+            
+            # If ALL indicators fail, abort analysis
+            successful_indicators = [rsi_analysis, macd_analysis, bollinger_analysis, volume_analysis]
+            successful_count = sum(1 for indicator in successful_indicators if indicator is not None)
+            
+            if successful_count == 0:
+                self.logger.error(f"❌ {symbol}: All indicators FAILED - cannot perform analysis")
                 return None
+            elif failed_indicators:
+                self.logger.warning(f"⚠️ {symbol}: Partial indicators failed: {failed_indicators} - continuing with {successful_count}/4 indicators")
             
             # RESEARCH-BASED CONFIDENCE: Separate BUY and SELL confidence scores
             buy_confidence = self._calculate_directional_confidence('BUY', rsi_analysis, macd_analysis, bollinger_analysis, volume_analysis)
@@ -738,29 +754,42 @@ class CryptoModule(TradingModule):
             self.logger.error(f"❌ {symbol}: Volume confirmation calculation failed: {e}")
             return None
     
-    def _calculate_directional_confidence(self, direction: str, rsi_analysis: Dict, macd_analysis: Dict, bollinger_analysis: Dict, volume_analysis: Dict) -> float:
-        """Calculate directional confidence using research-backed multi-indicator approach"""
+    def _calculate_directional_confidence(self, direction: str, rsi_analysis: Optional[Dict], macd_analysis: Optional[Dict], bollinger_analysis: Optional[Dict], volume_analysis: Optional[Dict]) -> float:
+        """Calculate directional confidence using research-backed multi-indicator approach with fallback handling"""
         try:
+            # Handle None indicators gracefully with neutral defaults
             if direction == 'BUY':
-                # Combine buy strengths from all indicators
-                rsi_strength = rsi_analysis.get('buy_strength', 0.5)
-                macd_strength = macd_analysis.get('buy_strength', 0.5)
-                bollinger_strength = bollinger_analysis.get('buy_strength', 0.5)
+                # Combine buy strengths from available indicators
+                rsi_strength = rsi_analysis.get('buy_strength', 0.5) if rsi_analysis else 0.5
+                macd_strength = macd_analysis.get('buy_strength', 0.5) if macd_analysis else 0.5
+                bollinger_strength = bollinger_analysis.get('buy_strength', 0.5) if bollinger_analysis else 0.5
             else:  # SELL
-                # Combine sell strengths from all indicators
-                rsi_strength = rsi_analysis.get('sell_strength', 0.5)
-                macd_strength = macd_analysis.get('sell_strength', 0.5)
-                bollinger_strength = bollinger_analysis.get('sell_strength', 0.5)
+                # Combine sell strengths from available indicators
+                rsi_strength = rsi_analysis.get('sell_strength', 0.5) if rsi_analysis else 0.5
+                macd_strength = macd_analysis.get('sell_strength', 0.5) if macd_analysis else 0.5
+                bollinger_strength = bollinger_analysis.get('sell_strength', 0.5) if bollinger_analysis else 0.5
             
-            # Research-backed weights (RSI most important for crypto)
-            weighted_confidence = (
-                rsi_strength * 0.4 +          # RSI - most reliable for crypto
-                macd_strength * 0.3 +         # MACD - trend confirmation
-                bollinger_strength * 0.3      # Bollinger - volatility context
-            )
+            # Dynamic weights based on available indicators
+            available_indicators = []
+            if rsi_analysis is not None:
+                available_indicators.append(('rsi', rsi_strength, 0.4))
+            if macd_analysis is not None:
+                available_indicators.append(('macd', macd_strength, 0.3))
+            if bollinger_analysis is not None:
+                available_indicators.append(('bollinger', bollinger_strength, 0.3))
+            
+            if available_indicators:
+                # Normalize weights for available indicators
+                total_weight = sum(weight for _, _, weight in available_indicators)
+                normalized_weights = [(name, strength, weight/total_weight) for name, strength, weight in available_indicators]
+                
+                weighted_confidence = sum(strength * norm_weight for _, strength, norm_weight in normalized_weights)
+            else:
+                # Fallback if no indicators available
+                weighted_confidence = 0.5
             
             # Volume confirmation multiplier
-            volume_multiplier = volume_analysis.get('strength_multiplier', 1.0)
+            volume_multiplier = volume_analysis.get('strength_multiplier', 1.0) if volume_analysis else 1.0
             final_confidence = weighted_confidence * volume_multiplier
             
             # Cap at 1.0 and ensure minimum threshold
@@ -1735,6 +1764,18 @@ class CryptoModule(TradingModule):
                     
                     self.logger.info(f"📊 {symbol}: Real data from {len(prices)} bars - High: ${high_24h:.4f}, Low: ${low_24h:.4f}, Vol: {volume_24h:.0f}")
                     
+                    # Return market data with calculated values
+                    return {
+                        'current_price': current_price,
+                        'price_24h_ago': price_24h_ago,
+                        'high_24h': high_24h,
+                        'low_24h': low_24h,
+                        'volume_24h': volume_24h,
+                        'avg_volume_7d': avg_volume,  # Use real calculated average
+                        'ma_20': ma_20,  # 20-day moving average for mean reversion
+                        'volume_ratio': volume_ratio,  # Volume ratio for mean reversion
+                        'price_history': prices  # Full price history for technical indicators
+                    }
                 else:
                     # NEVER USE SIMULATED DATA - return None for missing data
                     self.logger.error(f"❌ {symbol}: No real market data available from Alpaca API")
@@ -1743,20 +1784,6 @@ class CryptoModule(TradingModule):
             except Exception as api_error:
                 self.logger.error(f"❌ {symbol}: Crypto bars API failed: {api_error}")
                 return None
-            
-            # ma_20 and volume_ratio are now calculated in each data path above
-            
-            return {
-                'current_price': current_price,
-                'price_24h_ago': price_24h_ago,
-                'high_24h': high_24h,
-                'low_24h': low_24h,
-                'volume_24h': volume_24h,
-                'avg_volume_7d': avg_volume,  # Use real calculated average
-                'ma_20': ma_20,  # 20-day moving average for mean reversion
-                'volume_ratio': volume_ratio,  # Volume ratio for mean reversion
-                'price_history': prices  # Full price history for technical indicators
-            }
             
         except Exception as e:
             self.logger.error(f"❌ {symbol}: Error getting market data: {e}")
