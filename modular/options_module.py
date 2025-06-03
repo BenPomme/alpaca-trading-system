@@ -768,11 +768,12 @@ class OptionsModule(TradingModule):
             
             # CRITICAL FIX: Validate buying power before order submission
             if opportunity.action == TradeAction.BUY:
+                entry_price = opportunity.metadata.get('current_price', 0)
                 is_valid, error_msg, _ = self.risk_manager.should_execute_trade(
                     opportunity.symbol, 
                     opportunity.strategy, 
                     opportunity.confidence,
-                    opportunity.entry_price
+                    entry_price
                 )
                 if not is_valid:
                     self.logger.warning(f"🚫 Options trade blocked for {opportunity.symbol}: {error_msg}")
