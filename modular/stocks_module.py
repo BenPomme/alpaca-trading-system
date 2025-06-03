@@ -132,7 +132,7 @@ class StocksModule(TradingModule):
         self.stocks_stop_loss_pct = 0.08  # 8% stop loss (CRITICAL missing piece)
         self.stocks_profit_target_pct = 0.20  # Increased to 20% profit target for stocks
         self.monthly_rebalance_enabled = True  # Monthly momentum vs intraday scalping
-        self.max_stock_positions = 25  # REDUCED from 40+ to 25 (institutional concentration)
+        self.max_stock_positions = 50  # INCREASED to 50 for expanded universe opportunities
         
         # Enhanced strategy symbols - ALL REAL SYMBOLS FOR LIVE TRADING
         self.strategy_symbols = {
@@ -165,15 +165,25 @@ class StocksModule(TradingModule):
             }
         }
         
-        # INSTITUTIONAL SYMBOL UNIVERSE - Top 25 liquid stocks/ETFs only
+        # EXPANDED SYMBOL UNIVERSE - 100+ liquid stocks/ETFs for maximum opportunities
         self.symbol_tiers = {
             1: SymbolTier("core_etfs", 
-                         ['SPY', 'QQQ', 'IWM', 'XLK', 'XLV'], 1, 0.60),  # Core ETFs
+                         ['SPY', 'QQQ', 'IWM', 'XLK', 'XLV', 'XLF', 'XLE', 'XLY', 'XLU', 'XLI'], 1, 0.50),  # Core ETFs
             2: SymbolTier("mega_cap_stocks", 
                          ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 
-                          'NFLX', 'AMD', 'CRM', 'V', 'MA', 'JPM', 'UNH', 'JNJ'], 2, 0.55)
-            # REMOVED: Tiers 3 & 4 for concentration (was 40+ symbols, now 20)
-            # Institutional focus: Quality over quantity, concentration over diversification
+                          'NFLX', 'AMD', 'CRM', 'V', 'MA', 'JPM', 'UNH', 'JNJ'], 2, 0.45),
+            3: SymbolTier("large_cap_growth",
+                         ['AVGO', 'WMT', 'PG', 'HD', 'CVX', 'ABBV', 'BAC', 'PFE', 'KO', 'ADBE',
+                          'TMO', 'COST', 'ABT', 'ACN', 'MRK', 'CSCO', 'DHR', 'VZ', 'INTC', 'CMCSA'], 3, 0.40),
+            4: SymbolTier("growth_tech",
+                         ['CRM', 'ORCL', 'PYPL', 'UBER', 'SNOW', 'PLTR', 'ZM', 'ROKU', 'SQ', 'SHOP',
+                          'DOCU', 'OKTA', 'CRWD', 'NET', 'DDOG', 'MDB', 'ZS', 'TEAM', 'WDAY', 'NOW'], 4, 0.35),
+            5: SymbolTier("leverage_etfs",
+                         ['TQQQ', 'SQQQ', 'UPRO', 'SPXU', 'SOXL', 'SOXS', 'FAS', 'FAZ', 'TNA', 'TZA',
+                          'UDOW', 'SDOW', 'CURE', 'RXD', 'USMV', 'MTUM', 'QUAL', 'SIZE', 'VLUE', 'EFAV'], 5, 0.45),
+            6: SymbolTier("sector_plays",
+                         ['XBI', 'XRT', 'XHB', 'XME', 'XOP', 'ITB', 'SMH', 'IBB', 'KRE', 'XAR',
+                          'GDX', 'SLV', 'USO', 'UNG', 'DBA', 'TLT', 'HYG', 'LQD', 'VNQ', 'EEM'], 6, 0.35)
         }
         
         # Intelligence analysis weights
