@@ -596,6 +596,23 @@ class CryptoModule(TradingModule):
         try:
             prices = market_data.get('price_history', [])
             if len(prices) < 26:
+                # FALLBACK: Use shorter EMA periods if insufficient data for standard MACD
+                if len(prices) >= 21:
+                    self.logger.warning(f"MACD fallback: Using EMA-9/21 instead of EMA-12/26 (have {len(prices)} bars)")
+                    ema_9 = self._calculate_ema(prices, 9)
+                    ema_21 = self._calculate_ema(prices, 21)
+                    if ema_9 and ema_21:
+                        macd_line = ema_9 - ema_21
+                        signal = 'bullish' if macd_line > 0 else 'bearish'
+                        strength = 0.6 if macd_line > 0 else 0.4  # Reduced confidence for fallback
+                        return {
+                            'macd_line': macd_line,
+                            'macd_signal': signal,
+                            'buy_strength': strength if signal == 'bullish' else 1 - strength,
+                            'sell_strength': 1 - strength if signal == 'bullish' else strength,
+                            'confidence': 0.5,  # Lower confidence for fallback method
+                            'fallback_method': True
+                        }
                 return None
             
             # Calculate EMAs
@@ -1675,14 +1692,16 @@ class CryptoModule(TradingModule):
             try:
                 from datetime import datetime, timedelta, timezone
                 
-                # Get 24h of hourly bars with proper RFC3339 timestamp
-                start_time = datetime.now(timezone.utc) - timedelta(days=1)
+                # FIXED: Get 30h of hourly bars to ensure 26+ data points for MACD
+                # MACD requires 26 periods minimum, so request extra hours to handle gaps
+                start_time = datetime.now(timezone.utc) - timedelta(hours=30)  # 30 hours for safety
                 start_time_str = start_time.strftime('%Y-%m-%dT%H:%M:%SZ')  # RFC3339 format
                 
                 bars = self.api.get_crypto_bars(
                     formatted_symbol,
                     start=start_time_str,
-                    timeframe='1Hour'
+                    timeframe='1Hour',
+                    limit=30  # Request 30 bars explicitly to ensure we get enough data
                 )
                 
                 if bars and len(bars) > 0:
@@ -1690,10 +1709,15 @@ class CryptoModule(TradingModule):
                     prices = [float(bar.c) for bar in bars]  # Close prices
                     volumes = [float(bar.v) for bar in bars]  # Volumes
                     
-                    # NEVER USE FALLBACKS - require real data for comprehensive analysis
-                    if not prices or len(prices) < 26:  # Need 26 for MACD
-                        self.logger.error(f"❌ {symbol}: Insufficient price history ({len(prices) if prices else 0}/26 bars)")
+                    # COMPREHENSIVE ANALYSIS: Require sufficient data or use fallback methods
+                    if not prices:
+                        self.logger.error(f"❌ {symbol}: No price data available from API")
                         return None
+                    elif len(prices) < 21:  # Minimum for any technical analysis
+                        self.logger.error(f"❌ {symbol}: Insufficient price history ({len(prices)}/21+ bars needed) - skipping analysis")
+                        return None
+                    elif len(prices) < 26:  # Log warning but continue with fallback
+                        self.logger.warning(f"⚠️ {symbol}: Limited price history ({len(prices)}/26 bars) - using fallback MACD calculation")
                     
                     if not volumes:
                         self.logger.error(f"❌ {symbol}: No volume data available")
@@ -1709,7 +1733,7 @@ class CryptoModule(TradingModule):
                     avg_volume = sum(volumes) / len(volumes)
                     volume_ratio = volume_24h / avg_volume
                     
-                    self.logger.info(f"📊 {symbol}: Real 24h data - High: ${high_24h:.4f}, Low: ${low_24h:.4f}, Vol: {volume_24h:.0f}")
+                    self.logger.info(f"📊 {symbol}: Real data from {len(prices)} bars - High: ${high_24h:.4f}, Low: ${low_24h:.4f}, Vol: {volume_24h:.0f}")
                     
                 else:
                     # NEVER USE SIMULATED DATA - return None for missing data
