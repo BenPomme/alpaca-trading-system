@@ -20,14 +20,14 @@ class RiskManager:
         
         # Risk Parameters (EMERGENCY SAFETY CONTROLS AFTER $36K LOSS)
         self.max_positions = 15                 # REDUCED from 25 after rapid-fire trading incident
-        self.max_daily_trades = 10                # REDUCED from 20 - limit excessive trading
-        self.max_position_size_pct = 0.08         # REDUCED from 15% to 8% - smaller positions
-        self.max_position_value = 8000            # HARD LIMIT: $8K max per position (was $23K+)
+        self.max_daily_trades = None              # REMOVED: No daily trade limits (was 10)
+        self.max_position_size_pct = None         # REMOVED: No position size percentage limits (was 8%)
+        self.max_position_value = None            # REMOVED: No position value limits (was $8K)
         self.max_sector_exposure = 0.40           # REDUCED from 60% to 40% exposure per sector
-        self.max_daily_loss_pct = 0.015           # REDUCED to 1.5% daily loss limit (was 2%)
-        # EMERGENCY FIX: Enable daily loss circuit breaker
-        self.ignore_daily_loss = False
-        self.logger.info("✅ Daily loss circuit breaker ENABLED: 2% limit")
+        self.max_daily_loss_pct = None            # REMOVED: No daily loss limit (was 1.5%)
+        # TRADING IMPROVEMENT: Disable daily loss circuit breaker to allow more trading
+        self.ignore_daily_loss = True
+        self.logger.info("🚀 Daily loss circuit breaker DISABLED: Unlimited trading for system improvement")
         self.position_risk_pct = 0.02             # 2% risk per trade
         
         # Stop Loss & Take Profit
@@ -110,11 +110,11 @@ class RiskManager:
         """Display current risk parameters"""
         print("📊 Risk Management Parameters:")
         print(f"   Max Positions: {'Unlimited' if self.max_positions is None else self.max_positions}")
-        print(f"   Max Position Size: {self.max_position_size_pct:.1%}")
+        print(f"   Max Position Size: DISABLED (unlimited position sizes)")
         print(f"   Position Risk: {self.position_risk_pct:.1%}")
         print(f"   Stop Loss: {self.stop_loss_pct:.1%}")
         print(f"   Take Profit: {self.take_profit_pct:.1%}")
-        print(f"   Max Daily Loss: {self.max_daily_loss_pct:.1%}")
+        print(f"   Max Daily Loss: DISABLED (unlimited trading for system improvement)")
         if self.intraday_enabled:
             print(f"   🚀 Intraday Strategy: ACTIVE")
             print(f"   ⏰ EOD Liquidation: {int(self.end_of_day_liquidation_hour)}:{int((self.end_of_day_liquidation_hour % 1) * 60):02d} ET")
@@ -140,7 +140,7 @@ class RiskManager:
         else:
             # MULTI-DAY POSITION SIZING - Use portfolio value  
             base_risk_amount = portfolio_value * self.position_risk_pct
-            max_position_value = portfolio_value * self.max_position_size_pct
+            max_position_value = portfolio_value * 0.25  # Default 25% if no limits set
             sizing_multiplier = 1.0
             sizing_mode = "multiday"
         
@@ -204,7 +204,8 @@ class RiskManager:
             position_value = target_shares * entry_price
             
             # HARD LIMIT: Maximum position value per symbol
-            if position_value > self.max_position_value:
+            # REMOVED: Position value limits disabled for system improvement
+            if self.max_position_value is not None and position_value > self.max_position_value:
                 return False, f"Position value ${position_value:,.0f} exceeds hard limit of ${self.max_position_value:,.0f}"
             
             # Check existing position limits 
@@ -214,12 +215,15 @@ class RiskManager:
                 total_position_value = current_value + position_value
                 
                 # REDUCED LIMIT: Max 8% of portfolio per symbol (was 30%)
-                max_total_position = portfolio_value * self.max_position_size_pct
+                # REMOVED: Position size percentage limits disabled
+                if self.max_position_size_pct is not None:
+                    max_total_position = portfolio_value * self.max_position_size_pct
+                    
+                    if total_position_value > max_total_position:
+                        return False, f"Total position in {symbol} would be ${total_position_value:,.0f}, exceeding {self.max_position_size_pct:.1%} limit (${max_total_position:,.0f})"
                 
-                if total_position_value > max_total_position:
-                    return False, f"Total position in {symbol} would be ${total_position_value:,.0f}, exceeding {self.max_position_size_pct:.1%} limit (${max_total_position:,.0f})"
-                
-                if total_position_value > self.max_position_value:
+                # REMOVED: Position value limits disabled for system improvement  
+                if self.max_position_value is not None and total_position_value > self.max_position_value:
                     return False, f"Total position in {symbol} would exceed ${self.max_position_value:,.0f} hard limit"
                 
                 print(f"   ⚠️ ADDING TO POSITION: {symbol} current ${current_value:,.0f} + new ${position_value:,.0f} = ${total_position_value:,.0f}")
@@ -231,7 +235,8 @@ class RiskManager:
             # Check position size limit
             position_value = target_shares * entry_price
             position_pct = position_value / portfolio_value
-            if position_pct > self.max_position_size_pct:
+            # REMOVED: Position size percentage limits disabled
+            if self.max_position_size_pct is not None and position_pct > self.max_position_size_pct:
                 return False, f"Position too large ({position_pct:.1%} > {self.max_position_size_pct:.1%})"
             
             # CRITICAL FIX: Use day trading power for intraday, RegT for overnight
@@ -281,9 +286,9 @@ class RiskManager:
     
     def check_daily_loss_limit(self) -> Tuple[bool, str]:
         """Check if daily loss limit has been reached"""
-        # Bypass daily loss limit if flagged
-        if getattr(self, 'ignore_daily_loss', False):
-            return True, "Daily loss limit bypassed via IGNORE_DAILY_LOSS"
+        # REMOVED: Daily loss limit disabled for system improvement
+        if self.ignore_daily_loss or self.max_daily_loss_pct is None:
+            return True, "Daily loss limit disabled - unlimited trading for system improvement"
         try:
             account = self.api.get_account()
             equity = float(account.equity)
