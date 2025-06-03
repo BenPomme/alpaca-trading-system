@@ -20,6 +20,7 @@ from modular.ml_data_helpers import MLDataCollector, ParameterEffectivenessTrack
 class TradeAction(Enum):
     BUY = "buy"
     SELL = "sell"
+    HOLD = "hold"
 
 
 class TradeStatus(Enum):

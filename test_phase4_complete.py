@@ -18,7 +18,7 @@ def test_phase4_complete():
         # Test 1: Options Manager
         print("\n📊 TESTING OPTIONS MANAGER")
         print("-" * 30)
-        from options_manager import test_options_manager
+        from legacy.phases.options_manager import test_options_manager
         options_success = test_options_manager()
         if not options_success:
             print("❌ Options Manager test failed")
@@ -27,7 +27,7 @@ def test_phase4_complete():
         # Test 2: Crypto Trader
         print("\n₿ TESTING 24/7 CRYPTO TRADER")
         print("-" * 30)
-        from crypto_trader import test_crypto_trader
+        from legacy.phases.crypto_trader import test_crypto_trader
         crypto_success = test_crypto_trader()
         if not crypto_success:
             print("❌ Crypto Trader test failed")
@@ -37,7 +37,7 @@ def test_phase4_complete():
         try:
             print("\n🌍 TESTING GLOBAL MARKET MANAGER")
             print("-" * 30)
-            from global_market_manager import GlobalMarketManager
+            from legacy.phases.global_market_manager import GlobalMarketManager
             global_mgr = GlobalMarketManager()
             print("✅ Global Market Manager loaded")
             
@@ -79,7 +79,7 @@ def test_phase4_complete():
                 return Quote()
         
         # Test Phase3Trader initialization with all Phase 4 features
-        from phase3_trader import Phase3Trader
+        from legacy.phases.phase3_trader import Phase3Trader
         
         # Initialize with all Phase 4 features enabled
         trader = Phase3Trader(

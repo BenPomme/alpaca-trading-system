@@ -11,7 +11,7 @@ from datetime import datetime
 def test_global_market_manager():
     """Test global market manager import and basic functionality"""
     try:
-        from global_market_manager import GlobalMarketManager
+        from legacy.phases.global_market_manager import GlobalMarketManager
         gmm = GlobalMarketManager()
         
         print("✅ GlobalMarketManager: Loaded successfully")
@@ -51,7 +51,7 @@ def test_market_universe_expansion():
 def test_phase3_trader_import():
     """Test Phase 3 trader with global trading parameter"""
     try:
-        from phase3_trader import Phase3Trader
+        from legacy.phases.phase3_trader import Phase3Trader
         
         print("✅ Phase3Trader: Import successful")
         

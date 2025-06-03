@@ -25,14 +25,31 @@ Production-grade system targeting 5-10% monthly returns through AI-powered tradi
 
 ### Core Production Architecture
 ```
-ModularOrchestrator (Production Entry Point)
-├── OptionsModule (30% max allocation)
-├── CryptoModule (SMART ALLOCATION: 20-60% based on performance, 2x leverage)  
-├── StocksModule (unlimited positions, no daily trade limits)
-├── MarketIntelligenceModule (OpenAI-powered analysis)
-├── MLOptimizer (profit-based learning)
-├── RiskManager (portfolio-level controls)
-└── OrderExecutor (real Alpaca API execution)
+ModularOrchestrator (Production Entry Point - modular_production_main.py)
+├── OptionsModule (modular/options_module.py) 
+├── CryptoModule (modular/crypto_module.py) - Unlimited allocation
+├── StocksModule (modular/stocks_module.py) - Unlimited positions
+├── MarketIntelligenceModule (modular/market_intelligence_module.py)
+├── MLOptimizer (modular/ml_optimizer.py)
+├── RiskManager (risk_manager.py) - Unlimited limits for system improvement
+├── OrderExecutor (modular/order_executor.py) - Firebase trade tracking
+└── TradeHistoryTracker (trade_history_tracker.py) - Safety controls
+```
+
+### Modular System Integration
+```python
+# All modules inherit from base_module.py TradingModule
+class TradingModule:
+    def analyze_opportunities(self) -> List[TradingOpportunity]
+    def execute_trades(self, opportunities) -> List[TradeResult]
+    def monitor_positions(self) -> List[PositionUpdate]
+    
+# Orchestrator manages module lifecycle
+orchestrator = ModularOrchestrator()
+orchestrator.register_module('crypto', CryptoModule())
+orchestrator.register_module('stocks', StocksModule()) 
+orchestrator.register_module('options', OptionsModule())
+orchestrator.run_single_cycle()  # Execute all modules
 ```
 
 ### ML Profit Learning System (Critical)
@@ -66,8 +83,8 @@ python test_production_intelligence.py
 # Complete system integration test
 python test_phase4_complete.py
 
-# Local debugging with full output
-python debug_cycle.py
+# Local debugging with full output (LEGACY - moved to legacy/debug/)
+# Use modular system for current debugging instead
 
 # Performance analysis (mandatory weekly)
 python analyze_trading_performance.py
@@ -80,9 +97,10 @@ python test_modular_framework.py
 python test_ml_integration_full.py
 python test_market_intelligence.py
 
-# Smart leverage system testing
-python test_institutional_trading_system.py
-python test_institutional_crypto_strategy.py
+# Safety system testing (CRITICAL)
+python test_trade_history_tracking.py    # Trade history safety controls
+python test_firebase_trade_history.py    # Firebase integration
+python test_limits_removed.py            # Verify limits properly removed
 
 # Individual module tests
 python tests/modules/test_crypto_module.py  # Includes mean reversion tests
@@ -96,6 +114,21 @@ python analyze_trading_performance.py  # Performance analysis (mandatory weekly)
 
 # Run single test example
 python -m pytest tests/modules/test_crypto_module.py::TestCryptoModule::test_calculate_crypto_mean_reversion_oversold -v
+```
+
+### Safety Testing (MANDATORY before deployment)
+```bash
+# Test that safety controls prevent rapid-fire trading
+python test_trade_history_tracking.py
+
+# Verify Firebase trade persistence
+python test_firebase_trade_history.py
+
+# Confirm all limits properly removed
+python test_limits_removed.py
+
+# Live performance monitoring
+python quick_performance_check.py
 ```
 
 ### Emergency Commands
@@ -291,17 +324,26 @@ async def on_quote(data):
 
 ### Health Check Endpoints (Railway)
 ```bash
+# Railway deployment URL (update with actual URL)
+export RAILWAY_URL="https://satisfied-commitment.railway.app"
+
 # Basic system health
-curl https://your-app.railway.app/health
+curl $RAILWAY_URL/health
+
+# Safety controls status (CRITICAL)
+curl $RAILWAY_URL/safety
 
 # Market Intelligence status  
-curl https://your-app.railway.app/intelligence
+curl $RAILWAY_URL/intelligence
 
 # Comprehensive debug information
-curl https://your-app.railway.app/intelligence/debug
+curl $RAILWAY_URL/intelligence/debug
 
 # Current market signals
-curl https://your-app.railway.app/intelligence/signals
+curl $RAILWAY_URL/intelligence/signals
+
+# Safety circuit breaker reset (EMERGENCY ONLY)
+curl -X POST $RAILWAY_URL/safety/reset
 ```
 
 ### Critical Success Indicators
@@ -388,17 +430,17 @@ def _calculate_monthly_performance(self) -> float:
     """Monthly P&L for allocation decisions"""
 ```
 
-## Current Production Status (June 2, 2025)
+## Current Production Status (June 3, 2025)
 
-### ✅ Smart Leverage System Operational
-- **Live Trading**: Confirmed with real Alpaca order IDs
-- **Portfolio Value**: $98,845 with $258,944 buying power
-- **Smart Allocation**: Performance-based crypto allocation (20-60%)
-- **5% ROI Target**: Intelligent leverage system deployed
+### ✅ Unlimited Trading System with Safety Controls
+- **Live Trading**: Confirmed with real Alpaca order IDs  
+- **Portfolio Value**: $978,356 (down from $1M baseline, -2.16% ROI)
+- **Unlimited Trading**: All position and daily limits removed for system improvement
+- **Firebase Integration**: Persistent trade history storage across deployments
+- **Safety Systems**: Comprehensive trade history tracking prevents rapid-fire incidents
 - **Market Intelligence**: OpenAI o4-mini integration active
 - **ML Learning**: Entry-exit trade linking for profit optimization
-- **Data Freshness**: Real-time quote validation implemented
-- **Health Monitoring**: Comprehensive debug endpoints deployed
+- **Health Monitoring**: Real-time performance analysis capabilities
 
 ### Dependencies & Installation
 ```bash
@@ -416,16 +458,242 @@ pip install -r requirements.txt
 ```
 
 ### Recent Critical Fixes (June 2025)
-- **SMART LEVERAGE**: Implemented performance-based allocation for 5% monthly ROI
-- **ALLOCATION CONTROL**: Fixed uncontrolled 82.5% crypto allocation issue
-- **CRYPTO ANALYSIS**: Fixed missing `_calculate_crypto_momentum` method bug
-- **PERFORMANCE TARGETING**: Added intelligent allocation tiers based on win rates
+- **UNLIMITED TRADING**: Removed all position size, daily trade, and daily loss limits for system improvement
+- **FIREBASE INTEGRATION**: Persistent trade history storage using cloud database
+- **TRADE HISTORY TRACKING**: Comprehensive safety system prevents rapid-fire trading incidents
+- **SAFETY CONTROLS**: 5-minute cooldowns and rapid pattern detection prevent $36K+ losses
+- **PERFORMANCE MONITORING**: Real-time analysis scripts for ROI tracking and system health
 - Fixed profit rate calculation bug (was counting execution as profit)
 - Implemented real-time data freshness validation
 - Added OpenAI Market Intelligence with comprehensive debug signals
 - Deployed production-grade health monitoring endpoints
 
 This system has encountered 11+ major bugs during development. The QA.md rules represent institutional knowledge that MUST be followed to prevent regression.
+
+## Project Structure (Post-Cleanup June 2025)
+
+### 🗂️ **Directory Organization**
+```
+/Users/benjamin.pommeraud/Desktop/Alpaca/
+├── modular_production_main.py          # Main production entry point
+├── modular/                           # Core production system
+│   ├── orchestrator.py               # System orchestrator
+│   ├── base_module.py                # Base trading module
+│   ├── crypto_module.py              # 24/7 crypto trading
+│   ├── stocks_module.py              # Stock trading module
+│   ├── options_module.py             # Options trading module
+│   └── [other active modules]
+├── legacy/                           # Archived legacy code (June 2025)
+│   ├── phases/                       # Old phase-based architecture
+│   │   ├── phase3_trader.py         # Legacy Phase 3 trader
+│   │   ├── crypto_trader.py         # Legacy crypto system
+│   │   └── [other phase files]
+│   ├── debug/                        # Old debug scripts
+│   ├── verification/                 # One-time setup scripts
+│   ├── analysis/                     # Superseded analysis tools
+│   └── dashboard/                    # Legacy dashboard system
+└── [current active files]
+```
+
+### 🧹 **Cleanup Summary (June 2025)**
+- **Archived**: 30+ legacy files moved to `legacy/` directory
+- **Removed**: 5+ completely unused utility scripts
+- **Updated**: All remaining import references to use `legacy.phases.*`
+- **Preserved**: All functionality for backward compatibility
+
+### 📋 **Current Active System**
+The production system now uses **only** the modular architecture:
+- Entry point: `modular_production_main.py`
+- Core modules in `modular/` directory
+- Legacy systems preserved in `legacy/` for reference/compatibility
+
+## Enhanced Data Integration (Phase 2 - June 2025)
+
+### 🚀 **Multi-Source Data Architecture**
+The system now supports enhanced data sources for improved market analysis:
+
+```python
+# Enhanced Data Manager - Multi-source integration
+from enhanced_data_manager import get_enhanced_data_manager
+
+# Professional Technical Indicators - TA-Lib integration
+from enhanced_technical_indicators import get_enhanced_technical_indicators
+
+# Advanced ML Models - PyTorch integration  
+from enhanced_ml_models import get_enhanced_ml_framework
+
+# Enhanced Crypto Module - All integrations combined
+from modular.enhanced_crypto_module import EnhancedCryptoModule
+```
+
+### 📊 **Data Sources Hierarchy**
+1. **Alpaca API** (PRIMARY - Required for trading execution)
+2. **yfinance** (FALLBACK - Enhanced market data and fundamentals)
+3. **Alpha Vantage** (ENRICHMENT - Technical indicators and historical data)
+4. **Finnhub** (ENRICHMENT - News sentiment and fundamental data)
+
+### 🔧 **Technical Indicators Enhancement**
+- **TA-Lib Integration**: Professional-grade indicators (RSI, MACD, Bollinger Bands)
+- **Advanced Indicators**: ADX, CCI, Williams %R, Stochastic Oscillator
+- **Volume Analysis**: OBV, Volume Rate of Change
+- **Fallback System**: Custom implementations when TA-Lib unavailable
+
+### 🧠 **Machine Learning Enhancement**
+- **PyTorch Models**: LSTM and Transformer networks for time series prediction
+- **Traditional ML**: scikit-learn RandomForest (always available as fallback)
+- **Model Persistence**: Compatible with Firebase storage
+- **Performance Optimization**: Numba JIT compilation for critical calculations
+
+### 🛡️ **Deployment Compatibility**
+- **Graceful Degradation**: System works with partial library availability
+- **Environment Variables**: New optional keys for enhanced features
+- **Firebase Integration**: PRESERVED - All existing functionality maintained
+- **Railway Deployment**: PRESERVED - Enhanced features auto-detected
+
+### 📋 **Enhanced Environment Variables (Optional)**
+```bash
+# Enhanced Data Sources (Optional - system works without these)
+ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key
+FINNHUB_API_KEY=your_finnhub_key
+
+# All existing variables preserved and required:
+ALPACA_PAPER_API_KEY=your_paper_key
+ALPACA_PAPER_SECRET_KEY=your_paper_secret
+FIREBASE_SERVICE_ACCOUNT={"type":"service_account",...}
+OPENAI_API_KEY=your_openai_api_key
+```
+
+### 🧪 **Testing Enhanced Integration**
+```bash
+# Test all enhanced features and compatibility
+python test_enhanced_integration.py
+
+# Test individual components
+python enhanced_data_manager.py
+python enhanced_technical_indicators.py
+python enhanced_ml_models.py
+```
+
+## Trade History Safety System (Critical - June 2025)
+
+### TradeHistoryTracker Integration
+**Prevents rapid-fire trading incidents that caused $36,462 loss in 5 minutes**
+
+```python
+# Firebase-backed trade tracking with safety controls
+from trade_history_tracker import TradeHistoryTracker
+
+tracker = TradeHistoryTracker(firebase_db=firebase_db)
+
+# Safety validation before every trade
+can_trade, reason = tracker.can_trade_symbol(symbol, trade_value)
+if not can_trade:
+    # Trade blocked - log reason and skip
+    pass
+```
+
+### Safety Controls Active
+- **5-minute cooldowns**: Prevents same symbol trading within 5 minutes
+- **2 trades/hour limit**: Prevents rapid trading patterns per symbol  
+- **Rapid pattern detection**: Detects dangerous alternating buy/sell cycles
+- **Firebase persistence**: Trade history survives Railway deployment restarts
+- **Position tracking**: Monitors exposure per symbol (no limits)
+
+### Removed Limits (For System Improvement)
+- ❌ **Position size limits**: No maximum dollar amount per position
+- ❌ **Daily trade limits**: No maximum trades per day
+- ❌ **Daily loss limits**: No daily loss circuit breakers
+- ❌ **Position percentage limits**: No portfolio percentage restrictions
+
+## Performance Monitoring System
+
+### Real-Time Analysis Commands
+```bash
+# Quick performance check with environment variables
+python quick_performance_check.py
+
+# Comprehensive performance analysis 
+python performance_analysis_report.py
+
+# Live monitoring with Firebase and Alpaca data
+python monitor_live_performance.py
+
+# Continuous monitoring (every 5 minutes)
+python monitor_live_performance.py continuous 5
+```
+
+### Key Performance Metrics
+- **Portfolio Value**: Current account value vs $1M baseline
+- **Total Return**: Dollar amount and percentage from initial capital
+- **Position Analysis**: Win rate, unrealized P&L, position diversification
+- **Monthly Projection**: Estimated monthly return based on current performance
+- **Target Assessment**: Performance vs 5-10% monthly target
+
+### Firebase Data Structure
+```
+Collections:
+├── trade_history_tracker/current_status
+│   ├── position_values: {symbol -> current_position_value}
+│   ├── last_trade_times: {symbol -> last_trade_timestamp}  
+│   └── safety_limits: {cooldown_minutes, max_trades_per_hour}
+└── trade_history_details/*
+    ├── Individual trade records with full audit trail
+    ├── symbol, side, quantity, price, value, timestamp
+    └── order_id, metadata for complete tracking
+```
+
+## Phase 2 Enhanced Data Integration (June 2025) - COMPLETED ✅
+
+### Multi-Source Data Architecture
+**Production-ready enhanced trading system with professional-grade data sources:**
+
+- **Enhanced Data Manager**: Multi-source integration (Alpaca, yfinance, Alpha Vantage, Finnhub)
+- **Professional Technical Analysis**: TA-Lib integration with 150+ indicators
+- **Advanced Machine Learning**: PyTorch LSTM/Transformer models with MPS optimization
+- **Graceful Degradation**: Automatic fallback when enhanced libraries unavailable
+- **API Keys Configured**: Alpha Vantage (`9W2HV5D4AQAMR70O`) + Finnhub (`d0vefg1r01qmg3ulut10`)
+
+### Enhanced Libraries Installed & Tested
+```bash
+# Enhanced Data Sources
+yfinance>=0.2.28          # Multi-market data fallback
+alpha-vantage>=2.3.1      # Professional financial data
+finnhub-python>=2.4.20   # Real-time market data + news
+
+# Professional Technical Analysis  
+TA-Lib>=0.4.25           # 150+ technical indicators
+
+# Advanced Machine Learning
+torch>=2.0.0             # PyTorch neural networks
+numba>=0.59.0           # JIT compilation for performance
+```
+
+### Enhanced Module Architecture
+```python
+# Enhanced Crypto Module with multi-source analysis
+from modular.enhanced_crypto_module import EnhancedCryptoModule
+
+# Enhanced data integration classes
+from enhanced_data_manager import EnhancedDataManager
+from enhanced_technical_indicators import EnhancedTechnicalIndicators  
+from enhanced_ml_models import EnhancedMLFramework
+```
+
+### Testing & Validation Status
+- ✅ **All Enhanced Libraries Installed**: PyTorch, TA-Lib, yfinance, etc.
+- ✅ **API Keys Verified**: Alpha Vantage + Finnhub connectivity confirmed
+- ✅ **Integration Tests**: 5/5 enhanced integration tests passing
+- ✅ **Apple Silicon Optimization**: PyTorch using MPS device acceleration
+- ✅ **Firebase + Railway Compatibility**: Preserved existing infrastructure
+
+### Enhanced Trading Capabilities
+1. **Multi-Source Data Fusion**: Combine Alpaca + Alpha Vantage + Finnhub data
+2. **Professional Technical Analysis**: TA-Lib RSI, MACD, Bollinger Bands, etc.
+3. **AI-Powered Predictions**: PyTorch LSTM/Transformer models for market analysis
+4. **Real-Time News Integration**: Finnhub news sentiment analysis
+5. **Performance Optimization**: Numba JIT compilation for critical calculations
+
+**Phase 2 Status**: 🎉 **COMPLETE** - Enhanced trading system ready for deployment
 
 ## Recent System Updates & Best Practices
 

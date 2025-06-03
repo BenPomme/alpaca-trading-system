@@ -17,7 +17,7 @@ def main():
     
     # Check if intelligent exit manager file exists
     try:
-        import intelligent_exit_manager
+        import legacy.phases.intelligent_exit_manager
         print("✅ intelligent_exit_manager.py: FOUND")
     except ImportError as e:
         print(f"❌ intelligent_exit_manager.py: MISSING - {e}")
@@ -25,7 +25,7 @@ def main():
     
     # Check if phase3_trader has the updates
     try:
-        from phase3_trader import Phase3Trader
+        from legacy.phases.phase3_trader import Phase3Trader
         print("✅ phase3_trader.py: FOUND")
         
         # Check if IntelligentExitManager is imported
@@ -46,7 +46,7 @@ def main():
     
     # Import and run the actual system
     try:
-        from start_phase3 import main as start_trading
+        from legacy.phases.start_phase3 import main as start_trading
         start_trading()
     except Exception as e:
         print(f"❌ SYSTEM START ERROR: {e}")
