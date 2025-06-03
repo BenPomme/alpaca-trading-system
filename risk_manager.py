@@ -18,16 +18,16 @@ class RiskManager:
         self.db = db
         self.logger = logger or logging.getLogger(__name__)
         
-        # Risk Parameters (EMERGENCY SAFETY CONTROLS AFTER $36K LOSS)
-        self.max_positions = 15                 # REDUCED from 25 after rapid-fire trading incident
-        self.max_daily_trades = None              # REMOVED: No daily trade limits (was 10)
-        self.max_position_size_pct = None         # REMOVED: No position size percentage limits (was 8%)
-        self.max_position_value = None            # REMOVED: No position value limits (was $8K)
-        self.max_sector_exposure = 0.40           # REDUCED from 60% to 40% exposure per sector
-        self.max_daily_loss_pct = None            # REMOVED: No daily loss limit (was 1.5%)
-        # TRADING IMPROVEMENT: Disable daily loss circuit breaker to allow more trading
-        self.ignore_daily_loss = True
-        self.logger.info("🚀 Daily loss circuit breaker DISABLED: Unlimited trading for system improvement")
+        # Risk Parameters (EMERGENCY SAFETY CONTROLS - CONCENTRATION CRISIS FIX)
+        self.max_positions = 25                   # INCREASED: Need more diversification
+        self.max_daily_trades = None              # Keep unlimited for opportunities
+        self.max_position_size_pct = 0.15         # CRITICAL: 15% max per symbol (RESTORED)
+        self.max_position_value = 150000          # CRITICAL: $150K max per position (RESTORED)
+        self.max_sector_exposure = 0.30           # 30% max per sector for diversification
+        self.max_daily_loss_pct = 0.05            # CRITICAL: 5% daily loss limit (RESTORED)
+        # EMERGENCY FIX: Re-enable daily loss protection due to concentration crisis
+        self.ignore_daily_loss = False
+        self.logger.info("🚨 EMERGENCY: Daily loss protection RE-ENABLED due to concentration crisis")
         self.position_risk_pct = 0.02             # 2% risk per trade
         
         # Stop Loss & Take Profit
@@ -109,12 +109,12 @@ class RiskManager:
     def print_risk_parameters(self):
         """Display current risk parameters"""
         print("📊 Risk Management Parameters:")
-        print(f"   Max Positions: {'Unlimited' if self.max_positions is None else self.max_positions}")
-        print(f"   Max Position Size: DISABLED (unlimited position sizes)")
+        print(f"   Max Positions: {self.max_positions}")
+        print(f"   🚨 CRITICAL FIX: Max Position Size: {self.max_position_size_pct:.1%} ({self.max_position_value:,})")
         print(f"   Position Risk: {self.position_risk_pct:.1%}")
         print(f"   Stop Loss: {self.stop_loss_pct:.1%}")
         print(f"   Take Profit: {self.take_profit_pct:.1%}")
-        print(f"   Max Daily Loss: DISABLED (unlimited trading for system improvement)")
+        print(f"   🚨 CRITICAL FIX: Max Daily Loss: {self.max_daily_loss_pct:.1%}")
         if self.intraday_enabled:
             print(f"   🚀 Intraday Strategy: ACTIVE")
             print(f"   ⏰ EOD Liquidation: {int(self.end_of_day_liquidation_hour)}:{int((self.end_of_day_liquidation_hour % 1) * 60):02d} ET")
