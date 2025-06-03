@@ -579,33 +579,30 @@ class CryptoModule(TradingModule):
                 rs = avg_gain / avg_loss
                 rsi = 100 - (100 / (1 + rs))
             
-            # DYNAMIC RSI interpretation based on actual RSI value
-            # Convert RSI to normalized buy/sell strength (0-1 scale)
-            # RSI 0-30: Strong buy zone
-            # RSI 30-50: Moderate buy zone  
-            # RSI 50-70: Moderate sell zone
-            # RSI 70-100: Strong sell zone
+            # AGGRESSIVE BUY-THE-DIP RSI strategy for 5-10% monthly returns
+            # FIXED: Portfolio is down -2.55%, need to favor BUY opportunities
+            # Convert RSI to normalized buy/sell strength optimized for recovery
             
             if rsi <= 30:
-                # Strong oversold - scale from 0.9 at RSI=0 to 0.7 at RSI=30
-                buy_strength = 0.9 - (rsi / 30) * 0.2  # 0.9 -> 0.7
-                sell_strength = 1 - buy_strength
+                # Strong oversold - AGGRESSIVE BUY (0.9 -> 0.8 buy strength)
+                buy_strength = 0.9 - (rsi / 30) * 0.1  # 0.9 -> 0.8
+                sell_strength = 0.1 + (rsi / 30) * 0.1  # 0.1 -> 0.2
                 signal = 'strong_buy'
             elif rsi <= 50:
-                # Moderate oversold - scale from 0.7 at RSI=30 to 0.5 at RSI=50
-                buy_strength = 0.7 - ((rsi - 30) / 20) * 0.2  # 0.7 -> 0.5
-                sell_strength = 1 - buy_strength
-                signal = 'buy' if rsi <= 40 else 'neutral'
+                # Moderate oversold - FAVOR BUY (0.8 -> 0.65 buy strength)
+                buy_strength = 0.8 - ((rsi - 30) / 20) * 0.15  # 0.8 -> 0.65
+                sell_strength = 0.2 + ((rsi - 30) / 20) * 0.15  # 0.2 -> 0.35
+                signal = 'buy' if rsi <= 45 else 'neutral'
             elif rsi <= 70:
-                # Moderate overbought - scale from 0.5 at RSI=50 to 0.3 at RSI=70
-                buy_strength = 0.5 - ((rsi - 50) / 20) * 0.2  # 0.5 -> 0.3
-                sell_strength = 1 - buy_strength
-                signal = 'sell' if rsi >= 60 else 'neutral'
+                # Moderate levels - STILL FAVOR BUY for recovery (0.65 -> 0.55)
+                buy_strength = 0.65 - ((rsi - 50) / 20) * 0.1  # 0.65 -> 0.55
+                sell_strength = 0.35 + ((rsi - 50) / 20) * 0.1  # 0.35 -> 0.45
+                signal = 'neutral' if rsi <= 65 else 'weak_sell'
             else:
-                # Strong overbought - scale from 0.3 at RSI=70 to 0.1 at RSI=100
-                buy_strength = 0.3 - ((rsi - 70) / 30) * 0.2  # 0.3 -> 0.1
-                sell_strength = 1 - buy_strength
-                signal = 'strong_sell'
+                # Strong overbought - Only sell when extremely overbought (0.55 -> 0.4)
+                buy_strength = 0.55 - ((rsi - 70) / 30) * 0.15  # 0.55 -> 0.4
+                sell_strength = 0.45 + ((rsi - 70) / 30) * 0.15  # 0.45 -> 0.6
+                signal = 'sell' if rsi >= 80 else 'neutral'
             
             return {
                 'rsi_value': rsi,
@@ -1308,14 +1305,27 @@ class CryptoModule(TradingModule):
             positions = self.api.list_positions()
             crypto_positions = []
             
+            # DEBUG: Log all positions to understand the filtering issue
+            all_position_symbols = [getattr(pos, 'symbol', 'unknown') for pos in positions]
+            self.logger.debug(f"📊 ALL POSITIONS: {all_position_symbols}")
+            self.logger.debug(f"📊 SUPPORTED CRYPTO: {self.supported_symbols}")
+            
             for position in positions:
                 symbol = getattr(position, 'symbol', '')
-                # Check if it's a crypto symbol (contains USD and is in our universe)
-                if 'USD' in symbol and symbol in self.supported_symbols:
+                # FIXED: Be more inclusive in crypto position detection
+                # Check if it's a crypto symbol (contains USD and matches common crypto patterns)
+                is_crypto = ('USD' in symbol and 
+                           (symbol in self.supported_symbols or 
+                            any(crypto in symbol for crypto in ['BTC', 'ETH', 'SOL', 'DOT', 'LINK', 'MATIC', 'AVAX', 'UNI', 'AAVE'])))
+                
+                if is_crypto:
                     qty = getattr(position, 'qty', 0)
                     market_value = getattr(position, 'market_value', 0)
                     avg_entry_price = getattr(position, 'avg_entry_price', 0)
                     unrealized_pl = getattr(position, 'unrealized_pl', 0)
+                    
+                    # DEBUG: Log position detection
+                    self.logger.debug(f"✅ CRYPTO POSITION FOUND: {symbol} - Value: ${market_value}")
                     
                     crypto_positions.append({
                         'symbol': symbol,
@@ -1324,7 +1334,10 @@ class CryptoModule(TradingModule):
                         'avg_entry_price': float(avg_entry_price) if str(avg_entry_price).replace('-', '').replace('.', '').isdigit() else 0.0,
                         'unrealized_pl': float(unrealized_pl) if str(unrealized_pl).replace('-', '').replace('.', '').isdigit() else 0.0
                     })
+                else:
+                    self.logger.debug(f"❌ FILTERED OUT: {symbol} (not crypto or not supported)")
             
+            self.logger.info(f"📊 CRYPTO POSITIONS FOUND: {len(crypto_positions)} positions, Total Value: ${sum(pos['market_value'] for pos in crypto_positions):,.0f}")
             return crypto_positions
             
         except Exception as e:
@@ -2006,28 +2019,41 @@ class CryptoModule(TradingModule):
             if not self.smart_allocation_enabled:
                 return 0.90  # Use 90% of buying power when smart allocation disabled
             
-            # MARKET HOURS: EMERGENCY LIMIT - Crypto should be MINIMAL during bullish stock market
-            if self._is_stock_market_open():
-                self.logger.warning("🚨 EMERGENCY: Limiting crypto to 20% during bullish stock market hours")
-                return 0.20  # EMERGENCY: Only 20% crypto during market hours
-            
-            # Get current performance metrics
+            # Get current performance metrics first
             current_win_rate = self._calculate_current_win_rate()
             monthly_performance = self._calculate_monthly_performance()
             
             self.logger.info(f"🎯 SMART ALLOCATION: Win rate: {current_win_rate:.1%}, Monthly: {monthly_performance:.1%}")
             
-            # EMERGENCY MODE: If losing 5%+ this month, drastically reduce allocation
-            if monthly_performance < -0.05:
-                self.logger.warning(f"🚨 EMERGENCY MODE: Monthly loss {monthly_performance:.1%} - reducing to {self.emergency_allocation:.1%}")
-                return self.emergency_allocation  # 20%
+            # AGGRESSIVE BUY-THE-DIP MODE: When portfolio is down, be MORE aggressive, not less
+            # Current portfolio: -2.55% needs aggressive recovery strategy
+            if monthly_performance < -0.02:  # Down more than 2%
+                if monthly_performance < -0.05:  # Down more than 5%
+                    self.logger.warning(f"🔥 AGGRESSIVE RECOVERY MODE: Monthly loss {monthly_performance:.1%} - INCREASING to 60% allocation")
+                    return 0.60  # AGGRESSIVE: 60% crypto for recovery
+                else:
+                    self.logger.warning(f"🔥 BUY-THE-DIP MODE: Monthly loss {monthly_performance:.1%} - INCREASING to 50% allocation")
+                    return 0.50  # BUY-THE-DIP: 50% crypto when down 2-5%
+            
+            # MARKET HOURS: Allow reasonable crypto allocation (not emergency mode)
+            if self._is_stock_market_open():
+                # Check if we have profitable crypto positions
+                crypto_positions = self._get_crypto_positions()
+                profitable_positions = sum(1 for pos in crypto_positions if pos.get('unrealized_pl', 0) > 0)
+                
+                if profitable_positions > 0:
+                    self.logger.info(f"💡 MARKET HOURS: {profitable_positions} profitable crypto positions - allowing 40% allocation")
+                    return 0.40  # Allow higher allocation when crypto is profitable
+                else:
+                    self.logger.info("💡 MARKET HOURS: Standard 30% crypto allocation")
+                    return 0.30  # Standard allocation during market hours
             
             # PERFORMANCE-BASED ALLOCATION TIERS (AFTER HOURS)
             if current_win_rate < 0.45:
-                # Learning phase: Conservative allocation while system learns
-                return 0.25  # 25% max allocation
+                # Learning phase: Moderate allocation for learning
+                return 0.35  # 35% max allocation (increased from 25%)
             elif current_win_rate < 0.60:
-                # Stable phase: Moderate allocation for balanced growth
+                # Stable phase: Target allocation for balanced growth
                 return self.base_crypto_allocation  # 40% target allocation
             else:
                 # Profitable phase: Maximum allocation for 5% monthly target
