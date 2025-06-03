@@ -557,9 +557,13 @@ class CryptoModule(TradingModule):
                 return 0.1
             
             else:
-                # Neutral zone - moderate score based on proximity to MA
-                neutrality_score = 0.5 - abs(distance_from_ma) / 0.20  # Closer to MA = higher score
-                return max(neutrality_score, 0.1)
+                # Neutral zone - more conservative scoring to prevent overconfidence
+                # Map distance to score: 0% distance = 0.5 score, 20% distance = 0.1 score
+                neutrality_score = 0.5 - (abs(distance_from_ma) / 0.20) * 0.4  # More conservative scaling
+                final_score = max(neutrality_score, 0.1)
+                
+                self.logger.debug(f"📊 {symbol}: NEUTRAL ZONE - Distance from MA: {distance_from_ma:.1%}, Score: {final_score:.2f}")
+                return final_score
             
         except Exception as e:
             self.logger.error(f"❌ {symbol}: Mean reversion calculation FAILED: {e}")
@@ -584,8 +588,15 @@ class CryptoModule(TradingModule):
             daily_range = (high_24h - low_24h) / current_price
             
             # Score volatility (higher volatility = higher score up to threshold)
-            volatility_score = min(daily_range / self.volatility_threshold, 1.0)
+            # Cap volatility score to prevent artificially high confidence
+            raw_volatility_score = daily_range / self.volatility_threshold
+            volatility_score = min(raw_volatility_score, 1.0)
             
+            # Additional dampening to prevent overconfidence in volatile markets
+            if raw_volatility_score > 2.0:  # Very high volatility
+                volatility_score = volatility_score * 0.7  # Reduce score for extreme volatility
+            
+            self.logger.debug(f"📊 {symbol}: Volatility - daily_range={daily_range:.3f}, threshold={self.volatility_threshold:.3f}, score={volatility_score:.2f}")
             return volatility_score
             
         except Exception as e:
@@ -605,9 +616,16 @@ class CryptoModule(TradingModule):
             
             volume_ratio = volume_24h / avg_volume
             
-            # Higher than average volume = higher score
-            volume_score = min(volume_ratio, 2.0) / 2.0  # Normalize to 0-1
+            # Higher than average volume = higher score, but with realistic caps
+            # Cap at 3x average volume to prevent artificial confidence spikes
+            capped_ratio = min(volume_ratio, 3.0)
+            volume_score = capped_ratio / 3.0  # Normalize to 0-1
             
+            # Additional dampening for extremely high volume (may indicate manipulation)
+            if volume_ratio > 5.0:
+                volume_score = volume_score * 0.8  # Reduce confidence for suspicious volume
+            
+            self.logger.debug(f"📊 {symbol}: Volume - 24h={volume_24h:.0f}, avg={avg_volume:.0f}, ratio={volume_ratio:.2f}, score={volume_score:.2f}")
             return volume_score
             
         except Exception as e:
@@ -638,6 +656,14 @@ class CryptoModule(TradingModule):
             base_quantity = self._calculate_crypto_quantity(analysis.symbol, analysis.current_price)
             session_leverage = self._get_leverage_for_current_session()
             adjusted_quantity = base_quantity * crypto_config['position_size_multiplier'] * session_leverage
+            
+            # Debug: Log quantity calculation details
+            self.logger.debug(f"🔢 {analysis.symbol}: Quantity calc - base={base_quantity:.4f}, session_leverage={session_leverage:.2f}, multiplier={crypto_config['position_size_multiplier']:.2f}, final={adjusted_quantity:.4f}")
+            
+            # Check for invalid quantities
+            if adjusted_quantity <= 0:
+                self.logger.warning(f"⚠️ {analysis.symbol}: Invalid quantity {adjusted_quantity} - cannot create opportunity")
+                return None
             
             # Log aggressive positioning when market is closed
             if not self._is_stock_market_open():
@@ -1481,10 +1507,13 @@ class CryptoModule(TradingModule):
             # Calculate quantity (fractional for crypto)
             quantity = max_position_value / price if price > 0 else 0
             
+            # Debug logging
+            self.logger.debug(f"💰 {symbol}: Quantity calc - portfolio=${portfolio_value:,.2f}, allocation={base_allocation:.1%}, max_value=${max_position_value:.2f}, price=${price:.4f}, quantity={quantity:.6f}")
+            
             return quantity
             
         except Exception as e:
-            self.logger.error(f"Error calculating crypto quantity: {e}")
+            self.logger.error(f"Error calculating crypto quantity for {symbol}: {e}")
             return 0.0
     
     def _get_current_crypto_allocation(self) -> float:
