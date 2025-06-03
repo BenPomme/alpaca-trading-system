@@ -79,6 +79,14 @@ class ModularOrchestrator:
             'uptime_hours': 0.0
         }
         
+        # CRITICAL SAFETY: Circuit breaker controls after $36K loss
+        self._emergency_stop = False
+        self._trades_last_5min = []
+        self._losses_last_10min = []
+        self._max_trades_per_5min = 8  # Reduced from 50 trades that caused loss
+        self._max_loss_per_10min = 5000  # $5K loss limit in 10 minutes
+        self._circuit_breaker_active = False
+        
         # Configuration
         self._config = {
             'max_concurrent_modules': 3,
@@ -176,6 +184,21 @@ class ModularOrchestrator:
     def _run_trading_cycle(self) -> Dict[str, Any]:
         """Execute a complete trading cycle across all modules"""
         self._cycle_count += 1
+        
+        # CRITICAL SAFETY: Check circuit breaker before trading
+        if self._check_circuit_breaker():
+            return {
+                'success': False,
+                'error': 'CIRCUIT BREAKER ACTIVE - Trading halted for safety',
+                'modules': {},
+                'summary': {
+                    'total_opportunities': 0,
+                    'total_trades': 0,
+                    'trades_passed': 0,
+                    'successful_trades': 0
+                }
+            }
+        
         cycle_results = {
             'success': True,
             'modules': {},
@@ -209,6 +232,15 @@ class ModularOrchestrator:
                     cycle_results['summary']['total_trades'] += result['trades_count']
                     cycle_results['summary']['trades_passed'] += result['trades_passed']
                     cycle_results['summary']['successful_trades'] += result['successful_trades']
+                    
+                    # CRITICAL SAFETY: Record trades for circuit breaker monitoring
+                    if result['trades_count'] > 0:
+                        # Estimate losses (trade failures and unprofitable trades)
+                        failed_trades = result['trades_count'] - result['trades_passed']
+                        unprofitable_trades = result['trades_passed'] - result['successful_trades']
+                        estimated_losses = (failed_trades * 100) + (unprofitable_trades * 500)  # Rough estimate
+                        
+                        self._record_trade_for_safety(result['trades_count'], estimated_losses)
                 else:
                     # Update module health on failure
                     self.registry.update_health(
@@ -527,6 +559,78 @@ class ModularOrchestrator:
             return module.get_performance_summary()
         return None
     
+    def _check_circuit_breaker(self) -> bool:
+        """CRITICAL SAFETY: Check if circuit breaker should halt trading."""
+        current_time = datetime.now()
+        
+        # Clean old trade records (keep only last 5 minutes)
+        five_min_ago = current_time - timedelta(minutes=5)
+        self._trades_last_5min = [t for t in self._trades_last_5min if t > five_min_ago]
+        
+        # Clean old loss records (keep only last 10 minutes)  
+        ten_min_ago = current_time - timedelta(minutes=10)
+        self._losses_last_10min = [l for l in self._losses_last_10min if l['time'] > ten_min_ago]
+        
+        # Check if emergency stop is manually triggered
+        if self._emergency_stop:
+            self.logger.error("🚨 EMERGENCY STOP: Manual halt active")
+            return True
+        
+        # Check rapid trading pattern (similar to what caused $36K loss)
+        if len(self._trades_last_5min) >= self._max_trades_per_5min:
+            self._circuit_breaker_active = True
+            self.logger.error(f"🚨 CIRCUIT BREAKER: {len(self._trades_last_5min)} trades in 5min exceeds limit of {self._max_trades_per_5min}")
+            return True
+        
+        # Check rapid loss accumulation
+        total_losses = sum(l['amount'] for l in self._losses_last_10min)
+        if total_losses > self._max_loss_per_10min:
+            self._circuit_breaker_active = True
+            self.logger.error(f"🚨 CIRCUIT BREAKER: ${total_losses:,.0f} losses in 10min exceeds ${self._max_loss_per_10min:,.0f} limit")
+            return True
+        
+        return False
+    
+    def _record_trade_for_safety(self, trade_count: int, losses: float = 0):
+        """Record trades and losses for circuit breaker monitoring."""
+        current_time = datetime.now()
+        
+        # Record trade occurrences
+        for _ in range(trade_count):
+            self._trades_last_5min.append(current_time)
+        
+        # Record losses if any
+        if losses > 0:
+            self._losses_last_10min.append({
+                'time': current_time,
+                'amount': losses
+            })
+    
+    def trigger_emergency_stop(self, reason: str):
+        """Manually trigger emergency stop."""
+        self._emergency_stop = True
+        self.logger.critical(f"🚨 EMERGENCY STOP TRIGGERED: {reason}")
+    
+    def reset_circuit_breaker(self):
+        """Reset circuit breaker (use with caution)."""
+        self._circuit_breaker_active = False
+        self._emergency_stop = False
+        self._trades_last_5min.clear()
+        self._losses_last_10min.clear()
+        self.logger.warning("⚠️ CIRCUIT BREAKER RESET - Trading resumed")
+    
+    def get_safety_status(self) -> Dict[str, Any]:
+        """Get current safety system status."""
+        return {
+            'emergency_stop': self._emergency_stop,
+            'circuit_breaker_active': self._circuit_breaker_active,
+            'trades_last_5min': len(self._trades_last_5min),
+            'max_trades_per_5min': self._max_trades_per_5min,
+            'losses_last_10min': sum(l['amount'] for l in self._losses_last_10min),
+            'max_loss_per_10min': self._max_loss_per_10min,
+            'time_until_reset': None  # Could add automatic reset logic
+        }
+
     def shutdown(self):
         """Gracefully shutdown the orchestrator and all modules"""
         try:

@@ -4,11 +4,20 @@ Order Executor for Modular Trading System
 This module provides order execution functionality for the modular trading architecture.
 It wraps the existing OrderManager functionality in a clean interface that integrates
 with the modular system.
+
+CRITICAL SAFETY: Now includes comprehensive trade history tracking to prevent
+the rapid-fire trading that caused $36,462 loss in 5 minutes.
 """
 
 import logging
 from typing import Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
+import sys
+import os
+
+# Add parent directory to path for trade_history_tracker import
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from trade_history_tracker import TradeHistoryTracker
 
 
 class ModularOrderExecutor:
@@ -21,7 +30,7 @@ class ModularOrderExecutor:
     
     def __init__(self, api_client, logger=None):
         """
-        Initialize the order executor.
+        Initialize the order executor with comprehensive trade history tracking.
         
         Args:
             api_client: Alpaca API client
@@ -38,7 +47,17 @@ class ModularOrderExecutor:
         self.pending_orders = {}
         self.executed_orders = {}
         
-        self.logger.info("✅ Modular Order Executor initialized")
+        # CRITICAL SAFETY: Initialize comprehensive trade history tracker
+        # This prevents the rapid-fire trading that caused $36,462 loss
+        self.trade_tracker = TradeHistoryTracker(
+            data_file="data/trade_history.json",
+            logger=self.logger
+        )
+        
+        # Legacy safety controls (now supplemented by trade_tracker)
+        self.emergency_stop = False
+        
+        self.logger.info("✅ Modular Order Executor initialized with trade history tracking")
         
     def execute_order(self, order_data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -85,6 +104,27 @@ class ModularOrderExecutor:
                     'message': 'Dry run execution - no real order placed'
                 }
             
+            # Get current market price for validation
+            current_price = self._get_current_price(symbol)
+            if not current_price:
+                return {
+                    'success': False,
+                    'error': f'Unable to get market price for {symbol}'
+                }
+            
+            # Calculate order value
+            order_value = qty * current_price
+            
+            # CRITICAL SAFETY CHECK: Comprehensive trade history validation
+            # This is the primary safety gate that prevents rapid-fire trading
+            can_trade, safety_reason = self.trade_tracker.can_trade_symbol(symbol, order_value)
+            if not can_trade:
+                self.logger.warning(f"🚨 TRADE BLOCKED: {safety_reason}")
+                return {
+                    'success': False,
+                    'error': f'SAFETY: {safety_reason}'
+                }
+            
             # Check for duplicate pending orders
             if self._has_pending_order(symbol, side):
                 return {
@@ -99,14 +139,6 @@ class ModularOrderExecutor:
                         'success': False,
                         'error': f'Market closed - cannot trade {symbol} outside market hours'
                     }
-            
-            # Get current market price for validation
-            current_price = self._get_current_price(symbol)
-            if not current_price:
-                return {
-                    'success': False,
-                    'error': f'Unable to get market price for {symbol}'
-                }
             
             # Prepare Alpaca order
             alpaca_order_data = {
@@ -129,7 +161,23 @@ class ModularOrderExecutor:
                 'timestamp': datetime.now()
             }
             
+            # CRITICAL SAFETY: Record trade in comprehensive history tracker
+            # This prevents future rapid-fire trading incidents
+            self.trade_tracker.record_trade(
+                symbol=symbol,
+                side=side,
+                quantity=qty,
+                price=current_price,
+                order_id=order.id,
+                metadata={
+                    'order_type': order_type,
+                    'time_in_force': time_in_force,
+                    'order_value': order_value
+                }
+            )
+            
             self.logger.info(f"✅ Order submitted successfully: {order.id}")
+            self.logger.info(f"📊 Trade safety status: {self.trade_tracker.get_symbol_status(symbol)['status']}")
             
             return {
                 'success': True,
@@ -309,3 +357,28 @@ class ModularOrderExecutor:
             self.logger.error(f"❌ Error checking market hours: {e}")
             # Conservative approach: assume market is closed if unable to verify
             return False
+    
+# Old safety methods removed - now handled by TradeHistoryTracker
+    
+    def get_safety_status(self) -> Dict[str, Any]:
+        """Get comprehensive safety control status for monitoring."""
+        
+        # Get status from trade tracker
+        tracker_status = self.trade_tracker.get_all_status()
+        
+        # Add order executor specific status
+        return {
+            'emergency_stop': self.emergency_stop,
+            'execution_enabled': self.execution_enabled,
+            'dry_run_mode': self.dry_run_mode,
+            'pending_orders': len(self.pending_orders),
+            'trade_tracker_status': tracker_status
+        }
+    
+    def reset_safety_controls(self) -> Dict[str, Any]:
+        """Reset safety controls (use with caution)."""
+        self.emergency_stop = False
+        self.trade_tracker.reset_daily_counters()
+        
+        self.logger.warning("🔄 SAFETY CONTROLS RESET - Use with extreme caution!")
+        return {'success': True, 'message': 'Safety controls reset'}

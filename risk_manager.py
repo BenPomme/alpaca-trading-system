@@ -18,12 +18,13 @@ class RiskManager:
         self.db = db
         self.logger = logger or logging.getLogger(__name__)
         
-        # Risk Parameters (Phase 4.1: Unlimited positions for aggressive strategy)
-        self.max_positions = 25                 # CHANGED FROM None. Was: No limit on concurrent positions
-        self.max_daily_trades = 20                # Maximum trades per day
-        self.max_position_size_pct = 0.15         # 15% of portfolio per position
-        self.max_sector_exposure = 0.60           # 60% exposure to any sector (aggressive target)
-        self.max_daily_loss_pct = 0.02            # EMERGENCY FIX: 2% daily portfolio loss limit (reduced from 5%)
+        # Risk Parameters (EMERGENCY SAFETY CONTROLS AFTER $36K LOSS)
+        self.max_positions = 15                 # REDUCED from 25 after rapid-fire trading incident
+        self.max_daily_trades = 10                # REDUCED from 20 - limit excessive trading
+        self.max_position_size_pct = 0.08         # REDUCED from 15% to 8% - smaller positions
+        self.max_position_value = 8000            # HARD LIMIT: $8K max per position (was $23K+)
+        self.max_sector_exposure = 0.40           # REDUCED from 60% to 40% exposure per sector
+        self.max_daily_loss_pct = 0.015           # REDUCED to 1.5% daily loss limit (was 2%)
         # EMERGENCY FIX: Enable daily loss circuit breaker
         self.ignore_daily_loss = False
         self.logger.info("✅ Daily loss circuit breaker ENABLED: 2% limit")
@@ -199,19 +200,29 @@ class RiskManager:
             
             portfolio_value = float(account.portfolio_value)
             
-            # EMERGENCY FIX: Allow multiple trades in same symbol for aggressive strategy
-            # Check if already have position (but allow position building for unlimited strategy)
+            # CRITICAL SAFETY: Enforce strict position limits after $36K loss
+            position_value = target_shares * entry_price
+            
+            # HARD LIMIT: Maximum position value per symbol
+            if position_value > self.max_position_value:
+                return False, f"Position value ${position_value:,.0f} exceeds hard limit of ${self.max_position_value:,.0f}"
+            
+            # Check existing position limits 
             existing_position = next((p for p in positions if p.symbol == symbol), None)
             if existing_position:
-                # For aggressive strategy, allow position building up to 2x the normal size
-                current_value = float(existing_position.market_value)
-                max_total_position = portfolio_value * (self.max_position_size_pct * 2)  # 30% total max per symbol
+                current_value = abs(float(existing_position.market_value))
+                total_position_value = current_value + position_value
                 
-                if current_value + (target_shares * entry_price) > max_total_position:
-                    return False, f"Position in {symbol} would exceed 30% limit (current: ${current_value:,.0f})"
-                else:
-                    print(f"   ✅ Position building allowed for {symbol} (current: ${current_value:,.0f})")
-                    # Continue with other checks
+                # REDUCED LIMIT: Max 8% of portfolio per symbol (was 30%)
+                max_total_position = portfolio_value * self.max_position_size_pct
+                
+                if total_position_value > max_total_position:
+                    return False, f"Total position in {symbol} would be ${total_position_value:,.0f}, exceeding {self.max_position_size_pct:.1%} limit (${max_total_position:,.0f})"
+                
+                if total_position_value > self.max_position_value:
+                    return False, f"Total position in {symbol} would exceed ${self.max_position_value:,.0f} hard limit"
+                
+                print(f"   ⚠️ ADDING TO POSITION: {symbol} current ${current_value:,.0f} + new ${position_value:,.0f} = ${total_position_value:,.0f}")
             
             # Check maximum positions (Phase 4.1: Unlimited positions enabled)
             if self.max_positions is not None and len(positions) >= self.max_positions:

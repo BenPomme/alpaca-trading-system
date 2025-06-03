@@ -1,0 +1,67 @@
+{
+  "trade_history": {
+    "AVAXUSD": [
+      {
+        "timestamp": "2025-06-03T12:32:24.926402",
+        "side": "buy",
+        "quantity": 200.0,
+        "price": 21.12,
+        "value": 4224.0,
+        "order_id": "test_AVAXUSD_001",
+        "metadata": {}
+      }
+    ],
+    "DOTUSD": [
+      {
+        "timestamp": "2025-06-03T12:32:24.926629",
+        "side": "buy",
+        "quantity": 200.0,
+        "price": 4.1,
+        "value": 820.0,
+        "order_id": "test_DOTUSD_001",
+        "metadata": {}
+      }
+    ],
+    "UNIUSD": [
+      {
+        "timestamp": "2025-06-03T12:32:24.926807",
+        "side": "buy",
+        "quantity": 200.0,
+        "price": 6.46,
+        "value": 1292.0,
+        "order_id": "test_UNIUSD_001",
+        "metadata": {}
+      }
+    ],
+    "LINKUSD": [
+      {
+        "timestamp": "2025-06-03T12:32:24.926953",
+        "side": "buy",
+        "quantity": 200.0,
+        "price": 13.89,
+        "value": 2778.0,
+        "order_id": "test_LINKUSD_001",
+        "metadata": {}
+      }
+    ]
+  },
+  "position_values": {
+    "AVAXUSD": "4224.00",
+    "DOTUSD": "820.0",
+    "UNIUSD": "1292.00",
+    "LINKUSD": "2778.00"
+  },
+  "daily_trade_counts": {
+    "AVAXUSD": 1,
+    "DOTUSD": 1,
+    "UNIUSD": 1,
+    "LINKUSD": 1
+  },
+  "last_trade_times": {
+    "AVAXUSD": "2025-06-03T12:32:24.926402",
+    "DOTUSD": "2025-06-03T12:32:24.926629",
+    "UNIUSD": "2025-06-03T12:32:24.926807",
+    "LINKUSD": "2025-06-03T12:32:24.926953"
+  },
+  "last_updated": "2025-06-03T12:32:24.926958"
+}

@@ -539,6 +539,42 @@ class ProductionTradingSystem:
                 except Exception as e:
                     return jsonify({'error': str(e)}), 500
             
+            @self.flask_app.route('/safety')
+            def safety_status():
+                """CRITICAL SAFETY: Safety controls status endpoint."""
+                try:
+                    safety_data = {}
+                    
+                    # Orchestrator safety status
+                    if self.orchestrator and hasattr(self.orchestrator, 'get_safety_status'):
+                        safety_data['orchestrator'] = self.orchestrator.get_safety_status()
+                    
+                    # Order executor safety status
+                    if (self.orchestrator and hasattr(self.orchestrator, 'order_executor') and 
+                        hasattr(self.orchestrator.order_executor, 'get_safety_status')):
+                        safety_data['order_executor'] = self.orchestrator.order_executor.get_safety_status()
+                    
+                    # Add timestamp
+                    safety_data['timestamp'] = datetime.now().isoformat()
+                    safety_data['status'] = 'emergency' if safety_data.get('orchestrator', {}).get('emergency_stop') else 'operational'
+                    
+                    return jsonify(safety_data)
+                    
+                except Exception as e:
+                    return jsonify({'error': str(e)}), 500
+            
+            @self.flask_app.route('/safety/reset', methods=['POST'])
+            def reset_safety():
+                """CRITICAL SAFETY: Reset circuit breaker (use with extreme caution)."""
+                try:
+                    if self.orchestrator and hasattr(self.orchestrator, 'reset_circuit_breaker'):
+                        self.orchestrator.reset_circuit_breaker()
+                        return jsonify({'message': 'Circuit breaker reset', 'timestamp': datetime.now().isoformat()})
+                    else:
+                        return jsonify({'error': 'Orchestrator not available'}), 503
+                except Exception as e:
+                    return jsonify({'error': str(e)}), 500
+            
             logger.info("✅ Flask health endpoints initialized (including Market Intelligence)")
             
         except Exception as e:

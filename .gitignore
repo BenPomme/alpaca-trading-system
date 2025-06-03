@@ -8,3 +8,4 @@ data/trading_log.json
 # Firebase credentials
 *firebase-adminsdk*.json
 firebase-config.json
+.env.local
