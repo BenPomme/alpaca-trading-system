@@ -494,21 +494,26 @@ class CryptoModule(TradingModule):
             
             # Use the higher confidence score and determine action
             if buy_confidence > sell_confidence:
-                overall_confidence = buy_confidence
+                technical_confidence = buy_confidence
                 primary_action = 'BUY'
                 momentum_score = buy_confidence  # For compatibility
             else:
-                overall_confidence = sell_confidence
+                technical_confidence = sell_confidence
                 primary_action = 'SELL'
                 momentum_score = sell_confidence  # For compatibility
             
-            # For compatibility with existing code structure
-            volatility_score = bollinger_analysis.get('volatility_score', 0.5)
-            volume_score = volume_analysis.get('volume_score', 0.5)
+            # For compatibility with existing code structure - handle None safely
+            volatility_score = bollinger_analysis.get('volatility_score', 0.5) if bollinger_analysis else 0.5
+            volume_score = volume_analysis.get('volume_score', 0.5) if volume_analysis else 0.5
             
-            # DEBUG: Log comprehensive analysis for troubleshooting
-            self.logger.info(f"🔍 {symbol}: BUY_conf={buy_confidence:.2f}, SELL_conf={sell_confidence:.2f}, Action={primary_action}, RSI={rsi_analysis.get('rsi_value', 0):.1f}")
-            self.logger.debug(f"📊 {symbol}: MACD={macd_analysis.get('macd_signal', 'neutral')}, Bollinger={bollinger_analysis.get('position', 'neutral')}, Volume={volume_analysis.get('confirmation', 'neutral')}")
+            # DEBUG: Log comprehensive analysis for troubleshooting - handle None safely
+            rsi_value = rsi_analysis.get('rsi_value', 0) if rsi_analysis else 0
+            macd_signal = macd_analysis.get('macd_signal', 'neutral') if macd_analysis else 'None'
+            bollinger_position = bollinger_analysis.get('position', 'neutral') if bollinger_analysis else 'None'
+            volume_confirmation = volume_analysis.get('confirmation', 'neutral') if volume_analysis else 'None'
+            
+            self.logger.info(f"🔍 {symbol}: BUY_conf={buy_confidence:.2f}, SELL_conf={sell_confidence:.2f}, Action={primary_action}, RSI={rsi_value:.1f}")
+            self.logger.debug(f"📊 {symbol}: MACD={macd_signal}, Bollinger={bollinger_position}, Volume={volume_confirmation}")
             
             # Integrate Market Intelligence/ML confidence if available
             intelligence_confidence = None
@@ -526,7 +531,7 @@ class CryptoModule(TradingModule):
                 self.logger.info(f"📊 {symbol}: Tech={technical_confidence:.2f} + AI={intelligence_confidence:.2f} = Overall={overall_confidence:.2f}")
             else:
                 overall_confidence = technical_confidence
-                self.logger.info(f"📊 {symbol}: Technical-only confidence={overall_confidence:.2f} (momentum={momentum_score:.2f}, vol={volatility_score:.2f}, volume={volume_score:.2f})")
+                self.logger.info(f"📊 {symbol}: Technical confidence={overall_confidence:.2f} (momentum={momentum_score:.2f}, vol={volatility_score:.2f}, volume={volume_score:.2f})")
             
             session_config = self.session_configs[session]
             
@@ -574,27 +579,33 @@ class CryptoModule(TradingModule):
                 rs = avg_gain / avg_loss
                 rsi = 100 - (100 / (1 + rs))
             
-            # Research-backed RSI interpretation
+            # DYNAMIC RSI interpretation based on actual RSI value
+            # Convert RSI to normalized buy/sell strength (0-1 scale)
+            # RSI 0-30: Strong buy zone
+            # RSI 30-50: Moderate buy zone  
+            # RSI 50-70: Moderate sell zone
+            # RSI 70-100: Strong sell zone
+            
             if rsi <= 30:
+                # Strong oversold - scale from 0.9 at RSI=0 to 0.7 at RSI=30
+                buy_strength = 0.9 - (rsi / 30) * 0.2  # 0.9 -> 0.7
+                sell_strength = 1 - buy_strength
                 signal = 'strong_buy'
-                buy_strength = 0.9
-                sell_strength = 0.1
-            elif rsi <= 40:
-                signal = 'buy'
-                buy_strength = 0.7
-                sell_strength = 0.3
-            elif rsi >= 70:
-                signal = 'strong_sell'
-                buy_strength = 0.1
-                sell_strength = 0.9
-            elif rsi >= 60:
-                signal = 'sell'
-                buy_strength = 0.3
-                sell_strength = 0.7
+            elif rsi <= 50:
+                # Moderate oversold - scale from 0.7 at RSI=30 to 0.5 at RSI=50
+                buy_strength = 0.7 - ((rsi - 30) / 20) * 0.2  # 0.7 -> 0.5
+                sell_strength = 1 - buy_strength
+                signal = 'buy' if rsi <= 40 else 'neutral'
+            elif rsi <= 70:
+                # Moderate overbought - scale from 0.5 at RSI=50 to 0.3 at RSI=70
+                buy_strength = 0.5 - ((rsi - 50) / 20) * 0.2  # 0.5 -> 0.3
+                sell_strength = 1 - buy_strength
+                signal = 'sell' if rsi >= 60 else 'neutral'
             else:
-                signal = 'neutral'
-                buy_strength = 0.5
-                sell_strength = 0.5
+                # Strong overbought - scale from 0.3 at RSI=70 to 0.1 at RSI=100
+                buy_strength = 0.3 - ((rsi - 70) / 30) * 0.2  # 0.3 -> 0.1
+                sell_strength = 1 - buy_strength
+                signal = 'strong_sell'
             
             return {
                 'rsi_value': rsi,
@@ -641,15 +652,27 @@ class CryptoModule(TradingModule):
             # MACD line
             macd_line = ema_12 - ema_26
             
-            # Simple signal interpretation (would need more history for signal line)
+            # DYNAMIC MACD interpretation based on actual MACD value
+            # Convert MACD line to strength based on magnitude relative to current price
+            current_price = market_data.get('current_price', 1)
+            macd_percentage = (macd_line / current_price) * 100  # Convert to percentage
+            
+            # Scale MACD strength based on percentage magnitude
+            # Strong signals when MACD is >1% or <-1% of price
+            abs_macd_pct = abs(macd_percentage)
+            
             if macd_line > 0:
+                # Bullish MACD - stronger signal with higher positive values
                 signal = 'bullish'
-                buy_strength = 0.7
-                sell_strength = 0.3
+                # Scale from 0.5 (barely positive) to 0.9 (strongly positive >2%)
+                buy_strength = 0.5 + min(abs_macd_pct / 2.0, 0.4)  # 0.5 -> 0.9
+                sell_strength = 1 - buy_strength
             else:
+                # Bearish MACD - stronger signal with higher negative values
                 signal = 'bearish'
-                buy_strength = 0.3
-                sell_strength = 0.7
+                # Scale from 0.5 (barely negative) to 0.9 (strongly negative <-2%)
+                sell_strength = 0.5 + min(abs_macd_pct / 2.0, 0.4)  # 0.5 -> 0.9
+                buy_strength = 1 - sell_strength
             
             return {
                 'macd_line': macd_line,
@@ -680,23 +703,42 @@ class CryptoModule(TradingModule):
             upper_band = sma_20 + (2 * std_dev)
             lower_band = sma_20 - (2 * std_dev)
             
-            # Position relative to bands
-            if current_price > upper_band:
-                position = 'above_upper'
-                buy_strength = 0.2  # Overbought
-                sell_strength = 0.8
-            elif current_price < lower_band:
-                position = 'below_lower'
-                buy_strength = 0.8  # Oversold
-                sell_strength = 0.2
-            elif current_price > sma_20:
-                position = 'above_middle'
-                buy_strength = 0.6
-                sell_strength = 0.4
+            # DYNAMIC Bollinger Bands interpretation based on exact price position
+            # Calculate where price sits within the bands (0 = lower band, 1 = upper band)
+            band_range = upper_band - lower_band
+            if band_range > 0:
+                # Price position within bands (0.0 = at lower band, 1.0 = at upper band)
+                band_position = (current_price - lower_band) / band_range
+                
+                if current_price > upper_band:
+                    # Above upper band - overbought territory
+                    excess_pct = (current_price - upper_band) / upper_band
+                    position = 'above_upper'
+                    buy_strength = max(0.1, 0.3 - min(excess_pct * 2, 0.2))  # 0.1-0.3 range
+                    sell_strength = 1 - buy_strength
+                elif current_price < lower_band:
+                    # Below lower band - oversold territory  
+                    deficit_pct = (lower_band - current_price) / lower_band
+                    position = 'below_lower'
+                    buy_strength = min(0.9, 0.7 + min(deficit_pct * 2, 0.2))  # 0.7-0.9 range
+                    sell_strength = 1 - buy_strength
+                else:
+                    # Within bands - proportional to position
+                    position = 'within_bands'
+                    # Linear scale with peak buy strength near lower band
+                    if band_position <= 0.5:
+                        # Lower half - increasing buy strength as we approach lower band
+                        buy_strength = 0.5 + (0.5 - band_position) * 0.6  # 0.5 -> 0.8
+                    else:
+                        # Upper half - decreasing buy strength as we approach upper band
+                        buy_strength = 0.5 - (band_position - 0.5) * 0.6  # 0.5 -> 0.2
+                    
+                    sell_strength = 1 - buy_strength
             else:
-                position = 'below_middle'
-                buy_strength = 0.4
-                sell_strength = 0.6
+                # Fallback if band calculation fails
+                position = 'neutral'
+                buy_strength = 0.5
+                sell_strength = 0.5
             
             # Volatility score for compatibility
             band_width = (upper_band - lower_band) / sma_20
