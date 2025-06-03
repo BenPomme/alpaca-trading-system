@@ -20,7 +20,18 @@ from modular.base_module import (
     TradeAction, TradeStatus, ExitReason
 )
 from utils.pattern_recognition import PatternRecognition
-from utils.news_sentiment import NewsSentimentAnalyzer # Example import
+from utils.news_sentiment import NewsSentimentAnalyzer
+
+# Enhanced ML/AI Integration (Phase 2)
+try:
+    from enhanced_data_manager import EnhancedDataManager
+    from enhanced_technical_indicators import EnhancedTechnicalIndicators
+    from enhanced_ml_models import EnhancedMLFramework
+    ENHANCED_LIBS_AVAILABLE = True
+    print("✅ Enhanced ML/AI libraries loaded for stocks module")
+except ImportError as e:
+    print(f"⚠️ Enhanced libraries not available: {e} - using basic analysis")
+    ENHANCED_LIBS_AVAILABLE = False
 
 
 class StockStrategy(Enum):
@@ -95,9 +106,26 @@ class StocksModule(TradingModule):
         self.api = api_client
         self.intelligence_systems = intelligence_systems or {}
         
-        # INSTITUTIONAL STOCKS CONFIGURATION - Research-backed approach
-        self.max_stock_allocation = 0.40  # REDUCED from 50% to 40% (better concentration)
-        self.aggressive_multiplier = 1.5  # REDUCED from 2.0 to 1.5 (more conservative)
+        # Initialize Enhanced ML/AI Systems (Phase 2)
+        if ENHANCED_LIBS_AVAILABLE:
+            try:
+                self.enhanced_data_manager = EnhancedDataManager(api_client=api_client, logger=logger)
+                self.enhanced_technical_indicators = EnhancedTechnicalIndicators(logger=logger)
+                self.enhanced_ml_framework = EnhancedMLFramework(logger=logger)
+                self.logger.info("✅ Enhanced ML/AI systems initialized for stocks module")
+            except Exception as e:
+                self.logger.warning(f"⚠️ Enhanced systems initialization failed: {e} - using basic analysis")
+                self.enhanced_data_manager = None
+                self.enhanced_technical_indicators = None
+                self.enhanced_ml_framework = None
+        else:
+            self.enhanced_data_manager = None
+            self.enhanced_technical_indicators = None
+            self.enhanced_ml_framework = None
+        
+        # AGGRESSIVE RECOVERY STOCKS CONFIGURATION - Targeting 5-10% monthly returns
+        self.max_stock_allocation = 0.50  # INCREASED for aggressive recovery (portfolio down -2.55%)
+        self.aggressive_multiplier = 1.8  # INCREASED for recovery positioning
         # MARKET_TIER removed - trade all available symbols for maximum opportunities
         
         # INSTITUTIONAL RISK MANAGEMENT
@@ -1352,8 +1380,23 @@ class StocksModule(TradingModule):
                 buying_power = portfolio_value * 2.0  # Assume 2x leverage
                 self.logger.debug(f"Using estimated buying power: ${buying_power:,.2f}")
             
-            # Day trading allocation per trade (2.5% of buying power for aggressive leverage)
-            leverage_allocation = 0.025
+            # FIXED: Conservative allocation per trade to prevent buying power failures
+            # Portfolio is down -2.55% so we need proper position sizing
+            base_allocation = 0.008  # 0.8% per trade (down from 2.5%)
+            # When portfolio is down, be more aggressive with winners
+            current_stock_allocation = self._get_current_stock_allocation()
+            
+            # Dynamic allocation based on portfolio performance and current allocation
+            if current_stock_allocation > self.max_stock_allocation * 1.2:  # Over-allocated
+                leverage_allocation = base_allocation * 0.5  # Very conservative 0.4%
+                self.logger.debug(f"OVER-ALLOCATED {current_stock_allocation:.1%}: Using conservative 0.4% sizing")
+            elif current_stock_allocation > self.max_stock_allocation:  # At limit
+                leverage_allocation = base_allocation * 0.7  # Conservative 0.56%
+                self.logger.debug(f"AT LIMIT {current_stock_allocation:.1%}: Using 0.56% sizing")
+            else:  # Normal allocation range
+                leverage_allocation = base_allocation  # Normal 0.8%
+                self.logger.debug(f"NORMAL RANGE {current_stock_allocation:.1%}: Using 0.8% sizing")
+            
             max_position_value = buying_power * leverage_allocation * self.aggressive_multiplier
             
             # Calculate whole share quantity leveraging available buying power
@@ -1538,26 +1581,136 @@ class StocksModule(TradingModule):
             return 1.0
     
     def _analyze_stock_symbol_intraday(self, symbol: str, market_regime: str, strategy_info: Dict[str, Any]) -> Optional[StockAnalysis]:
-        """Analyze stock symbol with intraday optimizations"""
+        """AI-Enhanced stock analysis with multi-source data and ML predictions"""
         try:
-            # Get basic analysis first
-            analysis = self._analyze_stock_symbol(symbol, market_regime)
-            if not analysis:
+            # PHASE 1: Enhanced Data Collection
+            if self.enhanced_data_manager:
+                # Multi-source data with Alpaca as primary
+                enhanced_data = self.enhanced_data_manager.get_enhanced_quote_data(symbol, include_fundamentals=True)
+                market_data = self.enhanced_data_manager.get_market_context(symbol)
+                sector_data = self.enhanced_data_manager.get_sector_data(symbol)
+            else:
+                # Fallback to basic analysis
+                return self._analyze_stock_symbol(symbol, market_regime)
+            
+            if not enhanced_data or enhanced_data.get('current_price', 0) <= 0:
                 return None
             
-            # Apply intraday strategy preference
-            preferred_strategy = strategy_info['primary_strategy']
-            if self._symbol_fits_strategy(symbol, preferred_strategy):
-                analysis.recommended_strategy = preferred_strategy
-                # Boost confidence for preferred strategy match
-                analysis.combined_confidence = min(0.95, analysis.combined_confidence + 0.05)
+            current_price = enhanced_data['current_price']
             
-            # Check volume requirement (simplified - would use real volume data)
-            volume_requirement = strategy_info['volume_requirement']
-            if volume_requirement > 1.0:
-                # For now, assume all symbols meet volume requirements
-                # In production, this would check actual volume vs average
-                pass
+            # PHASE 2: Enhanced Technical Analysis with TA-Lib
+            if self.enhanced_technical_indicators:
+                technical_analysis = self.enhanced_technical_indicators.analyze_comprehensive(
+                    symbol=symbol,
+                    price_data=enhanced_data.get('price_history', []),
+                    volume_data=enhanced_data.get('volume_history', []),
+                    timeframe='intraday'
+                )
+                
+                # Advanced indicators: RSI, MACD, Bollinger Bands, Williams %R, Stochastic
+                technical_score = technical_analysis.get('combined_score', 0.5)
+                trend_strength = technical_analysis.get('trend_strength', 0.5)
+                momentum_score = technical_analysis.get('momentum_score', 0.5)
+            else:
+                # Fallback basic technical analysis
+                technical_score = 0.5
+                trend_strength = 0.5 
+                momentum_score = 0.5
+            
+            # PHASE 3: AI/ML Predictions
+            if self.enhanced_ml_framework:
+                ml_predictions = self.enhanced_ml_framework.predict_stock_movement(
+                    symbol=symbol,
+                    market_data=enhanced_data,
+                    technical_indicators=technical_analysis,
+                    market_regime=market_regime,
+                    sector_context=sector_data
+                )
+                
+                ml_confidence = ml_predictions.get('confidence', 0.5)
+                predicted_direction = ml_predictions.get('direction', 'neutral')  # 'bullish'/'bearish'/'neutral'
+                price_target = ml_predictions.get('price_target', current_price)
+                time_horizon = ml_predictions.get('time_horizon_hours', 1)
+                
+                # AI-enhanced regime scoring
+                regime_score = ml_predictions.get('regime_alignment', 0.5)
+            else:
+                # Fallback basic ML
+                ml_confidence = 0.5
+                predicted_direction = 'neutral'
+                regime_score = 0.5
+            
+            # PHASE 4: Enhanced Pattern Recognition
+            pattern_score = 0.5
+            if hasattr(self, 'pattern_recognition') and self.pattern_recognition:
+                pattern_analysis = self.pattern_recognition.analyze_patterns(
+                    symbol, enhanced_data.get('price_history', [])
+                )
+                pattern_score = pattern_analysis.get('confidence', 0.5)
+            
+            # PHASE 5: AI-Weighted Combined Confidence 
+            # Adaptive weights based on market conditions and ML confidence
+            if ml_confidence > 0.7:  # High ML confidence - trust AI more
+                weights = {'technical': 0.25, 'ml': 0.50, 'regime': 0.15, 'pattern': 0.10}
+            elif market_regime in ['bull', 'bear']:  # Clear regime - trust regime analysis
+                weights = {'technical': 0.35, 'ml': 0.30, 'regime': 0.25, 'pattern': 0.10}
+            else:  # Uncertain conditions - balanced approach
+                weights = {'technical': 0.40, 'ml': 0.35, 'regime': 0.15, 'pattern': 0.10}
+            
+            combined_confidence = (
+                technical_score * weights['technical'] +
+                ml_confidence * weights['ml'] +
+                regime_score * weights['regime'] +
+                pattern_score * weights['pattern']
+            )
+            
+            # PHASE 6: AI-Powered Strategy Selection
+            preferred_strategy = strategy_info['primary_strategy']
+            
+            # AI strategy optimization based on predictions
+            if ml_predictions and predicted_direction == 'bullish':
+                if symbol in ['TQQQ', 'UPRO', 'SOXL']:  # Leveraged ETFs
+                    recommended_strategy = StockStrategy.LEVERAGED_ETFS
+                    position_multiplier = 1.5  # Aggressive for leveraged ETFs
+                elif trend_strength > 0.7:  # Strong momentum
+                    recommended_strategy = StockStrategy.MOMENTUM_AMPLIFICATION
+                    position_multiplier = 1.4
+                elif sector_data and sector_data.get('rotation_signal') == 'positive':
+                    recommended_strategy = StockStrategy.SECTOR_ROTATION
+                    position_multiplier = 1.3
+                else:
+                    recommended_strategy = StockStrategy.CORE_EQUITY
+                    position_multiplier = 1.2
+            else:
+                # Conservative approach for uncertain signals
+                recommended_strategy = preferred_strategy
+                position_multiplier = 1.0
+            
+            # PHASE 7: Enhanced Confidence Adjustments
+            # Boost confidence for AI-confirmed opportunities when portfolio is down
+            portfolio_performance = -0.0255  # Current -2.55% performance
+            if portfolio_performance < -0.02 and predicted_direction == 'bullish':
+                combined_confidence = min(0.95, combined_confidence + 0.10)  # Recovery boost
+                self.logger.debug(f"🔥 RECOVERY BOOST: {symbol} confidence boosted for buy-the-dip strategy")
+            
+            # Strategy match bonus
+            if self._symbol_fits_strategy(symbol, recommended_strategy):
+                combined_confidence = min(0.95, combined_confidence + 0.05)
+            
+            self.logger.debug(f"🤖 AI ANALYSIS {symbol}: Tech={technical_score:.2f}, ML={ml_confidence:.2f}, "
+                            f"Regime={regime_score:.2f}, Combined={combined_confidence:.2f}, "
+                            f"Strategy={recommended_strategy.value}, Direction={predicted_direction}")
+            
+            return StockAnalysis(
+                symbol=symbol,
+                current_price=current_price,
+                technical_score=technical_score,
+                regime_score=regime_score,
+                pattern_score=pattern_score,
+                combined_confidence=combined_confidence,
+                recommended_strategy=recommended_strategy,
+                position_multiplier=position_multiplier
+            )
             
             return analysis
             

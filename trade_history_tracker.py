@@ -68,12 +68,12 @@ class TradeHistoryTracker:
         self.daily_trade_counts: Dict[str, int] = {}    # symbol -> daily count
         self.last_trade_times: Dict[str, datetime] = {} # symbol -> last trade time
         
-        # Safety configuration - Based on loss analysis
-        self.cooldown_minutes = 5       # 5-minute cooldown (was causing 10 trades/min)
+        # AGGRESSIVE TRADING CONFIGURATION - Portfolio down -2.55%, need aggressive recovery
+        self.cooldown_minutes = 1       # REDUCED: 1-minute cooldown for optimal timing
         self.max_position_value = None  # REMOVED: No position size limits
-        self.max_daily_trades = None    # REMOVED: No daily trade limits
-        self.max_trades_per_hour = 2    # 2 trades per hour max per symbol
-        self.rapid_trade_threshold = 3  # Flag as rapid if 3+ trades in 10 minutes
+        self.max_daily_trades = None    # REMOVED: No daily trade limits  
+        self.max_trades_per_hour = 10   # INCREASED: 10 trades per hour for aggressive recovery
+        self.rapid_trade_threshold = 8  # INCREASED: Flag only if 8+ trades in 10 minutes (vs 3)
         
         # Load existing data
         self.load_history()

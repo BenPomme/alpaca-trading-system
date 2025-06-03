@@ -220,14 +220,15 @@ class CryptoModule(TradingModule):
             portfolio_value = portfolio_summary.get('portfolio_value', 100000)
             current_crypto_value = current_allocation * portfolio_value
             
-            if current_allocation >= smart_allocation_limit:
-                self.logger.warning(f"🎯 SMART ALLOCATION LIMIT: {current_allocation:.1%} >= {smart_allocation_limit:.1%} - optimizing for 5% monthly ROI")
-                self.logger.info(f"💡 PERFORMANCE MODE: Current allocation ${current_crypto_value:,.0f} optimized for risk-adjusted returns")
-                
-                # Don't completely stop - allow high-confidence opportunities for rebalancing
-                if current_allocation >= smart_allocation_limit * 1.2:  # 20% buffer
-                    self.logger.warning(f"🚨 ALLOCATION EXCEEDED: {current_allocation:.1%} > {smart_allocation_limit*1.2:.1%} - PAUSING new entries")
-                    return opportunities
+            # AGGRESSIVE RECOVERY MODE: Only limit at extreme over-allocation
+            extreme_limit = smart_allocation_limit * 2.0  # INCREASED: 2x buffer for aggressive recovery
+            
+            if current_allocation >= extreme_limit:
+                self.logger.warning(f"🚨 EXTREME OVER-ALLOCATION: {current_allocation:.1%} > {extreme_limit:.1%} - Pausing for risk management")
+                return opportunities
+            elif current_allocation >= smart_allocation_limit:
+                self.logger.info(f"🎯 ABOVE TARGET: {current_allocation:.1%} > {smart_allocation_limit:.1%} - Seeking high-conviction opportunities only")
+                # Continue trading but be more selective (higher confidence threshold applied later)
             
             # Log current status without arbitrary limits
             self.logger.info(f"💰 CRYPTO STATUS ({session_type}): {current_allocation:.1%} allocation, "
@@ -1995,21 +1996,11 @@ class CryptoModule(TradingModule):
             return self.after_hours_leverage  # 1.5x (emergency fix)
     
     def _should_close_positions_before_market_open(self) -> bool:
-        """Check if we should close positions before market opens"""
-        try:
-            clock = self.api.get_clock()
-            if hasattr(clock, 'next_open'):
-                from datetime import datetime, timedelta
-                next_open = clock.next_open
-                current_time = datetime.now(next_open.tzinfo)
-                time_until_open = (next_open - current_time).total_seconds() / 60  # minutes
-                
-                # Close positions 30 minutes before market opens
-                return time_until_open <= 30 and time_until_open > 0
-            return False
-        except Exception as e:
-            self.logger.debug(f"Error checking time until market open: {e}")
-            return False
+        """DISABLED: No forced pre-market closures for aggressive recovery strategy"""
+        # FIXED: Portfolio down -2.55% - forced closures just caused -$657 and -$184 losses
+        # Crypto is 24/7 and should run independently of stock market timing
+        # Let winning positions run and only exit based on technical/profit criteria
+        return False  # NEVER force close profitable crypto positions
     
     # Smart Allocation Methods for 5% Monthly ROI Target
     
