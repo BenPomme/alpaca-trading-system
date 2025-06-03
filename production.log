@@ -4891,3 +4891,578 @@ NameError: name 'dataclasses' is not defined. Did you mean: 'dataclass'? Or did 
 2025-06-02 22:33:34,548 - __main__ - INFO - ✅ BTCUSD: Risk validation passed
 2025-06-02 22:33:34,756 - __main__ - INFO - 📊 Crypto allocation: $8,341 (9.4%)
 2025-06-02 22:33:34,856 - alpaca_trade_api.rest - WARNING - sleep 3 seconds and retrying https://paper-api.alpaca.markets/v2/account 3 more time(s)...
+2025-06-03 09:53:07,224 - __main__ - INFO - 🚀 MODULAR TRADING SYSTEM - PRODUCTION STARTUP
+2025-06-03 09:53:07,225 - __main__ - INFO - 🔧 CRITICAL FIX: Order Executor Implementation - v1.5
+2025-06-03 09:53:07,225 - __main__ - INFO - 🎯 ORDER EXECUTION SHOULD NOW WORK
+2025-06-03 09:53:07,225 - __main__ - INFO - 🎯 SUCCESSFUL TRADES EXPECTED
+2025-06-03 09:53:07,225 - __main__ - INFO - ============================================================
+2025-06-03 09:53:07,225 - __main__ - INFO - ⏰ Start Time: 2025-06-03 09:53:07.225551
+2025-06-03 09:53:07,225 - __main__ - INFO - 🐍 Python Version: 3.13.3 (main, Apr  8 2025, 13:54:08) [Clang 17.0.0 (clang-1700.0.13.3)]
+2025-06-03 09:53:07,225 - __main__ - INFO - 📁 Working Directory: /Users/benjamin.pommeraud/Desktop/Alpaca
+2025-06-03 09:53:07,225 - __main__ - INFO - 🌍 Environment: local
+2025-06-03 09:53:07,225 - __main__ - INFO - 
+2025-06-03 09:53:07,225 - production_config - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:53:07,225 - production_config - INFO -    Subscription: free
+2025-06-03 09:53:07,225 - production_config - INFO -    Data Mode: delayed
+2025-06-03 09:53:07,225 - production_config - INFO -    Cycle Delay: 60s
+2025-06-03 09:53:07,225 - production_config - INFO - ✅ Configuration loaded from environment
+2025-06-03 09:53:07,225 - production_config - WARNING - ⚠️ OPENAI_API_KEY not set - Market Intelligence will be disabled
+2025-06-03 09:53:07,225 - production_config - INFO - ⚡ Trading cycle configured: 60s intervals (optimized for Basic Plan)
+2025-06-03 09:53:07,225 - production_config - WARNING - ⚠️ Fast cycles with Basic Plan may waste API calls - consider upgrading to Algo Trader Plus
+2025-06-03 09:53:07,225 - production_config - WARNING - ⚠️ Firebase keys missing: ['FIREBASE_PRIVATE_KEY_ID', 'FIREBASE_PRIVATE_KEY', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_CLIENT_ID'] - Firebase will be disabled
+2025-06-03 09:53:07,225 - production_config - INFO - ✅ Configuration validation complete
+2025-06-03 09:53:07,225 - production_config - INFO - ✅ Configuration loaded from environment
+2025-06-03 09:53:07,225 - production_config - INFO - 📊 DATA MODE STATUS:
+   Subscription: FREE
+   Data Mode: DELAYED
+   Cycle Delay: 60s
+   Strategy Focus: intraday
+   Risk Level: aggressive
+   Max Daily Trades: 100
+   Min Hold Time: 0.1h
+   Quote Staleness OK: <1200s
+2025-06-03 09:53:07,225 - production_health_check - INFO - 🏥 Health monitor initialized
+2025-06-03 09:53:07,226 - __main__ - INFO - 🚀 Production Trading System initializing...
+2025-06-03 09:53:07,226 - __main__ - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:53:07,226 - __main__ - INFO -    Subscription: free
+2025-06-03 09:53:07,226 - __main__ - INFO -    Data Mode: delayed
+2025-06-03 09:53:07,226 - __main__ - INFO -    Cycle Delay: 60s
+2025-06-03 09:53:07,226 - __main__ - INFO - 🔧 DELAYED DATA OPTIMIZATION: System configured for your subscription level
+2025-06-03 09:53:07,226 - __main__ - INFO - 📊 DATA MODE STATUS:
+   Subscription: FREE
+   Data Mode: DELAYED
+   Cycle Delay: 60s
+   Strategy Focus: intraday
+   Risk Level: aggressive
+   Max Daily Trades: 100
+   Min Hold Time: 0.1h
+   Quote Staleness OK: <1200s
+2025-06-03 09:53:07,226 - __main__ - INFO - 🚀 Starting production trading system...
+2025-06-03 09:53:07,226 - __main__ - INFO - 🔧 Initializing system components...
+2025-06-03 09:53:07,226 - __main__ - INFO - 🔥 Initializing Firebase database...
+2025-06-03 09:53:07,226 - __main__ - WARNING - ⚠️ Firebase database not connected - using fallback mode
+2025-06-03 09:53:07,226 - __main__ - INFO - 📈 Initializing Alpaca trading API...
+2025-06-03 09:53:07,226 - __main__ - INFO - 🔍 ALPACA API CREDENTIAL DEBUGGING:
+2025-06-03 09:53:07,226 - __main__ - INFO -    API Key present: True
+2025-06-03 09:53:07,226 - __main__ - INFO -    Secret Key present: True
+2025-06-03 09:53:07,226 - __main__ - INFO -    Base URL: https://paper-api.alpaca.markets
+2025-06-03 09:53:07,226 - __main__ - INFO -    API Key starts with: PKIP9MZ4...
+2025-06-03 09:53:07,226 - __main__ - INFO -    API Key length: 20
+2025-06-03 09:53:07,226 - __main__ - INFO -    Secret Key starts with: zjGO4D9s...
+2025-06-03 09:53:07,226 - __main__ - INFO -    Secret Key length: 40
+2025-06-03 09:53:07,226 - __main__ - INFO - 🔍 VALIDATING API KEY FORMATS:
+2025-06-03 09:53:07,226 - __main__ - INFO - 📡 Connecting to Alpaca API...
+2025-06-03 09:53:07,226 - __main__ - INFO - 📊 Alpaca API initialized - data quality depends on account subscription tier
+2025-06-03 09:53:07,539 - __main__ - INFO - ✅ Alpaca API connected - Account: 9bf79f14-780a-4086-9721-29702b492f04
+2025-06-03 09:53:07,539 - __main__ - INFO - 💰 Portfolio Value: $1,000,000.00
+2025-06-03 09:53:07,539 - __main__ - INFO - 🔓 Buying Power: $2,000,000.00
+2025-06-03 09:53:07,539 - __main__ - INFO - 🎼 Initializing modular orchestrator...
+2025-06-03 09:53:07,556 - __main__ - INFO - ✅ Daily loss circuit breaker ENABLED: 2% limit
+2025-06-03 09:53:07,660 - __main__ - INFO - ✅ Modular Order Executor initialized
+2025-06-03 09:53:07,660 - __main__ - INFO - 🔧 Order execution mode: LIVE
+2025-06-03 09:53:07,661 - __main__ - INFO - ML Parameter Optimizer initialized
+2025-06-03 09:53:07,661 - __main__ - INFO - ML Parameter Optimization Engine initialized
+2025-06-03 09:53:07,661 - __main__ - INFO - Auto-created ML optimization engine
+2025-06-03 09:53:07,661 - __main__ - INFO - Modular Trading Orchestrator initialized
+2025-06-03 09:53:07,661 - __main__ - INFO - 📋 Registering trading modules...
+2025-06-03 09:53:07,913 - __main__ - INFO - 🎯 Initializing Options module...
+2025-06-03 09:53:07,914 - __main__ - INFO - Initialized options module with ML data collection enabled
+2025-06-03 09:53:07,914 - __main__ - INFO - Options module initialized with 8 symbols
+2025-06-03 09:53:07,914 - __main__ - INFO - Max allocation: 15.0%, Target leverage: 2.5x
+2025-06-03 09:53:07,914 - __main__ - INFO - Registered module: options
+2025-06-03 09:53:07,914 - __main__ - INFO - ✅ Options module registered
+2025-06-03 09:53:07,914 - __main__ - INFO - ₿ Initializing Crypto module...
+2025-06-03 09:53:07,914 - __main__ - INFO - Initialized crypto module with ML data collection enabled
+2025-06-03 09:53:07,914 - __main__ - INFO - Crypto module initialized with 9 cryptocurrencies
+2025-06-03 09:53:07,914 - __main__ - INFO - Smart allocation range: 20.0%-60.0%, Leverage: 2.0x
+2025-06-03 09:53:07,914 - __main__ - INFO - Registered module: crypto
+2025-06-03 09:53:07,914 - __main__ - INFO - ✅ Crypto module registered
+2025-06-03 09:53:07,914 - __main__ - INFO - 📈 DEBUGGING: Starting Stocks module initialization...
+2025-06-03 09:53:07,914 - __main__ - INFO - 📈 DEBUGGING: modules_config stocks = True
+2025-06-03 09:53:07,914 - __main__ - INFO - 📈 DEBUGGING: Creating StocksModule instance...
+2025-06-03 09:53:07,914 - __main__ - INFO - Initialized stocks module with ML data collection enabled
+2025-06-03 09:53:07,914 - __main__ - INFO - Stocks module initialized with 20 symbols across 2 tiers
+2025-06-03 09:53:07,914 - __main__ - INFO - Market tier: 2, Aggressive multiplier: 1.5x
+2025-06-03 09:53:07,914 - __main__ - INFO - Institutional trading: 86400s cycles, Monthly momentum approach (vs intraday scalping)
+2025-06-03 09:53:07,914 - __main__ - INFO - 📈 DEBUGGING: StocksModule created, registering with orchestrator...
+2025-06-03 09:53:07,914 - __main__ - INFO - Registered module: stocks
+2025-06-03 09:53:07,914 - __main__ - INFO - ✅ DEBUGGING: Stocks module registration COMPLETED
+2025-06-03 09:53:07,914 - __main__ - INFO - 📈 DEBUGGING: Stocks module in active list: True
+2025-06-03 09:53:07,914 - __main__ - INFO - 📈 DEBUGGING: All active modules: ['options', 'crypto', 'stocks']
+2025-06-03 09:53:07,914 - __main__ - WARNING - ⚠️ Market Intelligence module disabled - OPENAI_API_KEY not found
+2025-06-03 09:53:07,914 - __main__ - INFO - 📋 Module registration complete
+2025-06-03 09:53:07,914 - __main__ - INFO - ✅ Active modules: ['options', 'crypto', 'stocks']
+2025-06-03 09:53:07,914 - __main__ - INFO - ✅ Modular orchestrator initialized
+2025-06-03 09:53:07,914 - __main__ - INFO - 🏥 Initializing health monitoring...
+2025-06-03 09:53:07,914 - production_health_check - INFO - ✅ Registered health check for: firebase
+2025-06-03 09:53:07,914 - production_health_check - INFO - ✅ Registered health check for: alpaca
+2025-06-03 09:53:07,914 - production_health_check - INFO - ✅ Registered health check for: orchestrator
+2025-06-03 09:53:07,914 - __main__ - INFO - ✅ Health monitoring initialized
+2025-06-03 09:53:07,915 - __main__ - INFO - ✅ Flask health endpoints initialized (including Market Intelligence)
+2025-06-03 09:53:07,915 - __main__ - INFO - ✅ All components initialized successfully
+2025-06-03 09:53:07,915 - __main__ - INFO - 🚨 EMERGENCY ALLOCATION CHECK
+2025-06-03 09:53:08,115 - __main__ - INFO - 💰 Portfolio: $1,000,000
+2025-06-03 09:53:08,115 - __main__ - INFO - 🔓 Buying Power: $2,000,000 (200.0%)
+2025-06-03 09:53:08,115 - __main__ - INFO - ₿ Crypto: $0 (0.0%)
+2025-06-03 09:53:08,115 - __main__ - INFO - 📈 Stocks: $0
+2025-06-03 09:53:08,115 - __main__ - ERROR - 🚨 UNUSED CAPITAL DISASTER: 200.0% buying power unused!
+2025-06-03 09:53:08,116 - __main__ - ERROR - 🚨 BULLISH MARKET MISS: Only $0 in stocks with $2,000,000 available!
+2025-06-03 09:53:08,116 - __main__ - ERROR - 💡 SPY/QQQ showing 68-72% bullish confidence - should be trading aggressively!
+2025-06-03 09:53:08,116 - __main__ - INFO - 🌐 Health endpoints running on port 8080
+2025-06-03 09:53:08,116 - __main__ - INFO - 🔄 Starting main trading loop...
+2025-06-03 09:53:08,116 - __main__ - INFO - Starting trading cycle 1
+2025-06-03 09:53:08,116 - __main__ - INFO - 🔄 EXECUTING MODULE: options
+2025-06-03 09:53:08,117 - __main__ - INFO - 📊 options: Starting opportunity analysis...
+2025-06-03 09:53:08,117 - __main__ - INFO - 🔄 EXECUTING MODULE: crypto
+2025-06-03 09:53:08,117 - __main__ - INFO - 🔄 EXECUTING MODULE: stocks
+2025-06-03 09:53:08,118 - __main__ - INFO - 📊 crypto: Starting opportunity analysis...
+2025-06-03 09:53:08,118 - __main__ - INFO - 📊 stocks: Starting opportunity analysis...
+2025-06-03 09:53:08,216 - __main__ - INFO - US market closed - no options opportunities (overridden by GLOBAL_TRADING)
+2025-06-03 09:53:08,216 - __main__ - INFO - 📊 options: Found 0 opportunities
+2025-06-03 09:53:08,216 - __main__ - INFO - ⚠️ options: No valid opportunities to execute
+2025-06-03 09:53:08,216 - __main__ - INFO - 👁️ options: Monitoring positions for exits...
+2025-06-03 09:53:08,415 - __main__ - INFO - 🚪 options: 0 exit actions taken
+2025-06-03 09:53:08,415 - __main__ - INFO - 📊 options: 0 opps, 0 trades (0 passed, 0 profitable), 0 exits
+2025-06-03 09:53:08,453 - __main__ - INFO - Market status from Alpaca: False (clock: Clock({   'is_open': False,
+    'next_close': '2025-06-03T16:00:00-04:00',
+    'next_open': '2025-06-03T09:30:00-04:00',
+    'timestamp': '2025-06-03T03:53:08.45672358-04:00'}))
+2025-06-03 09:53:08,453 - __main__ - INFO - US market closed - no stock opportunities
+2025-06-03 09:53:08,453 - __main__ - INFO - 📊 stocks: Found 0 opportunities
+2025-06-03 09:53:08,454 - __main__ - INFO - ⚠️ stocks: No valid opportunities to execute
+2025-06-03 09:53:08,454 - __main__ - INFO - 👁️ stocks: Monitoring positions for exits...
+2025-06-03 09:53:08,649 - __main__ - INFO - Market status from Alpaca: False (clock: Clock({   'is_open': False,
+    'next_close': '2025-06-03T16:00:00-04:00',
+    'next_open': '2025-06-03T09:30:00-04:00',
+    'timestamp': '2025-06-03T03:53:08.653139425-04:00'}))
+2025-06-03 09:53:08,649 - __main__ - INFO - 🚪 stocks: 0 exit actions taken
+2025-06-03 09:53:08,649 - __main__ - INFO - 📊 stocks: 0 opps, 0 trades (0 passed, 0 profitable), 0 exits
+2025-06-03 09:53:08,712 - __main__ - INFO - 🎯 SMART ALLOCATION: Win rate: 50.0%, Monthly: 0.0%
+2025-06-03 09:53:08,911 - __main__ - INFO - 💰 CRYPTO STATUS (AFTER-HOURS): 0.0% allocation, $0 exposure - Looking for quality opportunities
+2025-06-03 09:53:08,911 - __main__ - INFO - Analyzing 9 cryptos for 24/7 opportunities
+2025-06-03 09:53:08,911 - __main__ - INFO - 🎯 Confidence threshold: 0.60, Session: asia_prime
+2025-06-03 09:53:09,269 - __main__ - INFO - 🔍 BTCUSD: Trying formatted symbol: BTC/USD
+2025-06-03 09:53:09,367 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:53:09,367 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:53:09,367 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:53:09,367 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:53:09,367 - __main__ - INFO - ✅ BTCUSD: Real-time price from crypto bars: $105272.93
+2025-06-03 09:53:09,367 - __main__ - INFO - 🔍 BTCUSD: Trying formatted symbol: BTC/USD
+2025-06-03 09:53:09,467 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:53:09,467 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:53:09,467 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:53:09,467 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:53:09,467 - __main__ - INFO - ✅ BTCUSD: Real-time price from crypto bars: $105272.93
+2025-06-03 09:53:09,567 - __main__ - INFO - 📊 BTCUSD: Technical confidence=0.65, Overall confidence=0.65
+2025-06-03 09:53:09,567 - __main__ - INFO - 📊 BTCUSD: confidence=0.65, tradeable=True, momentum=0.40, volatility=1.00
+2025-06-03 09:53:09,868 - __main__ - INFO - 🚀 AFTER-HOURS AGGRESSIVE: BTCUSD using 1.5x leverage (vs 2.0x normal)
+2025-06-03 09:53:09,868 - __main__ - INFO - ✅ BTCUSD: OPPORTUNITY CREATED (confidence=0.65)
+2025-06-03 09:53:09,967 - __main__ - INFO - 🔍 ETHUSD: Trying formatted symbol: ETH/USD
+2025-06-03 09:53:10,067 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:53:10,068 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:53:10,068 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:53:10,068 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:53:10,068 - __main__ - INFO - ✅ ETHUSD: Real-time price from crypto bars: $2614.885
+2025-06-03 09:53:10,068 - __main__ - INFO - 🔍 ETHUSD: Trying formatted symbol: ETH/USD
+2025-06-03 09:53:10,169 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:53:10,169 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:53:10,169 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:53:10,169 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:53:10,169 - __main__ - INFO - ✅ ETHUSD: Real-time price from crypto bars: $2614.885
+2025-06-03 09:53:10,273 - __main__ - INFO - 📊 ETHUSD: Technical confidence=0.65, Overall confidence=0.65
+2025-06-03 09:53:10,273 - __main__ - INFO - 📊 ETHUSD: confidence=0.65, tradeable=True, momentum=0.40, volatility=1.00
+2025-06-03 09:53:10,569 - __main__ - INFO - 🚀 AFTER-HOURS AGGRESSIVE: ETHUSD using 1.5x leverage (vs 2.0x normal)
+2025-06-03 09:53:10,569 - __main__ - INFO - ✅ ETHUSD: OPPORTUNITY CREATED (confidence=0.65)
+2025-06-03 09:53:10,668 - __main__ - INFO - 🔍 SOLUSD: Trying formatted symbol: SOL/USD
+2025-06-03 09:53:10,769 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:53:10,769 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:53:10,769 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:53:10,770 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:53:10,770 - __main__ - INFO - ✅ SOLUSD: Real-time price from crypto bars: $160.045
+2025-06-03 09:53:10,770 - __main__ - INFO - 🔍 SOLUSD: Trying formatted symbol: SOL/USD
+2025-06-03 09:53:10,870 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:53:10,870 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:53:10,870 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:53:10,870 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:53:10,870 - __main__ - INFO - ✅ SOLUSD: Real-time price from crypto bars: $160.045
+2025-06-03 09:53:10,968 - __main__ - INFO - 📊 SOLUSD: Technical confidence=0.65, Overall confidence=0.65
+2025-06-03 09:53:10,968 - __main__ - INFO - 📊 SOLUSD: confidence=0.65, tradeable=True, momentum=0.40, volatility=1.00
+2025-06-03 09:53:11,265 - __main__ - INFO - 🚀 AFTER-HOURS AGGRESSIVE: SOLUSD using 1.5x leverage (vs 2.0x normal)
+2025-06-03 09:53:11,265 - __main__ - INFO - ✅ SOLUSD: OPPORTUNITY CREATED (confidence=0.65)
+2025-06-03 09:53:11,372 - __main__ - INFO - 🔍 DOTUSD: Trying formatted symbol: DOT/USD
+2025-06-03 09:53:11,471 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:53:11,472 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:53:11,472 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:53:11,472 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:53:11,472 - __main__ - INFO - ✅ DOTUSD: Real-time price from crypto bars: $4.17052
+2025-06-03 09:53:11,472 - __main__ - INFO - 🔍 DOTUSD: Trying formatted symbol: DOT/USD
+2025-06-03 09:53:11,575 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:53:11,575 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:53:11,576 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:53:11,576 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:53:11,576 - __main__ - INFO - ✅ DOTUSD: Real-time price from crypto bars: $4.17052
+2025-06-03 09:53:11,679 - __main__ - INFO - 📊 DOTUSD: Technical confidence=0.65, Overall confidence=0.65
+2025-06-03 09:53:11,680 - __main__ - INFO - 📊 DOTUSD: confidence=0.65, tradeable=True, momentum=0.40, volatility=1.00
+2025-06-03 09:53:11,976 - __main__ - INFO - 🚀 AFTER-HOURS AGGRESSIVE: DOTUSD using 1.5x leverage (vs 2.0x normal)
+2025-06-03 09:53:11,976 - __main__ - INFO - ✅ DOTUSD: OPPORTUNITY CREATED (confidence=0.65)
+2025-06-03 09:53:12,074 - __main__ - INFO - 🔍 LINKUSD: Trying formatted symbol: LINK/USD
+2025-06-03 09:53:12,172 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:53:12,173 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:53:12,173 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:53:12,173 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:53:12,173 - __main__ - INFO - ✅ LINKUSD: Real-time price from crypto bars: $14.1511
+2025-06-03 09:53:12,173 - __main__ - INFO - 🔍 LINKUSD: Trying formatted symbol: LINK/USD
+2025-06-03 09:53:12,271 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:53:12,271 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:53:12,272 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:53:12,272 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:53:12,272 - __main__ - INFO - ✅ LINKUSD: Real-time price from crypto bars: $14.1511
+2025-06-03 09:53:12,370 - __main__ - INFO - 📊 LINKUSD: Technical confidence=0.65, Overall confidence=0.65
+2025-06-03 09:53:12,370 - __main__ - INFO - 📊 LINKUSD: confidence=0.65, tradeable=True, momentum=0.40, volatility=1.00
+2025-06-03 09:53:12,669 - __main__ - INFO - 🚀 AFTER-HOURS AGGRESSIVE: LINKUSD using 1.5x leverage (vs 2.0x normal)
+2025-06-03 09:53:12,669 - __main__ - INFO - ✅ LINKUSD: OPPORTUNITY CREATED (confidence=0.65)
+2025-06-03 09:53:12,769 - __main__ - WARNING - Stale data for MATIC/USD: quote is 61384218s old (older than 30 minutes).
+2025-06-03 09:53:12,769 - __main__ - WARNING - ⚠️ MATICUSD: Skipping due to stale quote data
+2025-06-03 09:53:12,869 - __main__ - INFO - 🔍 AVAXUSD: Trying formatted symbol: AVAX/USD
+2025-06-03 09:53:12,968 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:53:12,968 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:53:12,968 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:53:12,968 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:53:12,968 - __main__ - INFO - ✅ AVAXUSD: Real-time price from crypto bars: $21.34285
+2025-06-03 09:53:12,968 - __main__ - INFO - 🔍 AVAXUSD: Trying formatted symbol: AVAX/USD
+2025-06-03 09:53:13,067 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:53:13,067 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:53:13,068 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:53:13,068 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:53:13,068 - __main__ - INFO - ✅ AVAXUSD: Real-time price from crypto bars: $21.34285
+2025-06-03 09:53:13,165 - __main__ - INFO - 📊 AVAXUSD: Technical confidence=0.65, Overall confidence=0.65
+2025-06-03 09:53:13,165 - __main__ - INFO - 📊 AVAXUSD: confidence=0.65, tradeable=True, momentum=0.40, volatility=1.00
+2025-06-03 09:53:13,462 - __main__ - INFO - 🚀 AFTER-HOURS AGGRESSIVE: AVAXUSD using 1.5x leverage (vs 2.0x normal)
+2025-06-03 09:53:13,462 - __main__ - INFO - ✅ AVAXUSD: OPPORTUNITY CREATED (confidence=0.65)
+2025-06-03 09:53:13,562 - __main__ - INFO - 🔍 UNIUSD: Trying formatted symbol: UNI/USD
+2025-06-03 09:53:13,662 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:53:13,662 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:53:13,662 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:53:13,662 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:53:13,662 - __main__ - INFO - ✅ UNIUSD: Real-time price from crypto bars: $6.3993
+2025-06-03 09:53:13,662 - __main__ - INFO - 🔍 UNIUSD: Trying formatted symbol: UNI/USD
+2025-06-03 09:53:13,762 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:53:13,762 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:53:13,762 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:53:13,763 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:53:13,763 - __main__ - INFO - ✅ UNIUSD: Real-time price from crypto bars: $6.3993
+2025-06-03 09:53:13,864 - __main__ - INFO - 📊 UNIUSD: Technical confidence=0.65, Overall confidence=0.65
+2025-06-03 09:53:13,864 - __main__ - INFO - 📊 UNIUSD: confidence=0.65, tradeable=True, momentum=0.40, volatility=1.00
+2025-06-03 09:53:14,161 - __main__ - INFO - 🚀 AFTER-HOURS AGGRESSIVE: UNIUSD using 1.5x leverage (vs 2.0x normal)
+2025-06-03 09:53:14,161 - __main__ - INFO - ✅ UNIUSD: OPPORTUNITY CREATED (confidence=0.65)
+2025-06-03 09:53:14,259 - __main__ - INFO - 🔍 AAVEUSD: Trying formatted symbol: AAVE/USD
+2025-06-03 09:53:14,357 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:53:14,358 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:53:14,358 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:53:14,358 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:53:14,358 - __main__ - INFO - ✅ AAVEUSD: Real-time price from crypto bars: $258.0895
+2025-06-03 09:53:14,358 - __main__ - INFO - 🔍 AAVEUSD: Trying formatted symbol: AAVE/USD
+2025-06-03 09:53:14,457 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:53:14,458 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:53:14,458 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:53:14,458 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:53:14,458 - __main__ - INFO - ✅ AAVEUSD: Real-time price from crypto bars: $258.0895
+2025-06-03 09:53:14,556 - __main__ - INFO - 📊 AAVEUSD: Technical confidence=0.65, Overall confidence=0.65
+2025-06-03 09:53:14,556 - __main__ - INFO - 📊 AAVEUSD: confidence=0.65, tradeable=True, momentum=0.40, volatility=1.00
+2025-06-03 09:53:14,852 - __main__ - INFO - 🚀 AFTER-HOURS AGGRESSIVE: AAVEUSD using 1.5x leverage (vs 2.0x normal)
+2025-06-03 09:53:14,853 - __main__ - INFO - ✅ AAVEUSD: OPPORTUNITY CREATED (confidence=0.65)
+2025-06-03 09:53:14,853 - __main__ - INFO - Found 8 crypto opportunities (24/7 analysis)
+2025-06-03 09:53:14,853 - __main__ - INFO - 📊 crypto: Found 8 opportunities
+2025-06-03 09:53:14,953 - __main__ - WARNING - Performance leverage: Win rate 45.00% < 50.00%. Applying reduced leverage factor: 0.75.
+2025-06-03 09:53:15,250 - __main__ - INFO - ✅ BTCUSD: Risk validation passed
+2025-06-03 09:53:15,446 - __main__ - INFO - 📊 Crypto allocation: $0 (0.0%)
+2025-06-03 09:53:15,562 - __main__ - WARNING - Performance leverage: Win rate 45.00% < 50.00%. Applying reduced leverage factor: 0.75.
+2025-06-03 09:53:15,860 - __main__ - INFO - ✅ ETHUSD: Risk validation passed
+2025-06-03 09:53:16,057 - __main__ - INFO - 📊 Crypto allocation: $0 (0.0%)
+2025-06-03 09:53:16,158 - __main__ - WARNING - Performance leverage: Win rate 45.00% < 50.00%. Applying reduced leverage factor: 0.75.
+2025-06-03 09:53:16,456 - __main__ - INFO - ✅ SOLUSD: Risk validation passed
+2025-06-03 09:53:16,654 - __main__ - INFO - 📊 Crypto allocation: $0 (0.0%)
+2025-06-03 09:53:16,755 - __main__ - WARNING - Performance leverage: Win rate 45.00% < 50.00%. Applying reduced leverage factor: 0.75.
+2025-06-03 09:53:17,051 - __main__ - INFO - ✅ DOTUSD: Risk validation passed
+2025-06-03 09:53:17,248 - __main__ - INFO - 📊 Crypto allocation: $0 (0.0%)
+2025-06-03 09:53:17,347 - __main__ - WARNING - Performance leverage: Win rate 45.00% < 50.00%. Applying reduced leverage factor: 0.75.
+2025-06-03 09:53:17,650 - __main__ - INFO - ✅ LINKUSD: Risk validation passed
+2025-06-03 09:53:17,848 - __main__ - INFO - 📊 Crypto allocation: $0 (0.0%)
+2025-06-03 09:53:17,947 - __main__ - WARNING - Performance leverage: Win rate 45.00% < 50.00%. Applying reduced leverage factor: 0.75.
+2025-06-03 09:53:18,245 - __main__ - INFO - ✅ AVAXUSD: Risk validation passed
+2025-06-03 09:53:18,445 - __main__ - INFO - 📊 Crypto allocation: $0 (0.0%)
+2025-06-03 09:53:18,547 - __main__ - WARNING - Performance leverage: Win rate 45.00% < 50.00%. Applying reduced leverage factor: 0.75.
+2025-06-03 09:53:18,846 - __main__ - INFO - ✅ UNIUSD: Risk validation passed
+2025-06-03 09:53:19,044 - __main__ - INFO - 📊 Crypto allocation: $0 (0.0%)
+2025-06-03 09:53:19,144 - __main__ - WARNING - Performance leverage: Win rate 45.00% < 50.00%. Applying reduced leverage factor: 0.75.
+2025-06-03 09:53:19,444 - __main__ - INFO - ✅ AAVEUSD: Risk validation passed
+2025-06-03 09:53:19,642 - __main__ - INFO - 📊 Crypto allocation: $0 (0.0%)
+2025-06-03 09:53:19,642 - __main__ - INFO - 🚀 crypto: Executing 8 valid trades...
+2025-06-03 09:53:19,642 - __main__ - INFO - Attempting crypto trade for BTCUSD: sell 0.22797883558479853 units.
+2025-06-03 09:53:19,642 - __main__ - INFO - 🚀 Executing SELL order: BTCUSD 0.22797883558479853 shares
+2025-06-03 09:53:19,845 - __main__ - WARNING - ⚠️ EXECUTION: BTCUSD quote is 189s old - execution may be suboptimal
+2025-06-03 09:53:19,949 - __main__ - ERROR - ❌ Order execution failed: insufficient balance for BTC (requested: 0.227978835, available: 0)
+2025-06-03 09:53:19,949 - __main__ - ERROR - Failed to submit crypto order for BTCUSD: Order execution failed: insufficient balance for BTC (requested: 0.227978835, available: 0)
+2025-06-03 09:53:19,949 - __main__ - INFO - Attempting crypto trade for ETHUSD: sell 9.178223898947754 units.
+2025-06-03 09:53:19,949 - __main__ - INFO - 🚀 Executing SELL order: ETHUSD 9.178223898947754 shares
+2025-06-03 09:53:20,246 - __main__ - ERROR - ❌ Order execution failed: insufficient balance for ETH (requested: 9.178223898, available: 0)
+2025-06-03 09:53:20,246 - __main__ - ERROR - Failed to submit crypto order for ETHUSD: Order execution failed: insufficient balance for ETH (requested: 9.178223898, available: 0)
+2025-06-03 09:53:20,246 - __main__ - INFO - Attempting crypto trade for SOLUSD: sell 149.95782436189825 units.
+2025-06-03 09:53:20,246 - __main__ - INFO - 🚀 Executing SELL order: SOLUSD 149.95782436189825 shares
+2025-06-03 09:53:20,554 - __main__ - ERROR - ❌ Order execution failed: insufficient balance for SOL (requested: 149.957824361, available: 0)
+2025-06-03 09:53:20,554 - __main__ - ERROR - Failed to submit crypto order for SOLUSD: Order execution failed: insufficient balance for SOL (requested: 149.957824361, available: 0)
+2025-06-03 09:53:20,555 - __main__ - INFO - Attempting crypto trade for DOTUSD: sell 5754.678073717427 units.
+2025-06-03 09:53:20,555 - __main__ - INFO - 🚀 Executing SELL order: DOTUSD 5754.678073717427 shares
+2025-06-03 09:53:20,755 - __main__ - WARNING - ⚠️ EXECUTION: DOTUSD quote is 132s old - execution may be suboptimal
+2025-06-03 09:53:20,856 - __main__ - ERROR - ❌ Order execution failed: insufficient balance for DOT (requested: 5754.678073717, available: 0)
+2025-06-03 09:53:20,856 - __main__ - ERROR - Failed to submit crypto order for DOTUSD: Order execution failed: insufficient balance for DOT (requested: 5754.678073717, available: 0)
+2025-06-03 09:53:20,856 - __main__ - INFO - Attempting crypto trade for LINKUSD: sell 1695.9812311410424 units.
+2025-06-03 09:53:20,856 - __main__ - INFO - 🚀 Executing SELL order: LINKUSD 1695.9812311410424 shares
+2025-06-03 09:53:21,055 - __main__ - WARNING - ⚠️ EXECUTION: LINKUSD quote is 133s old - execution may be suboptimal
+2025-06-03 09:53:21,158 - __main__ - ERROR - ❌ Order execution failed: insufficient balance for LINK (requested: 1695.981231141, available: 0)
+2025-06-03 09:53:21,158 - __main__ - ERROR - Failed to submit crypto order for LINKUSD: Order execution failed: insufficient balance for LINK (requested: 1695.981231141, available: 0)
+2025-06-03 09:53:21,158 - __main__ - INFO - Attempting crypto trade for AVAXUSD: sell 1124.4983683060136 units.
+2025-06-03 09:53:21,158 - __main__ - INFO - 🚀 Executing SELL order: AVAXUSD 1124.4983683060136 shares
+2025-06-03 09:53:21,462 - __main__ - ERROR - ❌ Order execution failed: insufficient balance for AVAX (requested: 1124.498368306, available: 0)
+2025-06-03 09:53:21,463 - __main__ - ERROR - Failed to submit crypto order for AVAXUSD: Order execution failed: insufficient balance for AVAX (requested: 1124.498368306, available: 0)
+2025-06-03 09:53:21,463 - __main__ - INFO - Attempting crypto trade for UNIUSD: sell 3750.4102011157474 units.
+2025-06-03 09:53:21,463 - __main__ - INFO - 🚀 Executing SELL order: UNIUSD 3750.4102011157474 shares
+2025-06-03 09:53:21,763 - __main__ - ERROR - ❌ Order execution failed: insufficient balance for UNI (requested: 3750.410201115, available: 0)
+2025-06-03 09:53:21,764 - __main__ - ERROR - Failed to submit crypto order for UNIUSD: Order execution failed: insufficient balance for UNI (requested: 3750.410201115, available: 0)
+2025-06-03 09:53:21,764 - __main__ - INFO - Attempting crypto trade for AAVEUSD: sell 92.99099730907304 units.
+2025-06-03 09:53:21,764 - __main__ - INFO - 🚀 Executing SELL order: AAVEUSD 92.99099730907304 shares
+2025-06-03 09:53:22,063 - __main__ - ERROR - ❌ Order execution failed: insufficient balance for AAVE (requested: 92.990997309, available: 0)
+2025-06-03 09:53:22,063 - __main__ - ERROR - Failed to submit crypto order for AAVEUSD: Order execution failed: insufficient balance for AAVE (requested: 92.990997309, available: 0)
+2025-06-03 09:53:22,063 - __main__ - INFO - ✅ crypto: 0 passed, 0 profitable
+2025-06-03 09:53:22,063 - __main__ - INFO - 👁️ crypto: Monitoring positions for exits...
+2025-06-03 09:53:22,260 - __main__ - INFO - 🚪 crypto: 0 exit actions taken
+2025-06-03 09:53:22,261 - __main__ - INFO - 📊 crypto: 8 opps, 8 trades (0 passed, 0 profitable), 0 exits
+2025-06-03 09:53:22,261 - __main__ - INFO - 🎯 Cycle 1 completed: {'total_opportunities': 8, 'total_trades': 8, 'trades_passed': 0, 'successful_trades': 0}
+2025-06-03 09:54:08,120 - __main__ - INFO - Starting trading cycle 2
+2025-06-03 09:54:08,120 - __main__ - INFO - 🔄 EXECUTING MODULE: options
+2025-06-03 09:54:08,120 - __main__ - INFO - 📊 options: Starting opportunity analysis...
+2025-06-03 09:54:08,121 - __main__ - INFO - 🔄 EXECUTING MODULE: crypto
+2025-06-03 09:54:08,121 - __main__ - INFO - 🔄 EXECUTING MODULE: stocks
+2025-06-03 09:54:08,121 - __main__ - INFO - 📊 crypto: Starting opportunity analysis...
+2025-06-03 09:54:08,122 - __main__ - INFO - 📊 stocks: Starting opportunity analysis...
+2025-06-03 09:54:08,224 - __main__ - INFO - US market closed - no options opportunities (overridden by GLOBAL_TRADING)
+2025-06-03 09:54:08,224 - __main__ - INFO - 📊 options: Found 0 opportunities
+2025-06-03 09:54:08,225 - __main__ - INFO - ⚠️ options: No valid opportunities to execute
+2025-06-03 09:54:08,225 - __main__ - INFO - 👁️ options: Monitoring positions for exits...
+2025-06-03 09:54:08,227 - __main__ - INFO - Market status from Alpaca: False (clock: Clock({   'is_open': False,
+    'next_close': '2025-06-03T16:00:00-04:00',
+    'next_open': '2025-06-03T09:30:00-04:00',
+    'timestamp': '2025-06-03T03:54:08.230789532-04:00'}))
+2025-06-03 09:54:08,227 - __main__ - INFO - US market closed - no stock opportunities
+2025-06-03 09:54:08,227 - __main__ - INFO - 📊 stocks: Found 0 opportunities
+2025-06-03 09:54:08,228 - __main__ - INFO - ⚠️ stocks: No valid opportunities to execute
+2025-06-03 09:54:08,228 - __main__ - INFO - 👁️ stocks: Monitoring positions for exits...
+2025-06-03 09:54:08,424 - __main__ - INFO - 🚪 options: 0 exit actions taken
+2025-06-03 09:54:08,424 - __main__ - INFO - Market status from Alpaca: False (clock: Clock({   'is_open': False,
+    'next_close': '2025-06-03T16:00:00-04:00',
+    'next_open': '2025-06-03T09:30:00-04:00',
+    'timestamp': '2025-06-03T03:54:08.428739295-04:00'}))
+2025-06-03 09:54:08,425 - __main__ - INFO - 📊 options: 0 opps, 0 trades (0 passed, 0 profitable), 0 exits
+2025-06-03 09:54:08,425 - __main__ - INFO - 🚪 stocks: 0 exit actions taken
+2025-06-03 09:54:08,425 - __main__ - INFO - 📊 stocks: 0 opps, 0 trades (0 passed, 0 profitable), 0 exits
+2025-06-03 09:54:08,523 - __main__ - INFO - 🎯 SMART ALLOCATION: Win rate: 0.0%, Monthly: 0.0%
+2025-06-03 09:54:08,721 - __main__ - INFO - 💰 CRYPTO STATUS (AFTER-HOURS): 0.0% allocation, $0 exposure - Looking for quality opportunities
+2025-06-03 09:54:08,722 - __main__ - INFO - Analyzing 9 cryptos for 24/7 opportunities
+2025-06-03 09:54:08,722 - __main__ - INFO - 🎯 Confidence threshold: 0.60, Session: asia_prime
+2025-06-03 09:54:08,820 - __main__ - INFO - 🔍 BTCUSD: Trying formatted symbol: BTC/USD
+2025-06-03 09:54:08,920 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:54:08,921 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:54:08,921 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:54:08,921 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:54:08,921 - __main__ - INFO - ✅ BTCUSD: Real-time price from crypto bars: $105272.93
+2025-06-03 09:54:08,921 - __main__ - INFO - 🔍 BTCUSD: Trying formatted symbol: BTC/USD
+2025-06-03 09:54:09,022 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:54:09,022 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:54:09,022 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:54:09,022 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:54:09,022 - __main__ - INFO - ✅ BTCUSD: Real-time price from crypto bars: $105272.93
+2025-06-03 09:54:09,122 - __main__ - INFO - 📊 BTCUSD: Technical confidence=0.65, Overall confidence=0.65
+2025-06-03 09:54:09,123 - __main__ - INFO - 📊 BTCUSD: confidence=0.65, tradeable=True, momentum=0.40, volatility=1.00
+2025-06-03 09:54:09,422 - __main__ - INFO - 🚀 AFTER-HOURS AGGRESSIVE: BTCUSD using 1.5x leverage (vs 2.0x normal)
+2025-06-03 09:54:09,423 - __main__ - INFO - ✅ BTCUSD: OPPORTUNITY CREATED (confidence=0.65)
+2025-06-03 09:54:09,524 - __main__ - INFO - 🔍 ETHUSD: Trying formatted symbol: ETH/USD
+2025-06-03 09:54:09,624 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:54:09,624 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:54:09,625 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:54:09,625 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:54:09,625 - __main__ - INFO - ✅ ETHUSD: Real-time price from crypto bars: $2614.885
+2025-06-03 09:54:09,625 - __main__ - INFO - 🔍 ETHUSD: Trying formatted symbol: ETH/USD
+2025-06-03 09:54:09,725 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:54:09,726 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:54:09,726 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:54:09,726 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:54:09,726 - __main__ - INFO - ✅ ETHUSD: Real-time price from crypto bars: $2614.885
+2025-06-03 09:54:09,825 - __main__ - INFO - 📊 ETHUSD: Technical confidence=0.65, Overall confidence=0.65
+2025-06-03 09:54:09,825 - __main__ - INFO - 📊 ETHUSD: confidence=0.65, tradeable=True, momentum=0.40, volatility=1.00
+2025-06-03 09:54:10,124 - __main__ - INFO - 🚀 AFTER-HOURS AGGRESSIVE: ETHUSD using 1.5x leverage (vs 2.0x normal)
+2025-06-03 09:54:10,124 - __main__ - INFO - ✅ ETHUSD: OPPORTUNITY CREATED (confidence=0.65)
+2025-06-03 09:54:10,226 - __main__ - INFO - 🔍 SOLUSD: Trying formatted symbol: SOL/USD
+2025-06-03 09:54:10,327 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:54:10,327 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:54:10,327 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:54:10,328 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:54:10,328 - __main__ - INFO - ✅ SOLUSD: Real-time price from crypto bars: $159.98
+2025-06-03 09:54:10,328 - __main__ - INFO - 🔍 SOLUSD: Trying formatted symbol: SOL/USD
+2025-06-03 09:54:10,429 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:54:10,429 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:54:10,429 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:54:10,430 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:54:10,430 - __main__ - INFO - ✅ SOLUSD: Real-time price from crypto bars: $159.98
+2025-06-03 09:54:10,531 - __main__ - INFO - 📊 SOLUSD: Technical confidence=0.65, Overall confidence=0.65
+2025-06-03 09:54:10,531 - __main__ - INFO - 📊 SOLUSD: confidence=0.65, tradeable=True, momentum=0.40, volatility=1.00
+2025-06-03 09:54:10,828 - __main__ - INFO - 🚀 AFTER-HOURS AGGRESSIVE: SOLUSD using 1.5x leverage (vs 2.0x normal)
+2025-06-03 09:54:10,829 - __main__ - INFO - ✅ SOLUSD: OPPORTUNITY CREATED (confidence=0.65)
+2025-06-03 09:54:10,928 - __main__ - INFO - 🔍 DOTUSD: Trying formatted symbol: DOT/USD
+2025-06-03 09:54:11,028 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:54:11,028 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:54:11,028 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:54:11,028 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:54:11,028 - __main__ - INFO - ✅ DOTUSD: Real-time price from crypto bars: $4.17052
+2025-06-03 09:54:11,028 - __main__ - INFO - 🔍 DOTUSD: Trying formatted symbol: DOT/USD
+2025-06-03 09:54:11,128 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:54:11,128 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:54:11,128 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:54:11,128 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:54:11,128 - __main__ - INFO - ✅ DOTUSD: Real-time price from crypto bars: $4.17052
+2025-06-03 09:54:11,226 - __main__ - INFO - 📊 DOTUSD: Technical confidence=0.65, Overall confidence=0.65
+2025-06-03 09:54:11,227 - __main__ - INFO - 📊 DOTUSD: confidence=0.65, tradeable=True, momentum=0.40, volatility=1.00
+2025-06-03 09:54:11,526 - __main__ - INFO - 🚀 AFTER-HOURS AGGRESSIVE: DOTUSD using 1.5x leverage (vs 2.0x normal)
+2025-06-03 09:54:11,527 - __main__ - INFO - ✅ DOTUSD: OPPORTUNITY CREATED (confidence=0.65)
+2025-06-03 09:54:11,626 - __main__ - INFO - 🔍 LINKUSD: Trying formatted symbol: LINK/USD
+2025-06-03 09:54:11,727 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:54:11,727 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:54:11,727 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:54:11,727 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:54:11,727 - __main__ - INFO - ✅ LINKUSD: Real-time price from crypto bars: $14.1511
+2025-06-03 09:54:11,728 - __main__ - INFO - 🔍 LINKUSD: Trying formatted symbol: LINK/USD
+2025-06-03 09:54:11,829 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:54:11,829 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:54:11,829 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:54:11,829 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:54:11,830 - __main__ - INFO - ✅ LINKUSD: Real-time price from crypto bars: $14.1511
+2025-06-03 09:54:11,929 - __main__ - INFO - 📊 LINKUSD: Technical confidence=0.65, Overall confidence=0.65
+2025-06-03 09:54:11,929 - __main__ - INFO - 📊 LINKUSD: confidence=0.65, tradeable=True, momentum=0.40, volatility=1.00
+2025-06-03 09:54:12,229 - __main__ - INFO - 🚀 AFTER-HOURS AGGRESSIVE: LINKUSD using 1.5x leverage (vs 2.0x normal)
+2025-06-03 09:54:12,229 - __main__ - INFO - ✅ LINKUSD: OPPORTUNITY CREATED (confidence=0.65)
+2025-06-03 09:54:12,329 - __main__ - WARNING - Stale data for MATIC/USD: quote is 61384278s old (older than 30 minutes).
+2025-06-03 09:54:12,329 - __main__ - WARNING - ⚠️ MATICUSD: Skipping due to stale quote data
+2025-06-03 09:54:12,430 - __main__ - INFO - 🔍 AVAXUSD: Trying formatted symbol: AVAX/USD
+2025-06-03 09:54:12,529 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:54:12,530 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:54:12,530 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:54:12,530 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:54:12,530 - __main__ - INFO - ✅ AVAXUSD: Real-time price from crypto bars: $21.3415
+2025-06-03 09:54:12,530 - __main__ - INFO - 🔍 AVAXUSD: Trying formatted symbol: AVAX/USD
+2025-06-03 09:54:12,632 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:54:12,632 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:54:12,632 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:54:12,632 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:54:12,632 - __main__ - INFO - ✅ AVAXUSD: Real-time price from crypto bars: $21.3415
+2025-06-03 09:54:12,732 - __main__ - INFO - 📊 AVAXUSD: Technical confidence=0.65, Overall confidence=0.65
+2025-06-03 09:54:12,732 - __main__ - INFO - 📊 AVAXUSD: confidence=0.65, tradeable=True, momentum=0.40, volatility=1.00
+2025-06-03 09:54:13,042 - __main__ - INFO - 🚀 AFTER-HOURS AGGRESSIVE: AVAXUSD using 1.5x leverage (vs 2.0x normal)
+2025-06-03 09:54:13,043 - __main__ - INFO - ✅ AVAXUSD: OPPORTUNITY CREATED (confidence=0.65)
+2025-06-03 09:54:13,142 - __main__ - INFO - 🔍 UNIUSD: Trying formatted symbol: UNI/USD
+2025-06-03 09:54:13,241 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:54:13,241 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:54:13,242 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:54:13,242 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:54:13,242 - __main__ - INFO - ✅ UNIUSD: Real-time price from crypto bars: $6.3993
+2025-06-03 09:54:13,242 - __main__ - INFO - 🔍 UNIUSD: Trying formatted symbol: UNI/USD
+2025-06-03 09:54:13,340 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:54:13,340 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:54:13,340 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:54:13,340 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:54:13,340 - __main__ - INFO - ✅ UNIUSD: Real-time price from crypto bars: $6.3993
+2025-06-03 09:54:13,438 - __main__ - INFO - 📊 UNIUSD: Technical confidence=0.65, Overall confidence=0.65
+2025-06-03 09:54:13,438 - __main__ - INFO - 📊 UNIUSD: confidence=0.65, tradeable=True, momentum=0.40, volatility=1.00
+2025-06-03 09:54:13,737 - __main__ - INFO - 🚀 AFTER-HOURS AGGRESSIVE: UNIUSD using 1.5x leverage (vs 2.0x normal)
+2025-06-03 09:54:13,737 - __main__ - INFO - ✅ UNIUSD: OPPORTUNITY CREATED (confidence=0.65)
+2025-06-03 09:54:13,837 - __main__ - INFO - 🔍 AAVEUSD: Trying formatted symbol: AAVE/USD
+2025-06-03 09:54:13,937 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:54:13,937 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:54:13,937 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:54:13,937 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:54:13,937 - __main__ - INFO - ✅ AAVEUSD: Real-time price from crypto bars: $258.0055
+2025-06-03 09:54:13,937 - __main__ - INFO - 🔍 AAVEUSD: Trying formatted symbol: AAVE/USD
+2025-06-03 09:54:14,039 - data_mode_manager - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 09:54:14,040 - data_mode_manager - INFO -    Subscription: free
+2025-06-03 09:54:14,040 - data_mode_manager - INFO -    Data Mode: delayed
+2025-06-03 09:54:14,040 - data_mode_manager - INFO -    Cycle Delay: 60s
+2025-06-03 09:54:14,040 - __main__ - INFO - ✅ AAVEUSD: Real-time price from crypto bars: $258.0055
+2025-06-03 09:54:14,142 - __main__ - INFO - 📊 AAVEUSD: Technical confidence=0.65, Overall confidence=0.65
+2025-06-03 09:54:14,142 - __main__ - INFO - 📊 AAVEUSD: confidence=0.65, tradeable=True, momentum=0.40, volatility=1.00
+2025-06-03 09:54:14,437 - __main__ - INFO - 🚀 AFTER-HOURS AGGRESSIVE: AAVEUSD using 1.5x leverage (vs 2.0x normal)
+2025-06-03 09:54:14,437 - __main__ - INFO - ✅ AAVEUSD: OPPORTUNITY CREATED (confidence=0.65)
+2025-06-03 09:54:14,437 - __main__ - INFO - Found 8 crypto opportunities (24/7 analysis)
+2025-06-03 09:54:14,437 - __main__ - INFO - 📊 crypto: Found 8 opportunities
+2025-06-03 09:54:14,541 - __main__ - WARNING - Performance leverage: Win rate 45.00% < 50.00%. Applying reduced leverage factor: 0.75.
+2025-06-03 09:54:14,842 - __main__ - INFO - ✅ BTCUSD: Risk validation passed
+2025-06-03 09:54:15,096 - __main__ - INFO - 📊 Crypto allocation: $0 (0.0%)
+2025-06-03 09:54:15,197 - __main__ - WARNING - Performance leverage: Win rate 45.00% < 50.00%. Applying reduced leverage factor: 0.75.
+2025-06-03 09:54:15,501 - __main__ - INFO - ✅ ETHUSD: Risk validation passed
+2025-06-03 09:54:15,701 - __main__ - INFO - 📊 Crypto allocation: $0 (0.0%)
+2025-06-03 09:54:15,801 - __main__ - WARNING - Performance leverage: Win rate 45.00% < 50.00%. Applying reduced leverage factor: 0.75.
+2025-06-03 09:54:16,098 - __main__ - INFO - ✅ SOLUSD: Risk validation passed
+2025-06-03 09:54:16,296 - __main__ - INFO - 📊 Crypto allocation: $0 (0.0%)
+2025-06-03 09:54:16,396 - __main__ - WARNING - Performance leverage: Win rate 45.00% < 50.00%. Applying reduced leverage factor: 0.75.
+2025-06-03 09:54:16,694 - __main__ - INFO - ✅ DOTUSD: Risk validation passed
+2025-06-03 09:54:16,900 - __main__ - INFO - 📊 Crypto allocation: $0 (0.0%)
+2025-06-03 09:54:17,003 - __main__ - WARNING - Performance leverage: Win rate 45.00% < 50.00%. Applying reduced leverage factor: 0.75.
+2025-06-03 09:54:17,301 - __main__ - INFO - ✅ LINKUSD: Risk validation passed
+2025-06-03 09:54:17,500 - __main__ - INFO - 📊 Crypto allocation: $0 (0.0%)
+2025-06-03 09:54:17,600 - __main__ - WARNING - Performance leverage: Win rate 45.00% < 50.00%. Applying reduced leverage factor: 0.75.
+2025-06-03 09:54:17,908 - __main__ - INFO - ✅ AVAXUSD: Risk validation passed
+2025-06-03 09:54:18,106 - __main__ - INFO - 📊 Crypto allocation: $0 (0.0%)
+2025-06-03 09:54:18,207 - __main__ - WARNING - Performance leverage: Win rate 45.00% < 50.00%. Applying reduced leverage factor: 0.75.
+2025-06-03 09:54:18,525 - __main__ - INFO - ✅ UNIUSD: Risk validation passed
+2025-06-03 09:54:18,746 - __main__ - INFO - 📊 Crypto allocation: $0 (0.0%)
+2025-06-03 09:54:18,845 - __main__ - WARNING - Performance leverage: Win rate 45.00% < 50.00%. Applying reduced leverage factor: 0.75.
+2025-06-03 09:54:19,146 - __main__ - INFO - ✅ AAVEUSD: Risk validation passed
+2025-06-03 09:54:19,344 - __main__ - INFO - 📊 Crypto allocation: $0 (0.0%)
+2025-06-03 09:54:19,345 - __main__ - INFO - 🚀 crypto: Executing 8 valid trades...
+2025-06-03 09:54:19,345 - __main__ - INFO - Attempting crypto trade for BTCUSD: sell 0.22797883558479853 units.
+2025-06-03 09:54:19,345 - __main__ - INFO - 🚀 Executing SELL order: BTCUSD 0.22797883558479853 shares
+2025-06-03 09:54:19,543 - __main__ - WARNING - ⚠️ EXECUTION: BTCUSD quote is 249s old - execution may be suboptimal
+2025-06-03 09:54:19,645 - __main__ - ERROR - ❌ Order execution failed: insufficient balance for BTC (requested: 0.227978835, available: 0)
+2025-06-03 09:54:19,645 - __main__ - ERROR - Failed to submit crypto order for BTCUSD: Order execution failed: insufficient balance for BTC (requested: 0.227978835, available: 0)
+2025-06-03 09:54:19,645 - __main__ - INFO - Attempting crypto trade for ETHUSD: sell 9.178223898947754 units.
+2025-06-03 09:54:19,645 - __main__ - INFO - 🚀 Executing SELL order: ETHUSD 9.178223898947754 shares
+2025-06-03 09:54:19,944 - __main__ - ERROR - ❌ Order execution failed: insufficient balance for ETH (requested: 9.178223898, available: 0)
+2025-06-03 09:54:19,944 - __main__ - ERROR - Failed to submit crypto order for ETHUSD: Order execution failed: insufficient balance for ETH (requested: 9.178223898, available: 0)
+2025-06-03 09:54:19,944 - __main__ - INFO - Attempting crypto trade for SOLUSD: sell 150.01875234404304 units.
+2025-06-03 09:54:19,944 - __main__ - INFO - 🚀 Executing SELL order: SOLUSD 150.01875234404304 shares
+2025-06-03 09:54:20,247 - __main__ - ERROR - ❌ Order execution failed: insufficient balance for SOL (requested: 150.018752344, available: 0)
+2025-06-03 09:54:20,247 - __main__ - ERROR - Failed to submit crypto order for SOLUSD: Order execution failed: insufficient balance for SOL (requested: 150.018752344, available: 0)
+2025-06-03 09:54:20,247 - __main__ - INFO - Attempting crypto trade for DOTUSD: sell 5754.678073717427 units.
+2025-06-03 09:54:20,248 - __main__ - INFO - 🚀 Executing SELL order: DOTUSD 5754.678073717427 shares
+2025-06-03 09:54:20,450 - __main__ - WARNING - ⚠️ EXECUTION: DOTUSD quote is 191s old - execution may be suboptimal
+2025-06-03 09:54:20,553 - __main__ - ERROR - ❌ Order execution failed: insufficient balance for DOT (requested: 5754.678073717, available: 0)
+2025-06-03 09:54:20,553 - __main__ - ERROR - Failed to submit crypto order for DOTUSD: Order execution failed: insufficient balance for DOT (requested: 5754.678073717, available: 0)
+2025-06-03 09:54:20,554 - __main__ - INFO - Attempting crypto trade for LINKUSD: sell 1695.9812311410424 units.
+2025-06-03 09:54:20,554 - __main__ - INFO - 🚀 Executing SELL order: LINKUSD 1695.9812311410424 shares
+2025-06-03 09:54:20,753 - __main__ - WARNING - ⚠️ EXECUTION: LINKUSD quote is 192s old - execution may be suboptimal
+2025-06-03 09:54:20,855 - __main__ - ERROR - ❌ Order execution failed: insufficient balance for LINK (requested: 1695.981231141, available: 0)
+2025-06-03 09:54:20,855 - __main__ - ERROR - Failed to submit crypto order for LINKUSD: Order execution failed: insufficient balance for LINK (requested: 1695.981231141, available: 0)
+2025-06-03 09:54:20,855 - __main__ - INFO - Attempting crypto trade for AVAXUSD: sell 1124.5695007379989 units.
+2025-06-03 09:54:20,855 - __main__ - INFO - 🚀 Executing SELL order: AVAXUSD 1124.5695007379989 shares
+2025-06-03 09:54:21,151 - __main__ - ERROR - ❌ Order execution failed: insufficient balance for AVAX (requested: 1124.569500737, available: 0)
+2025-06-03 09:54:21,151 - __main__ - ERROR - Failed to submit crypto order for AVAXUSD: Order execution failed: insufficient balance for AVAX (requested: 1124.569500737, available: 0)
+2025-06-03 09:54:21,151 - __main__ - INFO - Attempting crypto trade for UNIUSD: sell 3750.4102011157474 units.
+2025-06-03 09:54:21,152 - __main__ - INFO - 🚀 Executing SELL order: UNIUSD 3750.4102011157474 shares
+2025-06-03 09:54:21,455 - __main__ - ERROR - ❌ Order execution failed: insufficient balance for UNI (requested: 3750.410201115, available: 0)
+2025-06-03 09:54:21,456 - __main__ - ERROR - Failed to submit crypto order for UNIUSD: Order execution failed: insufficient balance for UNI (requested: 3750.410201115, available: 0)
+2025-06-03 09:54:21,456 - __main__ - INFO - Attempting crypto trade for AAVEUSD: sell 93.021272802324 units.
+2025-06-03 09:54:21,456 - __main__ - INFO - 🚀 Executing SELL order: AAVEUSD 93.021272802324 shares
+2025-06-03 09:54:21,757 - __main__ - ERROR - ❌ Order execution failed: insufficient balance for AAVE (requested: 93.021272802, available: 0)
+2025-06-03 09:54:21,757 - __main__ - ERROR - Failed to submit crypto order for AAVEUSD: Order execution failed: insufficient balance for AAVE (requested: 93.021272802, available: 0)
+2025-06-03 09:54:21,757 - __main__ - INFO - ✅ crypto: 0 passed, 0 profitable
+2025-06-03 09:54:21,757 - __main__ - INFO - 👁️ crypto: Monitoring positions for exits...
+2025-06-03 09:54:21,962 - __main__ - INFO - 🚪 crypto: 0 exit actions taken
+2025-06-03 09:54:21,962 - __main__ - INFO - 📊 crypto: 8 opps, 8 trades (0 passed, 0 profitable), 0 exits
+2025-06-03 09:54:21,963 - __main__ - INFO - 🎯 Cycle 2 completed: {'total_opportunities': 8, 'total_trades': 8, 'trades_passed': 0, 'successful_trades': 0}

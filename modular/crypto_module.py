@@ -145,6 +145,8 @@ class CryptoModule(TradingModule):
         
         # Performance tracking - REAL profitability metrics
         self._crypto_positions = {}
+        # EMERGENCY FIX: Clear any stale position data on initialization
+        self._clear_stale_position_data()
         self._session_performance = {
             session: {
                 'total_trades': 0,
@@ -166,6 +168,23 @@ class CryptoModule(TradingModule):
         total_cryptos = sum(len(symbols) for symbols in self.crypto_universe.values())
         self.logger.info(f"Crypto module initialized with {total_cryptos} cryptocurrencies")
         self.logger.info(f"Smart allocation range: {self.emergency_allocation:.1%}-{self.max_profitable_allocation:.1%}, Leverage: {self.leverage_multiplier}x")
+    
+    def _clear_stale_position_data(self):
+        """EMERGENCY FIX: Clear all stale internal position tracking data"""
+        try:
+            self._crypto_positions.clear()
+            self.logger.info("🧹 EMERGENCY: Cleared all stale internal position data")
+            
+            # Also clear any file-based position tracking if it exists
+            import os
+            stale_files = ['data/crypto_positions.json', 'crypto_positions.db', 'positions.cache']
+            for filename in stale_files:
+                if os.path.exists(filename):
+                    os.remove(filename)
+                    self.logger.info(f"🧹 EMERGENCY: Removed stale position file: {filename}")
+                    
+        except Exception as e:
+            self.logger.error(f"Error clearing stale position data: {e}")
     
     @property
     def module_name(self) -> str:
@@ -581,6 +600,19 @@ class CryptoModule(TradingModule):
             # Determine trade direction - use momentum strategy for all crypto
             action = self._determine_crypto_action(analysis, crypto_config['strategy'])
             
+            # CRITICAL FIX: Prevent SELL opportunities when no position exists
+            if action == TradeAction.SELL:
+                # Check if we actually have a position to sell
+                current_positions = self._get_crypto_positions()
+                has_position = any(pos.get('symbol') == analysis.symbol and float(pos.get('qty', 0)) > 0 
+                                 for pos in current_positions)
+                
+                if not has_position:
+                    self.logger.debug(f"🚫 {analysis.symbol}: Blocking SELL opportunity - no position exists")
+                    return None  # Don't create phantom sell opportunities
+                else:
+                    self.logger.info(f"✅ {analysis.symbol}: SELL opportunity valid - position exists")
+            
             # Calculate position size with session-aware leverage (AGGRESSIVE after hours)
             base_quantity = self._calculate_crypto_quantity(analysis.symbol, analysis.current_price)
             session_leverage = self._get_leverage_for_current_session()
@@ -648,7 +680,7 @@ class CryptoModule(TradingModule):
     def _execute_crypto_trade(self, opportunity: TradeOpportunity) -> TradeResult:
         """Execute cryptocurrency trade with ML-critical parameter data collection"""
         try:
-            # CRITICAL FIX: Validate buying power before order submission
+            # CRITICAL FIX: Validate before ALL order submissions (BUY and SELL)
             if opportunity.action == TradeAction.BUY:
                 trade_value = float(opportunity.quantity) * opportunity.entry_price
                 is_valid, error_msg = self.risk_manager.validate_position(
@@ -663,6 +695,34 @@ class CryptoModule(TradingModule):
                         status=TradeStatus.FAILED,
                         order_id=None,
                         error_message=f"Risk validation failed: {error_msg}"
+                    )
+            elif opportunity.action == TradeAction.SELL:
+                # EMERGENCY FIX: Validate position exists before selling
+                positions = self._get_crypto_positions()
+                position_exists = any(pos.symbol == opportunity.symbol for pos in positions)
+                if not position_exists:
+                    self.logger.error(f"🚫 PHANTOM SELL BLOCKED: {opportunity.symbol} - position does not exist!")
+                    return TradeResult(
+                        opportunity=opportunity,
+                        status=TradeStatus.FAILED,
+                        order_id=None,
+                        error_message=f"Cannot sell {opportunity.symbol}: position does not exist"
+                    )
+                
+                # Validate sufficient quantity
+                available_qty = 0.0
+                for pos in positions:
+                    if pos.symbol == opportunity.symbol:
+                        available_qty = float(pos.qty)
+                        break
+                
+                if float(opportunity.quantity) > available_qty:
+                    self.logger.error(f"🚫 INSUFFICIENT QUANTITY: {opportunity.symbol} - requested: {opportunity.quantity}, available: {available_qty}")
+                    return TradeResult(
+                        opportunity=opportunity,
+                        status=TradeStatus.FAILED,
+                        order_id=None,
+                        error_message=f"Insufficient quantity for {opportunity.symbol}: requested {opportunity.quantity}, available {available_qty}"
                     )
             
             # Prepare order data for crypto

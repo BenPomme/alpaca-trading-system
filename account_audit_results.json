@@ -1,0 +1,12 @@
+{
+  "timestamp": "2025-06-03T09:52:59.405429",
+  "portfolio_value": 0,
+  "crypto_allocation_pct": 0,
+  "total_positions": 0,
+  "total_unrealized_pl": 0,
+  "recent_orders": {
+    "filled": 0,
+    "pending": 0,
+    "rejected": 0
+  }
+}
