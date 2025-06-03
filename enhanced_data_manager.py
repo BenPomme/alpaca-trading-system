@@ -53,24 +53,34 @@ class EnhancedDataManager:
     Provides fallback data sources for enhanced reliability and enrichment
     """
     
-    def __init__(self, alpaca_api_key: str = None, alpaca_secret_key: str = None, 
+    def __init__(self, api_client=None, alpaca_api_key: str = None, alpaca_secret_key: str = None, 
                  alpha_vantage_key: str = None, finnhub_key: str = None,
                  logger: logging.Logger = None):
         self.logger = logger or logging.getLogger(__name__)
         
+        # Use injected API client if available (from modules)
+        self.api_client = api_client
+        
         # Initialize Alpaca (PRIMARY - Required for trading)
         self.alpaca_available = False
-        if ALPACA_AVAILABLE and alpaca_api_key and alpaca_secret_key:
+        if ALPACA_AVAILABLE and (api_client or (alpaca_api_key and alpaca_secret_key)):
             try:
-                self.trading_client = TradingClient(alpaca_api_key, alpaca_secret_key, paper=True)
-                self.stock_data_client = StockHistoricalDataClient(alpaca_api_key, alpaca_secret_key)
-                self.crypto_data_client = CryptoHistoricalDataClient(alpaca_api_key, alpaca_secret_key)
-                self.alpaca_available = True
-                self.logger.info("✅ Alpaca API initialized (PRIMARY)")
+                if api_client:
+                    # Use injected client
+                    self.trading_client = api_client
+                    self.alpaca_available = True
+                    self.logger.info("✅ Alpaca API client injected (PRIMARY)")
+                else:
+                    # Initialize new client
+                    self.trading_client = TradingClient(alpaca_api_key, alpaca_secret_key, paper=True)
+                    self.stock_data_client = StockHistoricalDataClient(alpaca_api_key, alpaca_secret_key)
+                    self.crypto_data_client = CryptoHistoricalDataClient(alpaca_api_key, alpaca_secret_key)
+                    self.alpaca_available = True
+                    self.logger.info("✅ Alpaca API initialized (PRIMARY)")
             except Exception as e:
                 self.logger.error(f"❌ Alpaca initialization failed: {e}")
         
-        # Initialize enhanced data sources (FALLBACK/ENRICHMENT)
+        # Initialize enhanced data sources (REAL-TIME/ENRICHMENT)
         self.yfinance_available = YFINANCE_AVAILABLE
         if self.yfinance_available:
             self.logger.info("✅ yfinance available (FALLBACK)")
@@ -80,8 +90,9 @@ class EnhancedDataManager:
             try:
                 self.av_timeseries = TimeSeries(key=alpha_vantage_key, output_format='pandas')
                 self.av_tech = TechIndicators(key=alpha_vantage_key, output_format='pandas')
+                self.av_key = alpha_vantage_key
                 self.alpha_vantage_available = True
-                self.logger.info("✅ Alpha Vantage initialized (ENRICHMENT)")
+                self.logger.info("✅ Alpha Vantage initialized (REAL-TIME ENRICHMENT)")
             except Exception as e:
                 self.logger.warning(f"⚠️ Alpha Vantage initialization failed: {e}")
         
@@ -89,8 +100,9 @@ class EnhancedDataManager:
         if FINNHUB_AVAILABLE and finnhub_key:
             try:
                 self.finnhub_client = finnhub.Client(api_key=finnhub_key)
+                self.finnhub_key = finnhub_key
                 self.finnhub_available = True
-                self.logger.info("✅ Finnhub initialized (ENRICHMENT)")
+                self.logger.info("✅ Finnhub initialized (REAL-TIME ENRICHMENT)")
             except Exception as e:
                 self.logger.warning(f"⚠️ Finnhub initialization failed: {e}")
     
@@ -213,6 +225,244 @@ class EnhancedDataManager:
                 self.logger.warning(f"⚠️ yfinance historical data failed for {symbol}: {e}")
         
         return data
+    
+    def get_real_time_quote(self, symbol: str) -> Optional[Dict[str, Any]]:
+        """
+        Get real-time quote using Finnhub (preferred) -> Alpha Vantage -> Alpaca chain
+        Returns standardized real-time quote format
+        """
+        quote = None
+        source = "unknown"
+        
+        # PRIMARY REAL-TIME: Try Finnhub first for most up-to-date data
+        if self.finnhub_available:
+            try:
+                # Convert symbol format for Finnhub (remove USD suffix for crypto)
+                fh_symbol = symbol.replace('USD', '') if 'USD' in symbol else symbol
+                
+                if 'USD' in symbol:  # Crypto symbol
+                    quote_data = self.finnhub_client.crypto_candles(fh_symbol + 'USDT', 'D', 
+                                                                   int(time.time()) - 86400, 
+                                                                   int(time.time()))
+                    if quote_data and quote_data.get('c') and len(quote_data['c']) > 0:
+                        latest_price = quote_data['c'][-1]  # Latest close price
+                        quote = {
+                            'symbol': symbol,
+                            'price': float(latest_price),
+                            'bid': float(latest_price) * 0.999,  # Estimate spread
+                            'ask': float(latest_price) * 1.001,
+                            'timestamp': datetime.now(timezone.utc),
+                            'source': 'finnhub_crypto',
+                            'real_time': True
+                        }
+                        source = "finnhub_crypto"
+                else:  # Stock symbol
+                    quote_data = self.finnhub_client.quote(symbol)
+                    if quote_data and quote_data.get('c'):
+                        quote = {
+                            'symbol': symbol,
+                            'price': float(quote_data['c']),
+                            'bid': float(quote_data.get('pc', quote_data['c'])),  # Previous close as bid fallback
+                            'ask': float(quote_data['c']),
+                            'timestamp': datetime.fromtimestamp(quote_data.get('t', time.time()), timezone.utc),
+                            'source': 'finnhub_stock',
+                            'real_time': True,
+                            'change': float(quote_data.get('d', 0)),
+                            'change_percent': float(quote_data.get('dp', 0))
+                        }
+                        source = "finnhub_stock"
+                        
+                self.logger.debug(f"✅ Finnhub real-time quote for {symbol}: ${quote['price']:.4f}")
+                        
+            except Exception as e:
+                self.logger.warning(f"⚠️ Finnhub real-time quote failed for {symbol}: {e}")
+        
+        # SECONDARY REAL-TIME: Try Alpha Vantage if Finnhub failed
+        if quote is None and self.alpha_vantage_available:
+            try:
+                if 'USD' in symbol:  # Crypto
+                    crypto_symbol = symbol.replace('USD', '')
+                    # Use Alpha Vantage crypto endpoint
+                    url = f"https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency={crypto_symbol}&to_currency=USD&apikey={self.av_key}"
+                    import requests
+                    response = requests.get(url, timeout=10)
+                    data = response.json()
+                    
+                    if 'Realtime Currency Exchange Rate' in data:
+                        rate_data = data['Realtime Currency Exchange Rate']
+                        price = float(rate_data['5. Exchange Rate'])
+                        quote = {
+                            'symbol': symbol,
+                            'price': price,
+                            'bid': price * 0.999,
+                            'ask': price * 1.001,
+                            'timestamp': datetime.now(timezone.utc),
+                            'source': 'alpha_vantage_crypto',
+                            'real_time': True
+                        }
+                        source = "alpha_vantage_crypto"
+                else:  # Stock
+                    # Use Alpha Vantage GLOBAL_QUOTE for real-time stock data
+                    url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey={self.av_key}"
+                    import requests
+                    response = requests.get(url, timeout=10)
+                    data = response.json()
+                    
+                    if 'Global Quote' in data:
+                        quote_data = data['Global Quote']
+                        price = float(quote_data['05. price'])
+                        quote = {
+                            'symbol': symbol,
+                            'price': price,
+                            'bid': price * 0.999,
+                            'ask': price * 1.001,
+                            'timestamp': datetime.now(timezone.utc),
+                            'source': 'alpha_vantage_stock',
+                            'real_time': True,
+                            'change': float(quote_data.get('09. change', 0)),
+                            'change_percent': quote_data.get('10. change percent', '0%').replace('%', '')
+                        }
+                        source = "alpha_vantage_stock"
+                        
+                self.logger.debug(f"✅ Alpha Vantage real-time quote for {symbol}: ${quote['price']:.4f}")
+                        
+            except Exception as e:
+                self.logger.warning(f"⚠️ Alpha Vantage real-time quote failed for {symbol}: {e}")
+        
+        # FALLBACK: Use existing get_latest_quote method
+        if quote is None:
+            quote = self.get_latest_quote(symbol, fallback=True)
+            if quote:
+                quote['real_time'] = False
+                source = quote.get('source', 'fallback')
+        
+        if quote:
+            self.logger.debug(f"✅ Real-time quote retrieved for {symbol} from {source}")
+            return quote
+        else:
+            self.logger.error(f"❌ All real-time data sources failed for {symbol}")
+            return None
+    
+    def get_enhanced_quote_data(self, symbol: str, include_fundamentals: bool = False) -> Optional[Dict[str, Any]]:
+        """
+        Get comprehensive quote data combining real-time price with technical indicators
+        """
+        try:
+            # Get real-time quote
+            quote = self.get_real_time_quote(symbol)
+            if not quote:
+                return None
+            
+            # Get historical data for technical analysis
+            historical_data = self.get_historical_data(symbol, period="1mo", interval="1d")
+            
+            enhanced_data = {
+                'symbol': symbol,
+                'current_price': quote['price'],
+                'bid': quote.get('bid', quote['price']),
+                'ask': quote.get('ask', quote['price']),
+                'timestamp': quote['timestamp'],
+                'source': quote['source'],
+                'real_time': quote.get('real_time', False),
+                'change': quote.get('change', 0),
+                'change_percent': quote.get('change_percent', 0)
+            }
+            
+            # Add historical price data for technical analysis
+            if historical_data is not None and not historical_data.empty:
+                enhanced_data['price_history'] = historical_data['close'].tail(50).tolist()
+                enhanced_data['volume_history'] = historical_data.get('volume', pd.Series()).tail(50).tolist()
+                enhanced_data['high_history'] = historical_data.get('high', pd.Series()).tail(50).tolist()
+                enhanced_data['low_history'] = historical_data.get('low', pd.Series()).tail(50).tolist()
+            
+            # Add fundamental data if requested
+            if include_fundamentals and not 'USD' in symbol:  # Stocks only
+                fundamentals = self.get_fundamental_data(symbol)
+                if fundamentals:
+                    enhanced_data['fundamentals'] = fundamentals
+            
+            return enhanced_data
+            
+        except Exception as e:
+            self.logger.error(f"❌ Enhanced quote data failed for {symbol}: {e}")
+            return None
+    
+    def get_market_context(self, symbol: str) -> Optional[Dict[str, Any]]:
+        """
+        Get market context using Finnhub market data
+        """
+        if not self.finnhub_available:
+            return None
+        
+        try:
+            # Get market sentiment and context
+            context = {}
+            
+            # Get market news sentiment
+            news = self.get_news_sentiment(symbol, limit=5)
+            if news:
+                sentiment_scores = []
+                for item in news:
+                    # Simple sentiment analysis based on keywords
+                    headline = item.get('headline', '').lower()
+                    if any(word in headline for word in ['surge', 'rally', 'gain', 'bull', 'up']):
+                        sentiment_scores.append(1)
+                    elif any(word in headline for word in ['crash', 'fall', 'bear', 'down', 'decline']):
+                        sentiment_scores.append(-1)
+                    else:
+                        sentiment_scores.append(0)
+                
+                avg_sentiment = np.mean(sentiment_scores) if sentiment_scores else 0
+                context['news_sentiment'] = avg_sentiment
+                context['news_count'] = len(news)
+            
+            # Add market volatility context
+            if not 'USD' in symbol:  # For stocks
+                try:
+                    # Get basic company profile
+                    profile = self.finnhub_client.company_profile2(symbol=symbol)
+                    if profile:
+                        context['sector'] = profile.get('finnhubIndustry', '')
+                        context['market_cap'] = profile.get('marketCapitalization', 0)
+                except Exception:
+                    pass
+            
+            return context if context else None
+            
+        except Exception as e:
+            self.logger.error(f"❌ Market context failed for {symbol}: {e}")
+            return None
+    
+    def get_sector_data(self, symbol: str) -> Optional[Dict[str, Any]]:
+        """
+        Get sector-specific data and rotation signals
+        """
+        try:
+            if not self.finnhub_available or 'USD' in symbol:
+                return None
+            
+            # Get company profile for sector information
+            profile = self.finnhub_client.company_profile2(symbol=symbol)
+            if not profile:
+                return None
+            
+            sector = profile.get('finnhubIndustry', '')
+            if not sector:
+                return None
+            
+            # Simple sector momentum analysis
+            sector_data = {
+                'sector': sector,
+                'rotation_signal': 'neutral',  # Would implement sector rotation logic
+                'sector_momentum': 0.5,  # Placeholder for sector momentum
+                'relative_strength': 0.5  # Placeholder for relative strength vs sector
+            }
+            
+            return sector_data
+            
+        except Exception as e:
+            self.logger.error(f"❌ Sector data failed for {symbol}: {e}")
+            return None
     
     def get_fundamental_data(self, symbol: str) -> Optional[Dict[str, Any]]:
         """

@@ -85,6 +85,25 @@ class CryptoModule(TradingModule):
         
         self.api = api_client
         
+        # Initialize Enhanced Data Manager for real-time crypto data
+        try:
+            import os
+            from enhanced_data_manager import EnhancedDataManager
+            
+            alpha_vantage_key = os.getenv('ALPHA_VANTAGE_API_KEY')
+            finnhub_key = os.getenv('FINNHUB_API_KEY')
+            
+            self.enhanced_data_manager = EnhancedDataManager(
+                api_client=api_client,
+                alpha_vantage_key=alpha_vantage_key,
+                finnhub_key=finnhub_key,
+                logger=logger
+            )
+            self.logger.info("✅ Enhanced data manager with real-time APIs initialized for crypto module")
+        except Exception as e:
+            self.logger.warning(f"⚠️ Enhanced data manager initialization failed: {e} - using basic Alpaca data")
+            self.enhanced_data_manager = None
+        
         # SMART LEVERAGE SYSTEM FOR 5% MONTHLY ROI
         self.base_crypto_allocation = 0.40  # Target 40% for 5% monthly ROI (balanced performance)
         self.emergency_allocation = 0.20    # Emergency mode if losing money
@@ -103,14 +122,14 @@ class CryptoModule(TradingModule):
         
         # INSTITUTIONAL CRYPTO STRATEGY - Research-backed mean reversion
         self.crypto_trading_config = {
-            'min_confidence': 0.60,  # Higher threshold based on research
-            'position_size_multiplier': 0.8,  # Conservative sizing with proper risk management
+            'min_confidence': 0.35,  # LOWERED: Increase opportunities while maintaining quality
+            'position_size_multiplier': 1.2,  # INCREASED: More aggressive sizing for recovery
             'strategy': CryptoStrategy.MOMENTUM,  # Momentum strategy for crypto entries
-            'analyze_all_symbols': False,  # Focus on top 3 cryptos for concentration
+            'analyze_all_symbols': True,  # CHANGED: Analyze all symbols for maximum opportunities
             'cycle_frequency_seconds': 3600,  # Hourly cycles (not intraday scalping)
             'stop_loss_pct': 0.07,  # 7% stop loss (tighter risk control)
-            'profit_target_pct': 0.25,  # Increased to 25% profit target for larger mean reversion captures
-            'oversold_threshold': -0.20,  # Buy on 20%+ dips from moving average
+            'profit_target_pct': 0.20,  # ADJUSTED: 20% profit target for better hit rate
+            'oversold_threshold': -0.15,  # ADJUSTED: Buy on 15%+ dips for more opportunities
             'moving_average_period': 20  # 20-day MA for mean reversion reference
         }
         
@@ -559,13 +578,13 @@ class CryptoModule(TradingModule):
     # RESEARCH-BACKED TECHNICAL INDICATORS (Based on 2024 crypto trading research)
     
     def _calculate_rsi_signals(self, symbol: str, market_data: Dict) -> Optional[Dict]:
-        """Calculate RSI-based buy/sell signals using research-backed approach"""
+        """Calculate RSI-based buy/sell signals with mean reversion using real market data"""
         try:
             prices = market_data.get('price_history', [])
             if len(prices) < 14:
                 return None
             
-            # Calculate RSI (14-period standard)
+            # Calculate RSI (14-period standard) with proper real data
             price_changes = [prices[i] - prices[i-1] for i in range(1, len(prices))]
             gains = [change if change > 0 else 0 for change in price_changes]
             losses = [-change if change < 0 else 0 for change in price_changes]
@@ -580,40 +599,73 @@ class CryptoModule(TradingModule):
                 rs = avg_gain / avg_loss
                 rsi = 100 - (100 / (1 + rs))
             
-            # AGGRESSIVE BUY-THE-DIP RSI strategy for 5-10% monthly returns
-            # FIXED: Portfolio is down -2.55%, need to favor BUY opportunities
-            # Convert RSI to normalized buy/sell strength optimized for recovery
-            
-            if rsi <= 30:
-                # Strong oversold - AGGRESSIVE BUY (0.9 -> 0.8 buy strength)
-                buy_strength = 0.9 - (rsi / 30) * 0.1  # 0.9 -> 0.8
-                sell_strength = 0.1 + (rsi / 30) * 0.1  # 0.1 -> 0.2
-                signal = 'strong_buy'
-            elif rsi <= 50:
-                # Moderate oversold - FAVOR BUY (0.8 -> 0.65 buy strength)
-                buy_strength = 0.8 - ((rsi - 30) / 20) * 0.15  # 0.8 -> 0.65
-                sell_strength = 0.2 + ((rsi - 30) / 20) * 0.15  # 0.2 -> 0.35
-                signal = 'buy' if rsi <= 45 else 'neutral'
-            elif rsi <= 70:
-                # Moderate levels - STILL FAVOR BUY for recovery (0.65 -> 0.55)
-                buy_strength = 0.65 - ((rsi - 50) / 20) * 0.1  # 0.65 -> 0.55
-                sell_strength = 0.35 + ((rsi - 50) / 20) * 0.1  # 0.35 -> 0.45
-                signal = 'neutral' if rsi <= 65 else 'weak_sell'
+            # MEAN REVERSION STRATEGY: Calculate deviation from moving average
+            ma_period = self.crypto_trading_config['moving_average_period']
+            if len(prices) >= ma_period:
+                moving_average = sum(prices[-ma_period:]) / ma_period
+                current_price = prices[-1]
+                deviation_pct = (current_price - moving_average) / moving_average
+                
+                # Mean reversion logic: favor opposite direction of deviation
+                if deviation_pct <= self.crypto_trading_config['oversold_threshold']:
+                    # Price significantly below MA - STRONG BUY signal
+                    mean_reversion_buy_boost = 0.3
+                    mean_reversion_sell_penalty = -0.3
+                    signal_context = f"mean_reversion_oversold_{deviation_pct:.1%}"
+                elif deviation_pct >= -self.crypto_trading_config['oversold_threshold']:
+                    # Price significantly above MA - SELL signal
+                    mean_reversion_buy_boost = -0.2
+                    mean_reversion_sell_penalty = 0.2
+                    signal_context = f"mean_reversion_overbought_{deviation_pct:.1%}"
+                else:
+                    # Price near MA - neutral
+                    mean_reversion_buy_boost = 0.0
+                    mean_reversion_sell_penalty = 0.0
+                    signal_context = f"mean_reversion_neutral_{deviation_pct:.1%}"
             else:
-                # Strong overbought - Only sell when extremely overbought (0.55 -> 0.4)
-                buy_strength = 0.55 - ((rsi - 70) / 30) * 0.15  # 0.55 -> 0.4
-                sell_strength = 0.45 + ((rsi - 70) / 30) * 0.15  # 0.45 -> 0.6
-                signal = 'sell' if rsi >= 80 else 'neutral'
+                # Not enough data for mean reversion
+                mean_reversion_buy_boost = 0.0
+                mean_reversion_sell_penalty = 0.0
+                signal_context = "insufficient_data_for_mean_reversion"
+            
+            # Combine RSI with mean reversion
+            if rsi <= 30:
+                # Strong oversold RSI + mean reversion
+                buy_strength = min(0.95, 0.85 + mean_reversion_buy_boost)
+                sell_strength = max(0.05, 0.15 + mean_reversion_sell_penalty)
+                signal = 'strong_buy'
+            elif rsi <= 45:
+                # Moderate oversold + mean reversion
+                buy_strength = min(0.85, 0.70 + mean_reversion_buy_boost)
+                sell_strength = max(0.15, 0.30 + mean_reversion_sell_penalty)
+                signal = 'buy'
+            elif rsi <= 55:
+                # Neutral RSI - let mean reversion dominate
+                buy_strength = max(0.30, min(0.70, 0.50 + mean_reversion_buy_boost))
+                sell_strength = max(0.30, min(0.70, 0.50 + mean_reversion_sell_penalty))
+                signal = 'neutral'
+            elif rsi <= 70:
+                # Moderate overbought + mean reversion
+                buy_strength = max(0.15, 0.40 + mean_reversion_buy_boost)
+                sell_strength = min(0.85, 0.60 + mean_reversion_sell_penalty)
+                signal = 'weak_sell'
+            else:
+                # Strong overbought RSI + mean reversion
+                buy_strength = max(0.05, 0.25 + mean_reversion_buy_boost)
+                sell_strength = min(0.95, 0.75 + mean_reversion_sell_penalty)
+                signal = 'sell'
             
             return {
                 'rsi_value': rsi,
                 'signal': signal,
                 'buy_strength': buy_strength,
-                'sell_strength': sell_strength
+                'sell_strength': sell_strength,
+                'mean_reversion_context': signal_context,
+                'ma_deviation': deviation_pct if len(prices) >= ma_period else None
             }
             
         except Exception as e:
-            self.logger.error(f"❌ {symbol}: RSI calculation failed: {e}")
+            self.logger.error(f"❌ {symbol}: RSI+MeanReversion calculation failed: {e}")
             return None
     
     def _calculate_macd_signals(self, symbol: str, market_data: Dict) -> Optional[Dict]:
@@ -1763,8 +1815,24 @@ class CryptoModule(TradingModule):
             return 0.0
     
     def _get_crypto_market_data(self, symbol: str) -> Optional[Dict]:
-        """Get cryptocurrency market data for analysis using real Alpaca data"""
+        """Get cryptocurrency market data using enhanced real-time data sources"""
         try:
+            # PRIMARY: Use enhanced data manager for real-time data if available
+            if hasattr(self, 'enhanced_data_manager') and self.enhanced_data_manager:
+                enhanced_data = self.enhanced_data_manager.get_enhanced_quote_data(symbol, include_fundamentals=False)
+                if enhanced_data:
+                    self.logger.debug(f"📊 {symbol}: Using enhanced real-time data from {enhanced_data.get('source')}")
+                    return {
+                        'price_history': enhanced_data.get('price_history', []),
+                        'volume_history': enhanced_data.get('volume_history', []),
+                        'high_history': enhanced_data.get('high_history', []),
+                        'low_history': enhanced_data.get('low_history', []),
+                        'current_price': enhanced_data['current_price'],
+                        'real_time': enhanced_data.get('real_time', False),
+                        'source': enhanced_data.get('source', 'enhanced_data_manager')
+                    }
+            
+            # FALLBACK: Use Alpaca API for basic data
             current_price = self._get_crypto_price(symbol)
             if not current_price:
                 return None

@@ -63,6 +63,19 @@ class ModularOrchestrator:
         else:
             self.ml_optimizer = ml_optimizer
         
+        # Initialize portfolio rebalancer for diversification
+        try:
+            from portfolio_rebalancer import PortfolioRebalancer
+            self.portfolio_rebalancer = PortfolioRebalancer(
+                orchestrator=self,
+                firebase_db=firebase_db,
+                logger=self.logger
+            )
+            self.logger.info("✅ Portfolio rebalancer initialized for diversification management")
+        except Exception as e:
+            self.logger.warning(f"⚠️ Portfolio rebalancer initialization failed: {e}")
+            self.portfolio_rebalancer = None
+        
         # Module management
         self.registry = ModuleRegistry()
         self._cycle_count = 0
@@ -418,6 +431,10 @@ class ModularOrchestrator:
             self._cycle_count % (self._config['optimization_interval'] // self._cycle_delay) == 0):
             self._run_ml_optimization()
         
+        # Portfolio rebalancing (run every 10 cycles for diversification)
+        if (self.portfolio_rebalancer and self._cycle_count % 10 == 0):
+            self._run_portfolio_rebalancing()
+        
         self._last_cycle_time = now
     
     def _run_health_checks(self):
@@ -464,6 +481,115 @@ class ModularOrchestrator:
                     
         except Exception as e:
             self.logger.error(f"Error running ML optimization: {e}")
+    
+    def _run_portfolio_rebalancing(self):
+        """Run portfolio rebalancing for diversification"""
+        try:
+            if not self.portfolio_rebalancer:
+                return
+            
+            self.logger.info("🔄 Running portfolio rebalancing analysis...")
+            
+            # Get rebalancing recommendations
+            recommendations = self.portfolio_rebalancer.get_rebalancing_recommendations()
+            
+            if recommendations.get('error'):
+                self.logger.error(f"Portfolio analysis error: {recommendations['error']}")
+                return
+            
+            portfolio_snapshot = recommendations.get('portfolio_snapshot', {})
+            actions = recommendations.get('recommendations', [])
+            
+            # Log current portfolio state
+            self.logger.info(f"📊 Portfolio: ${portfolio_snapshot.get('total_value', 0):,.0f}, "
+                           f"{portfolio_snapshot.get('position_count', 0)} positions, "
+                           f"largest: {portfolio_snapshot.get('largest_position_pct', 0):.1%}")
+            
+            # Execute high-priority rebalancing if needed
+            critical_actions = [a for a in actions if a.get('urgency') in ['critical', 'high']]
+            
+            if critical_actions:
+                self.logger.warning(f"🚨 Found {len(critical_actions)} critical rebalancing needs")
+                
+                # Convert back to RebalanceAction objects for execution
+                from portfolio_rebalancer import RebalanceAction, RebalanceReason
+                
+                action_objects = []
+                for action_dict in critical_actions[:3]:  # Limit to top 3
+                    try:
+                        action_obj = RebalanceAction(
+                            symbol=action_dict['symbol'],
+                            module=action_dict['module'],
+                            current_weight=float(action_dict['current_weight'].replace('%', '')) / 100,
+                            target_weight=float(action_dict['target_weight'].replace('%', '')) / 100,
+                            action_type=action_dict['action'],
+                            amount_usd=action_dict['amount_usd'],
+                            reason=RebalanceReason(action_dict['reason']),
+                            urgency=action_dict['urgency']
+                        )
+                        action_objects.append(action_obj)
+                    except Exception as e:
+                        self.logger.error(f"Error converting action: {e}")
+                
+                if action_objects:
+                    execution_summary = self.portfolio_rebalancer.execute_rebalancing(action_objects)
+                    
+                    self.logger.info(f"✅ Rebalancing executed: {execution_summary.get('actions_executed', 0)} actions, "
+                                   f"${execution_summary.get('total_value_rebalanced', 0):,.0f} rebalanced")
+            else:
+                diversification_score = portfolio_snapshot.get('diversification_score', 0)
+                self.logger.info(f"✅ Portfolio balanced (diversification: {diversification_score:.2f})")
+            
+        except Exception as e:
+            self.logger.error(f"Error in portfolio rebalancing: {e}")
+    
+    def get_portfolio_summary(self) -> Dict[str, Any]:
+        """Get portfolio summary for rebalancing analysis"""
+        try:
+            # Aggregate data from all modules
+            all_positions = []
+            total_value = 100000  # Default portfolio value
+            
+            # Get account value from risk manager or API
+            if hasattr(self.risk_manager, 'get_portfolio_value'):
+                total_value = self.risk_manager.get_portfolio_value()
+            
+            # Collect positions from all active modules
+            for module in self.registry.get_active_modules():
+                try:
+                    if hasattr(module, '_get_positions'):
+                        module_positions = module._get_positions()
+                        for pos in module_positions:
+                            pos['module'] = module.module_name
+                            all_positions.append(pos)
+                    elif hasattr(module, '_get_crypto_positions'):
+                        crypto_positions = module._get_crypto_positions()
+                        for pos in crypto_positions:
+                            pos['module'] = module.module_name
+                            all_positions.append(pos)
+                    elif hasattr(module, '_get_stock_positions'):
+                        stock_positions = module._get_stock_positions()
+                        for pos in stock_positions:
+                            pos['module'] = module.module_name
+                            all_positions.append(pos)
+                except Exception as e:
+                    self.logger.debug(f"Could not get positions from {module.module_name}: {e}")
+            
+            return {
+                'portfolio_value': total_value,
+                'positions': all_positions,
+                'position_count': len(all_positions),
+                'timestamp': datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error getting portfolio summary: {e}")
+            return {
+                'portfolio_value': 100000,
+                'positions': [],
+                'position_count': 0,
+                'error': str(e)
+            }
     
     def _cleanup(self):
         """Cleanup resources on shutdown"""

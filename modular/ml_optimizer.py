@@ -194,29 +194,33 @@ class ParameterOptimizer:
             return False
     
     def optimize_module_parameters(self, module_name: str) -> List[ParameterOptimizationResult]:
-        """Optimize parameters for a specific module"""
+        """Optimize parameters for a specific module with enhanced profit-based learning"""
         optimization_results = []
         
         try:
-            self.logger.info(f"Starting parameter optimization for {module_name}")
+            self.logger.info(f"Starting enhanced parameter optimization for {module_name}")
             
-            # Get recent performance data
+            # Get recent performance data with profit focus
             performance_data = self._get_recent_performance_data(module_name)
             if len(performance_data) < self.min_data_points:
                 self.logger.warning(f"Insufficient data for {module_name}: {len(performance_data)} points")
                 return optimization_results
             
+            # Enhanced profitability analysis
+            profit_analysis = self._analyze_profitability_patterns(module_name, performance_data)
+            self.logger.info(f"Profitability analysis for {module_name}: {profit_analysis}")
+            
             # Get current module parameters
             current_params = self._get_current_module_parameters(module_name)
             
-            # Analyze parameter effectiveness
-            param_analysis = self._analyze_parameter_effectiveness(module_name, performance_data)
+            # Analyze parameter effectiveness with profit weighting
+            param_analysis = self._analyze_parameter_effectiveness_with_profit(module_name, performance_data)
             
-            # Optimize each parameter type
+            # Optimize parameters based on profitability patterns
             for param_type, effectiveness in param_analysis.items():
                 if effectiveness.get('should_optimize', False):
-                    result = self._optimize_single_parameter(
-                        module_name, param_type, performance_data, current_params
+                    result = self._optimize_single_parameter_for_profit(
+                        module_name, param_type, performance_data, current_params, profit_analysis
                     )
                     if result:
                         optimization_results.append(result)
@@ -224,11 +228,11 @@ class ParameterOptimizer:
             # Update last optimization time
             self.last_optimization[module_name] = datetime.now()
             
-            self.logger.info(f"Completed optimization for {module_name}: {len(optimization_results)} parameters updated")
+            self.logger.info(f"Enhanced optimization for {module_name}: {len(optimization_results)} parameters updated")
             return optimization_results
             
         except Exception as e:
-            self.logger.error(f"Error optimizing parameters for {module_name}: {e}")
+            self.logger.error(f"Error in enhanced optimization for {module_name}: {e}")
             return optimization_results
     
     def _get_recent_performance_data(self, module_name: str, days_back: int = 7) -> List[Dict]:
@@ -648,3 +652,275 @@ class MLParameterOptimizationEngine:
         """Disable parameter optimization"""
         self.optimization_enabled = False
         self.logger.info("Parameter optimization disabled")
+    
+    def _analyze_profitability_patterns(self, module_name: str, performance_data: List[Dict]) -> Dict[str, Any]:
+        """Analyze profitability patterns to guide optimization"""
+        try:
+            profitable_trades = [d for d in performance_data if d.get('profit_loss', 0) > 0]
+            losing_trades = [d for d in performance_data if d.get('profit_loss', 0) < 0]
+            
+            total_trades = len(performance_data)
+            win_rate = len(profitable_trades) / total_trades if total_trades > 0 else 0
+            
+            avg_profit = np.mean([d.get('profit_loss', 0) for d in profitable_trades]) if profitable_trades else 0
+            avg_loss = np.mean([d.get('profit_loss', 0) for d in losing_trades]) if losing_trades else 0
+            
+            # Analyze confidence thresholds of profitable vs losing trades
+            profitable_confidence = np.mean([d.get('confidence', 0.5) for d in profitable_trades]) if profitable_trades else 0.5
+            losing_confidence = np.mean([d.get('confidence', 0.5) for d in losing_trades]) if losing_trades else 0.5
+            
+            return {
+                'win_rate': win_rate,
+                'avg_profit': avg_profit,
+                'avg_loss': avg_loss,
+                'profit_factor': abs(avg_profit / avg_loss) if avg_loss != 0 else 1.0,
+                'profitable_confidence_avg': profitable_confidence,
+                'losing_confidence_avg': losing_confidence,
+                'confidence_effectiveness': profitable_confidence - losing_confidence,
+                'total_pnl': sum(d.get('profit_loss', 0) for d in performance_data)
+            }
+        except Exception as e:
+            self.logger.error(f"Error analyzing profitability patterns: {e}")
+            return {}
+    
+    def _analyze_parameter_effectiveness_with_profit(self, module_name: str, 
+                                                   performance_data: List[Dict]) -> Dict[str, Dict]:
+        """Enhanced parameter analysis weighted by profitability"""
+        analysis = {}
+        
+        try:
+            # Group data by parameter types with profit weighting
+            param_groups = self._group_data_by_parameters(performance_data)
+            
+            for param_type, param_data in param_groups.items():
+                if len(param_data) < 5:
+                    continue
+                
+                # Calculate profit-weighted correlation
+                profit_correlation = self._calculate_profit_weighted_correlation(param_type, param_data)
+                variance = self._calculate_parameter_variance(param_type, param_data)
+                
+                # Calculate parameter impact on win rate
+                win_rate_impact = self._calculate_win_rate_impact(param_type, param_data)
+                
+                # Determine optimization priority based on profit impact
+                should_optimize = (
+                    abs(profit_correlation) > 0.15 or  # Strong profit correlation
+                    abs(win_rate_impact) > 0.1 or     # Significant win rate impact
+                    (variance > 0.02 and len(param_data) >= 10)  # High variance with sufficient data
+                )
+                
+                analysis[param_type] = {
+                    'profit_correlation': profit_correlation,
+                    'win_rate_impact': win_rate_impact,
+                    'variance': variance,
+                    'data_points': len(param_data),
+                    'should_optimize': should_optimize,
+                    'optimization_priority': abs(profit_correlation) + abs(win_rate_impact)
+                }
+            
+            return analysis
+            
+        except Exception as e:
+            self.logger.error(f"Error in enhanced parameter analysis: {e}")
+            return {}
+    
+    def _calculate_profit_weighted_correlation(self, param_type: str, param_data: List[Dict]) -> float:
+        """Calculate correlation between parameter and profit with profit weighting"""
+        try:
+            param_values = []
+            profit_values = []
+            profit_weights = []
+            
+            for data_point in param_data:
+                param_val = data_point.get(param_type)
+                profit_val = data_point.get('profit_loss', 0.0)
+                
+                if param_val is not None and isinstance(param_val, (int, float)):
+                    param_values.append(float(param_val))
+                    profit_values.append(profit_val)
+                    # Weight profitable trades more heavily
+                    weight = 2.0 if profit_val > 0 else 1.0
+                    profit_weights.append(weight)
+            
+            if len(param_values) < 3:
+                return 0.0
+            
+            # Calculate weighted correlation
+            weighted_param = np.average(param_values, weights=profit_weights)
+            weighted_profit = np.average(profit_values, weights=profit_weights)
+            
+            # Calculate weighted covariance and standard deviations
+            param_deviations = [(p - weighted_param) * w for p, w in zip(param_values, profit_weights)]
+            profit_deviations = [(p - weighted_profit) * w for p, w in zip(profit_values, profit_weights)]
+            
+            covariance = np.mean([pd * pfd for pd, pfd in zip(param_deviations, profit_deviations)])
+            param_std = np.sqrt(np.mean([pd ** 2 for pd in param_deviations]))
+            profit_std = np.sqrt(np.mean([pfd ** 2 for pfd in profit_deviations]))
+            
+            if param_std == 0 or profit_std == 0:
+                return 0.0
+            
+            correlation = covariance / (param_std * profit_std)
+            return correlation if not np.isnan(correlation) else 0.0
+            
+        except Exception:
+            return 0.0
+    
+    def _calculate_win_rate_impact(self, param_type: str, param_data: List[Dict]) -> float:
+        """Calculate how parameter values impact win rate"""
+        try:
+            # Split data into high/low parameter value groups
+            param_values = [d.get(param_type) for d in param_data if d.get(param_type) is not None]
+            if len(param_values) < 6:
+                return 0.0
+            
+            median_param = np.median(param_values)
+            
+            high_param_data = [d for d in param_data if d.get(param_type, 0) >= median_param]
+            low_param_data = [d for d in param_data if d.get(param_type, 0) < median_param]
+            
+            if len(high_param_data) < 3 or len(low_param_data) < 3:
+                return 0.0
+            
+            # Calculate win rates for each group
+            high_wins = sum(1 for d in high_param_data if d.get('profit_loss', 0) > 0)
+            high_win_rate = high_wins / len(high_param_data)
+            
+            low_wins = sum(1 for d in low_param_data if d.get('profit_loss', 0) > 0)
+            low_win_rate = low_wins / len(low_param_data)
+            
+            # Return difference in win rates
+            return high_win_rate - low_win_rate
+            
+        except Exception:
+            return 0.0
+    
+    def _optimize_single_parameter_for_profit(self, module_name: str, param_type: str,
+                                            performance_data: List[Dict],
+                                            current_params: Dict[str, Any],
+                                            profit_analysis: Dict[str, Any]) -> Optional[ParameterOptimizationResult]:
+        """Optimize parameter specifically for profitability"""
+        try:
+            # Use existing optimization but weight by profitability
+            if param_type in self.parameter_bounds:
+                result = self._optimize_continuous_parameter_for_profit(
+                    module_name, param_type, performance_data, current_params, profit_analysis
+                )
+            else:
+                result = self._optimize_discrete_parameter_for_profit(
+                    module_name, param_type, performance_data, current_params, profit_analysis
+                )
+            
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"Error optimizing parameter {param_type} for profit: {e}")
+            return None
+    
+    def _optimize_continuous_parameter_for_profit(self, module_name: str, param_type: str,
+                                                performance_data: List[Dict],
+                                                current_params: Dict[str, Any],
+                                                profit_analysis: Dict[str, Any]) -> Optional[ParameterOptimizationResult]:
+        """Optimize continuous parameter with profit weighting"""
+        try:
+            # Filter to only profitable trades for parameter suggestions
+            profitable_data = [d for d in performance_data if d.get('profit_loss', 0) > 0]
+            
+            if len(profitable_data) < 3:
+                # Fall back to regular optimization if insufficient profitable trades
+                return self._optimize_continuous_parameter(module_name, param_type, performance_data, current_params)
+            
+            # Get optimal parameter values from profitable trades
+            profitable_param_values = [d.get(param_type) for d in profitable_data if d.get(param_type) is not None]
+            
+            if not profitable_param_values:
+                return None
+            
+            # Calculate optimal value as weighted average of profitable parameters
+            weights = [d.get('profit_loss', 1.0) for d in profitable_data if d.get(param_type) is not None]
+            optimal_value = np.average(profitable_param_values, weights=weights)
+            
+            # Ensure within bounds
+            bounds = self.parameter_bounds[param_type]
+            optimal_value = max(bounds[0], min(bounds[1], optimal_value))
+            
+            current_value = current_params.get(param_type, 0.5)
+            
+            # Only suggest change if improvement is significant
+            if abs(optimal_value - current_value) < 0.03:
+                return None
+            
+            # Estimate improvement based on profit analysis
+            expected_improvement = min(0.15, profit_analysis.get('profit_factor', 1.0) * 0.05)
+            
+            return ParameterOptimizationResult(
+                module_name=module_name,
+                parameter_type=param_type,
+                old_value=current_value,
+                new_value=optimal_value,
+                expected_improvement=expected_improvement,
+                confidence=min(0.85, len(profitable_data) / 20),
+                optimization_method="profit_weighted_continuous",
+                data_points_used=len(profitable_data)
+            )
+            
+        except Exception as e:
+            self.logger.error(f"Error in profit-weighted continuous optimization: {e}")
+            return None
+    
+    def _optimize_discrete_parameter_for_profit(self, module_name: str, param_type: str,
+                                              performance_data: List[Dict],
+                                              current_params: Dict[str, Any],
+                                              profit_analysis: Dict[str, Any]) -> Optional[ParameterOptimizationResult]:
+        """Optimize discrete parameter based on profitability"""
+        try:
+            # Group by parameter value and calculate profit metrics
+            value_performance = {}
+            
+            for data_point in performance_data:
+                param_value = data_point.get(param_type)
+                if param_value is not None:
+                    if param_value not in value_performance:
+                        value_performance[param_value] = {'profits': [], 'total_pnl': 0.0, 'win_rate': 0.0}
+                    
+                    profit_loss = data_point.get('profit_loss', 0.0)
+                    value_performance[param_value]['profits'].append(profit_loss)
+                    value_performance[param_value]['total_pnl'] += profit_loss
+            
+            # Calculate win rates and average profits for each value
+            best_value = None
+            best_score = float('-inf')
+            
+            for value, perf in value_performance.items():
+                if len(perf['profits']) >= 3:
+                    wins = sum(1 for p in perf['profits'] if p > 0)
+                    win_rate = wins / len(perf['profits'])
+                    avg_profit = perf['total_pnl'] / len(perf['profits'])
+                    
+                    # Combined score: win rate + average profit
+                    score = win_rate * 0.6 + (avg_profit / 100) * 0.4  # Normalize profit impact
+                    
+                    if score > best_score:
+                        best_score = score
+                        best_value = value
+            
+            current_value = current_params.get(param_type)
+            
+            if best_value is None or best_value == current_value:
+                return None
+            
+            return ParameterOptimizationResult(
+                module_name=module_name,
+                parameter_type=param_type,
+                old_value=current_value,
+                new_value=best_value,
+                expected_improvement=best_score,
+                confidence=0.7,
+                optimization_method="profit_weighted_discrete",
+                data_points_used=len(performance_data)
+            )
+            
+        except Exception as e:
+            self.logger.error(f"Error in profit-weighted discrete optimization: {e}")
+            return None
