@@ -1404,12 +1404,15 @@ class CryptoModule(TradingModule):
             
             # Get real historical bars for 24h data
             try:
-                from datetime import datetime, timedelta
+                from datetime import datetime, timedelta, timezone
                 
-                # Get 24h of hourly bars
+                # Get 24h of hourly bars with proper RFC3339 timestamp
+                start_time = datetime.now(timezone.utc) - timedelta(days=1)
+                start_time_str = start_time.strftime('%Y-%m-%dT%H:%M:%SZ')  # RFC3339 format
+                
                 bars = self.api.get_crypto_bars(
                     formatted_symbol,
-                    start=(datetime.now() - timedelta(days=1)).isoformat(),
+                    start=start_time_str,
                     timeframe='1Hour'
                 )
                 
