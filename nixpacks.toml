@@ -1,0 +1,35 @@
+[phases.setup]
+nixPkgs = [
+  "python311",
+  "python311Packages.pip",
+  "python311Packages.setuptools", 
+  "python311Packages.wheel",
+  # TA-Lib system dependencies
+  "ta-lib",
+  "pkg-config",
+  # Build tools for compilation
+  "gcc",
+  "gfortran",
+  "make",
+  "cmake",
+  # Additional libraries that might be needed
+  "libffi",
+  "openssl",
+  "zlib"
+]
+
+[phases.install]
+cmds = [
+  "python -m pip install --upgrade pip setuptools wheel",
+  # Set environment variables for TA-Lib
+  "export TA_LIBRARY_PATH=/nix/store/*/lib",
+  "export TA_INCLUDE_PATH=/nix/store/*/include", 
+  # Install Python packages
+  "python -m pip install -r requirements.txt"
+]
+
+[phases.build]
+cmds = ["echo 'Build phase complete'"]
+
+[start]
+cmd = "python modular_production_main.py"
