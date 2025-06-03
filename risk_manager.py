@@ -72,24 +72,34 @@ class RiskManager:
                 account = self.api.get_account()
                 equity = float(account.equity)
                 self.daytrading_buying_power = float(getattr(account, 'daytrading_buying_power', 0))
+                buying_power = float(getattr(account, 'buying_power', 0))
                 
-                # Check Pattern Day Trading eligibility
-                self.intraday_eligible = (
-                    equity >= 25000 and 
-                    hasattr(account, 'pattern_day_trader') and 
-                    account.pattern_day_trader
-                )
+                # FIXED: More flexible eligibility check
+                # Check if account has daytrading power OR sufficient equity
+                has_daytrading_power = self.daytrading_buying_power > 0
+                has_sufficient_equity = equity >= 25000
+                is_pattern_day_trader = getattr(account, 'pattern_day_trader', False)
+                
+                # Enable if any of these conditions are met
+                self.intraday_eligible = has_daytrading_power or has_sufficient_equity or is_pattern_day_trader
                 
                 if self.intraday_eligible:
-                    # Calculate maximum intraday position size (15% of day trading power)
-                    self.max_intraday_position_size = self.daytrading_buying_power * 0.15
+                    # Use daytrading power if available, otherwise use regular buying power with limits
+                    effective_power = max(self.daytrading_buying_power, buying_power)
+                    self.max_intraday_position_size = effective_power * 0.15
                     self.intraday_enabled = True
+                    
                     print(f"🚀 Intraday Trading: ✅ ENABLED")
+                    print(f"   💰 Account Equity: ${equity:,.2f}")
                     print(f"   💰 Day Trading Power: ${self.daytrading_buying_power:,.2f}")
+                    print(f"   💰 Buying Power: ${buying_power:,.2f}")
                     print(f"   🎯 Max Intraday Position: ${self.max_intraday_position_size:,.2f}")
+                    print(f"   📋 PDT Status: {is_pattern_day_trader}")
                 else:
                     print(f"🚀 Intraday Trading: ❌ DISABLED (Account not eligible)")
-                    print(f"   💰 Equity: ${equity:,.2f} (need $25k+)")
+                    print(f"   💰 Equity: ${equity:,.2f}")
+                    print(f"   💰 Day Trading Power: ${self.daytrading_buying_power:,.2f}")
+                    print(f"   📋 PDT Status: {is_pattern_day_trader}")
                     
         except Exception as e:
             print(f"⚠️ Intraday initialization failed: {e}")
