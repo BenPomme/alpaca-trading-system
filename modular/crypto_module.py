@@ -58,8 +58,8 @@ class CryptoAnalysis:
     
     @property
     def is_tradeable(self) -> bool:
-        """Check if analysis meets minimum trading criteria"""
-        return self.overall_confidence > 0.35  # Base threshold
+        """Check if analysis meets minimum trading criteria - LOWERED"""
+        return self.overall_confidence > 0.25  # LOWERED for more opportunities
 
 
 class CryptoModule(TradingModule):

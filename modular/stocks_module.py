@@ -65,10 +65,10 @@ class StockAnalysis:
     
     @property
     def is_tradeable(self) -> bool:
-        """Check if analysis meets minimum trading criteria - SIMPLIFIED"""
-        return (self.combined_confidence > 0.30 and  # Much lower threshold
+        """Check if analysis meets minimum trading criteria - AGGRESSIVE"""
+        return (self.combined_confidence > 0.25 and  # LOWERED for more opportunities
                 self.current_price > 0 and
-                self.technical_score > 0.20)  # Much lower threshold
+                self.technical_score > 0.15)  # LOWERED for more opportunities
 
 
 @dataclass
@@ -186,7 +186,7 @@ class StocksModule(TradingModule):
         # Strategy configuration - Optimized for intraday trading
         self.strategy_configs = {
             StockStrategy.LEVERAGED_ETFS: {
-                'min_confidence': 0.65,  # Lowered for intraday opportunities
+                'min_confidence': 0.45,  # LOWERED for more opportunities
                 'position_multiplier': 3.0,  # Increased for intraday leverage
                 'max_allocation': 0.20,  # Increased for day trading
                 'intraday_stop_loss': 0.03,  # Increased stop loss to 3% for intraday
@@ -194,7 +194,7 @@ class StocksModule(TradingModule):
                 'min_hold_minutes': 5  # Minimum 5 minute hold
             },
             StockStrategy.SECTOR_ROTATION: {
-                'min_confidence': 0.55,  # Lowered for more opportunities
+                'min_confidence': 0.40,  # LOWERED for more opportunities
                 'position_multiplier': 2.0,  # Increased for intraday
                 'max_allocation': 0.30,  # Increased allocation
                 'intraday_stop_loss': 0.035,  # Increased stop loss to 3.5%
@@ -202,7 +202,7 @@ class StocksModule(TradingModule):
                 'min_hold_minutes': 10
             },
             StockStrategy.MOMENTUM_AMPLIFICATION: {
-                'min_confidence': 0.70,  # Slightly lowered
+                'min_confidence': 0.50,  # LOWERED for more opportunities
                 'position_multiplier': 2.5,  # Increased for momentum
                 'max_allocation': 0.25,  # Increased for momentum plays
                 'intraday_stop_loss': 0.02,    # Increased stop loss to 2%
@@ -210,7 +210,7 @@ class StocksModule(TradingModule):
                 'min_hold_minutes': 3  # Very short hold for momentum
             },
             StockStrategy.VOLATILITY_TRADING: {
-                'min_confidence': 0.50,  # Lowered for volatility opportunities
+                'min_confidence': 0.35,  # LOWERED for more opportunities
                 'position_multiplier': 2.2,  # Increased for vol trading
                 'max_allocation': 0.15,
                 'intraday_stop_loss': 0.04,    # Increased stop loss to 4%
@@ -218,7 +218,7 @@ class StocksModule(TradingModule):
                 'min_hold_minutes': 8
             },
             StockStrategy.CORE_EQUITY: {
-                'min_confidence': 0.50,  # Lowered for more opportunities
+                'min_confidence': 0.35,  # LOWERED for more opportunities
                 'position_multiplier': 1.5,  # Increased for intraday
                 'max_allocation': 0.35,  # Increased base allocation
                 'intraday_stop_loss': 0.03,    # Increased stop loss to 3%

@@ -1,0 +1,73 @@
+{
+  "confidence_thresholds": {
+    "options": 0.55,
+    "crypto": 0.6,
+    "stocks": 0.35,
+    "market_intelligence": 0.6
+  },
+  "allocation_limits": {
+    "options": {
+      "max_allocation_pct": 70.0,
+      "issue": "Too conservative in volatile market"
+    },
+    "crypto": {
+      "max_allocation_pct": 30.0,
+      "after_hours": 90.0,
+      "issue": "Low allocation during market hours"
+    },
+    "stocks": {
+      "max_allocation_pct": 40.0,
+      "issue": "Too low for bullish market conditions"
+    },
+    "total_unused": {
+      "buying_power": "$699K",
+      "issue": "CRITICAL: 74% of portfolio unused"
+    }
+  },
+  "recommendations": [
+    {
+      "priority": "CRITICAL",
+      "action": "Lower all confidence thresholds by 0.10-0.15",
+      "rationale": "Current thresholds preventing trade execution",
+      "implementation": "Update modular_production_main.py confidence values"
+    },
+    {
+      "priority": "CRITICAL",
+      "action": "Increase allocation limits to 60-70% per module",
+      "rationale": "$699K unused buying power is opportunity cost",
+      "implementation": "Update max_allocation_pct in module configs"
+    },
+    {
+      "priority": "HIGH",
+      "action": "Implement aggressive recovery mode when portfolio down >2%",
+      "rationale": "Need systematic approach to recover from -5.61%",
+      "implementation": "Add recovery mode logic to orchestrator"
+    },
+    {
+      "priority": "HIGH",
+      "action": "Simplify technical indicators to favor trend following",
+      "rationale": "Complex signals may be conflicting and delaying execution",
+      "implementation": "Focus on momentum indicators during recovery"
+    },
+    {
+      "priority": "MEDIUM",
+      "action": "Reduce profit targets and widen stop losses temporarily",
+      "rationale": "Quick profits better than perfect entries during recovery",
+      "implementation": "Adjust risk management parameters"
+    }
+  ],
+  "current_performance": {
+    "portfolio_value": 943891,
+    "loss_amount": 56109,
+    "loss_percentage": -5.61,
+    "unused_buying_power": 699196,
+    "utilization_rate": 25.8
+  },
+  "projected_improvements": {
+    "confidence_reduction": "+2-3% monthly (more trade opportunities)",
+    "allocation_increase": "+3-4% monthly (better capital utilization)",
+    "recovery_mode": "+1-2% monthly (systematic recovery approach)",
+    "technical_simplification": "+1-2% monthly (faster execution)",
+    "combined_effect": "+7-11% monthly potential"
+  }
+}

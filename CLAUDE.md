@@ -180,21 +180,36 @@ git push  # Automatic deployment on push
 
 ### Required for Production
 ```bash
-# Alpaca Trading API (Paper Trading)
-ALPACA_PAPER_API_KEY=your_paper_key
-ALPACA_PAPER_SECRET_KEY=your_paper_secret
-ALPACA_BASE_URL=https://paper-api.alpaca.markets
+# Alpaca Trading API (Paper Trading) - ✅ CONFIGURED
+ALPACA_PAPER_API_KEY="PKIP9MZ4Q1WJ423JXOQU"
+ALPACA_PAPER_SECRET_KEY="zjGO4D9sED7ATSv6J1UCKCl0xzOOep5hPHRRmRcc"
+ALPACA_BASE_URL="https://paper-api.alpaca.markets"
 
-# Market Intelligence (NEW - June 2025)
-OPENAI_API_KEY=your_openai_api_key
-OPENAI_MODEL=o4-mini
-INTELLIGENCE_CYCLE_HOURS=6
+# Trading System Configuration - ✅ CONFIGURED  
+EXECUTION_ENABLED="true"
+GLOBAL_TRADING="true"
+OPTIONS_TRADING="true"
+CRYPTO_TRADING="true"
+MARKET_TIER="2"
+MIN_CONFIDENCE="0.35"  # LOWERED for performance improvement
 
-# System Configuration
-EXECUTION_ENABLED=true
-MODULAR_SYSTEM=true
-ML_OPTIMIZATION=true
-INTRADAY_CYCLE_DELAY=60
+# Firebase Database - ✅ CONFIGURED
+FIREBASE_PRIVATE_KEY_ID="1cc8ac3693bfd2b08e40582f3564da2a3c06d978"
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----[CONFIGURED]-----END PRIVATE KEY-----"
+FIREBASE_CLIENT_EMAIL="firebase-adminsdk-fbsvc@alpaca-12fab.iam.gserviceaccount.com"
+FIREBASE_CLIENT_ID="105751822466253435094"
+FIREBASE_CLIENT_CERT_URL="https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40alpaca-12fab.iam.gserviceaccount.com"
+
+# Enhanced Data Sources - ✅ CONFIGURED
+ALPHA_VANTAGE_API_KEY="9W2HV5D4AQAMR70O"
+FINNHUB_API_KEY="d0vefg1r01qmg3ulut0gd0vefg1r01qmg3ulut10"
+
+# Market Intelligence - ✅ CONFIGURED
+INTELLIGENCE_CYCLE_HOURS="6"
+MARKET_INTELLIGENCE="true"
+OPENAI_API_KEY="[CONFIGURED - shared variable]"
+OPENAI_MODEL="[CONFIGURED - shared variable]"
+WEB_SEARCH_MODEL="[CONFIGURED - shared variable]"
 ```
 
 ### Alpaca Data Quality & Subscription Tiers
@@ -449,15 +464,22 @@ def _calculate_monthly_performance(self) -> float:
 
 ## Current Production Status (June 3, 2025)
 
-### ✅ Unlimited Trading System with Safety Controls
-- **Live Trading**: Confirmed with real Alpaca order IDs  
-- **Portfolio Value**: $978,356 (down from $1M baseline, -2.16% ROI)
-- **Unlimited Trading**: All position and daily limits removed for system improvement
+### ✅ Paper Trading System - Performance Improvement Focus
+- **Paper Trading**: All credentials configured and Railway deployment active
+- **Portfolio Value**: $943,891 (down from $1M baseline, -5.61% loss)
+- **Current Position**: UNIUSD -$17,653 (only 1 position - needs diversification)
+- **Strategy Issue**: Poor performance requires immediate strategy optimization
 - **Firebase Integration**: Persistent trade history storage across deployments
-- **Safety Systems**: Comprehensive trade history tracking prevents rapid-fire incidents
-- **Market Intelligence**: OpenAI o4-mini integration active
-- **ML Learning**: Entry-exit trade linking for profit optimization
-- **Health Monitoring**: Real-time performance analysis capabilities
+- **Market Intelligence**: OpenAI integration active with enhanced data sources
+- **All Modules Enabled**: Stocks, Options, Crypto trading all configured
+- **Performance Goal**: Improve from -5.61% to positive returns
+
+### 🎯 Strategy Improvement Priorities
+- **Diversification**: Only 1 position suggests allocation/confidence issues
+- **Risk Management**: Single large losing position indicates poor risk controls
+- **Technical Analysis**: Review confidence thresholds and technical indicators
+- **Allocation Logic**: Examine why modules aren't taking more positions
+- **Exit Strategy**: Improve stop-loss and profit-taking mechanisms
 
 ### Dependencies & Installation
 ```bash

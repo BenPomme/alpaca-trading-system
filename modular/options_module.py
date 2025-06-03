@@ -533,12 +533,12 @@ class OptionsModule(TradingModule):
         try:
             # SIMPLIFIED INSTITUTIONAL LOGIC - Focus on what works
             
-            if confidence >= 0.60:  # High confidence bullish
-                self.logger.info(f"📈 BULLISH STRATEGY: confidence {confidence:.1%} >= 60% - using long calls")
+            if confidence >= 0.45:  # LOWERED for more opportunities (was 0.60)
+                self.logger.info(f"📈 BULLISH STRATEGY: confidence {confidence:.1%} >= 45% - using long calls")
                 return self._analyze_long_calls(options_chain)
             
             else:  # Lower confidence or defensive
-                self.logger.info(f"🛡️ DEFENSIVE STRATEGY: confidence {confidence:.1%} < 60% - using protective puts")
+                self.logger.info(f"🛡️ DEFENSIVE STRATEGY: confidence {confidence:.1%} < 45% - using protective puts")
                 return self._analyze_protective_puts(options_chain)
             
             # REMOVED: Complex strategies (bull_call_spreads, covered_calls, long_straddles)
@@ -579,7 +579,7 @@ class OptionsModule(TradingModule):
                 max_reward=float('inf'),  # Unlimited upside
                 breakeven=breakeven,
                 leverage=leverage,
-                confidence_required=0.75
+                confidence_required=0.50  # LOWERED for more opportunities
             )
             
         except Exception as e:
@@ -621,7 +621,7 @@ class OptionsModule(TradingModule):
                 max_reward=max_reward,
                 breakeven=breakeven,
                 leverage=leverage,
-                confidence_required=0.60
+                confidence_required=0.45  # LOWERED for more opportunities
             )
             
         except Exception as e:
@@ -663,7 +663,7 @@ class OptionsModule(TradingModule):
                 max_reward=float('inf'),  # Stock upside minus premium
                 breakeven=underlying_price + net_premium,
                 leverage=1.0,  # Defensive strategy
-                confidence_required=0.30  # Used in bearish conditions
+                confidence_required=0.25  # LOWERED for more opportunities
             )
             
         except Exception as e:
