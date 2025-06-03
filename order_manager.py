@@ -407,6 +407,9 @@ class OrderManager:
             
             position = self.active_positions[symbol]
             shares = abs(float(position['qty'])) # Ensure positive qty for selling
+            if shares <= 0:
+                print(f"🚫 Cannot sell {symbol}: available quantity is zero or negative.")
+                return {'status': 'insufficient_quantity', 'symbol': symbol, 'error': 'No shares available to sell'}
             side = 'sell' # Always sell to close a long position
             
             # Get current price for logging/approximate P&L

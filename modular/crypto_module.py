@@ -430,7 +430,7 @@ class CryptoModule(TradingModule):
     # Analysis methods
     
     def _analyze_crypto_symbol(self, symbol: str, session: TradingSession) -> Optional[CryptoAnalysis]:
-        """Perform comprehensive analysis of a cryptocurrency"""
+        """Perform comprehensive analysis of a cryptocurrency, now including market intelligence/ML confidence."""
         try:
             # Get current price and market data
             current_price = self._get_crypto_price(symbol)
@@ -447,12 +447,30 @@ class CryptoModule(TradingModule):
             volatility_score = self._calculate_crypto_volatility(symbol, market_data)
             volume_score = self._calculate_crypto_volume(symbol, market_data)
             
-            # Calculate overall confidence using weighted scoring
-            overall_confidence = (
+            # Calculate technical confidence using weighted scoring
+            technical_confidence = (
                 momentum_score * self.analysis_weights['momentum'] +
                 volatility_score * self.analysis_weights['volatility'] +
                 volume_score * self.analysis_weights['volume']
             )
+            
+            # Integrate Market Intelligence/ML confidence if available
+            intelligence_confidence = None
+            if hasattr(self, 'market_intelligence') and self.market_intelligence:
+                try:
+                    intelligence_confidence = self.market_intelligence.get_position_risk_score(symbol)
+                    self.logger.info(f"🤖 {symbol}: Market Intelligence confidence={intelligence_confidence:.2f}")
+                except Exception as e:
+                    self.logger.warning(f"⚠️ {symbol}: Market Intelligence confidence unavailable: {e}")
+                    intelligence_confidence = None
+            
+            # Combine technical and intelligence confidence (if available)
+            if intelligence_confidence is not None:
+                overall_confidence = 0.5 * technical_confidence + 0.5 * intelligence_confidence
+            else:
+                overall_confidence = technical_confidence
+            
+            self.logger.info(f"📊 {symbol}: Technical confidence={technical_confidence:.2f}, Overall confidence={overall_confidence:.2f}")
             
             session_config = self.session_configs[session]
             
@@ -466,7 +484,6 @@ class CryptoModule(TradingModule):
                 session=session,
                 strategy=session_config.strategy
             )
-            
         except Exception as e:
             self.logger.error(f"Error analyzing crypto symbol {symbol}: {e}")
             return None
