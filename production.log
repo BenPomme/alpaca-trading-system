@@ -5466,3 +5466,131 @@ NameError: name 'dataclasses' is not defined. Did you mean: 'dataclass'? Or did 
 2025-06-03 09:54:21,962 - __main__ - INFO - 🚪 crypto: 0 exit actions taken
 2025-06-03 09:54:21,962 - __main__ - INFO - 📊 crypto: 8 opps, 8 trades (0 passed, 0 profitable), 0 exits
 2025-06-03 09:54:21,963 - __main__ - INFO - 🎯 Cycle 2 completed: {'total_opportunities': 8, 'total_trades': 8, 'trades_passed': 0, 'successful_trades': 0}
+2025-06-03 15:39:58,268 - __main__ - INFO - 🚀 MODULAR TRADING SYSTEM - PRODUCTION STARTUP
+2025-06-03 15:39:58,269 - __main__ - INFO - 🔧 CRITICAL FIX: Order Executor Implementation - v1.5
+2025-06-03 15:39:58,269 - __main__ - INFO - 🎯 ORDER EXECUTION SHOULD NOW WORK
+2025-06-03 15:39:58,269 - __main__ - INFO - 🎯 SUCCESSFUL TRADES EXPECTED
+2025-06-03 15:39:58,269 - __main__ - INFO - ============================================================
+2025-06-03 15:39:58,269 - __main__ - INFO - ⏰ Start Time: 2025-06-03 15:39:58.269188
+2025-06-03 15:39:58,269 - __main__ - INFO - 🐍 Python Version: 3.13.3 (main, Apr  8 2025, 13:54:08) [Clang 17.0.0 (clang-1700.0.13.3)]
+2025-06-03 15:39:58,269 - __main__ - INFO - 📁 Working Directory: /Users/benjamin.pommeraud/Desktop/Alpaca
+2025-06-03 15:39:58,269 - __main__ - INFO - 🌍 Environment: local
+2025-06-03 15:39:58,269 - __main__ - INFO - 
+2025-06-03 15:39:58,269 - production_config - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 15:39:58,269 - production_config - INFO -    Subscription: free
+2025-06-03 15:39:58,269 - production_config - INFO -    Data Mode: delayed
+2025-06-03 15:39:58,269 - production_config - INFO -    Cycle Delay: 60s
+2025-06-03 15:39:58,269 - production_config - INFO - ✅ Configuration loaded from environment
+2025-06-03 15:39:58,269 - production_config - WARNING - ⚠️ ALPACA_PAPER_API_KEY not set - trading will be disabled
+2025-06-03 15:39:58,269 - production_config - WARNING - ⚠️ ALPACA_PAPER_SECRET_KEY not set - trading will be disabled
+2025-06-03 15:39:58,269 - production_config - WARNING - ⚠️ OPENAI_API_KEY not set - Market Intelligence will be disabled
+2025-06-03 15:39:58,269 - production_config - INFO - ⚡ Trading cycle configured: 60s intervals (optimized for Basic Plan)
+2025-06-03 15:39:58,269 - production_config - WARNING - ⚠️ Fast cycles with Basic Plan may waste API calls - consider upgrading to Algo Trader Plus
+2025-06-03 15:39:58,269 - production_config - WARNING - ⚠️ Firebase keys missing: ['FIREBASE_PRIVATE_KEY_ID', 'FIREBASE_PRIVATE_KEY', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_CLIENT_ID'] - Firebase will be disabled
+2025-06-03 15:39:58,269 - production_config - INFO - ✅ Configuration validation complete
+2025-06-03 15:39:58,269 - production_config - INFO - ✅ Configuration loaded from environment
+2025-06-03 15:39:58,269 - production_config - INFO - 📊 DATA MODE STATUS:
+   Subscription: FREE
+   Data Mode: DELAYED
+   Cycle Delay: 60s
+   Strategy Focus: intraday
+   Risk Level: aggressive
+   Max Daily Trades: 100
+   Min Hold Time: 0.1h
+   Quote Staleness OK: <1200s
+2025-06-03 15:39:58,269 - production_health_check - INFO - 🏥 Health monitor initialized
+2025-06-03 15:39:58,269 - __main__ - INFO - 🚀 Production Trading System initializing...
+2025-06-03 15:39:58,269 - __main__ - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 15:39:58,269 - __main__ - INFO -    Subscription: free
+2025-06-03 15:39:58,269 - __main__ - INFO -    Data Mode: delayed
+2025-06-03 15:39:58,269 - __main__ - INFO -    Cycle Delay: 60s
+2025-06-03 15:39:58,269 - __main__ - INFO - 🔧 DELAYED DATA OPTIMIZATION: System configured for your subscription level
+2025-06-03 15:39:58,269 - __main__ - INFO - 📊 DATA MODE STATUS:
+   Subscription: FREE
+   Data Mode: DELAYED
+   Cycle Delay: 60s
+   Strategy Focus: intraday
+   Risk Level: aggressive
+   Max Daily Trades: 100
+   Min Hold Time: 0.1h
+   Quote Staleness OK: <1200s
+2025-06-03 15:39:58,269 - __main__ - INFO - 🚀 Starting production trading system...
+2025-06-03 15:39:58,269 - __main__ - INFO - 🔧 Initializing system components...
+2025-06-03 15:39:58,269 - __main__ - INFO - 🔥 Initializing Firebase database...
+2025-06-03 15:39:58,269 - __main__ - WARNING - ⚠️ Firebase database not connected - using fallback mode
+2025-06-03 15:39:58,269 - __main__ - INFO - 📈 Initializing Alpaca trading API...
+2025-06-03 15:39:58,269 - __main__ - INFO - 🔍 ALPACA API CREDENTIAL DEBUGGING:
+2025-06-03 15:39:58,269 - __main__ - INFO -    API Key present: False
+2025-06-03 15:39:58,269 - __main__ - INFO -    Secret Key present: False
+2025-06-03 15:39:58,269 - __main__ - INFO -    Base URL: https://paper-api.alpaca.markets
+2025-06-03 15:39:58,269 - __main__ - ERROR - ❌ Alpaca API credentials not found
+2025-06-03 15:39:58,269 - __main__ - ERROR - 🔍 Available environment variables:
+2025-06-03 15:39:58,270 - __main__ - ERROR - ❌ System initialization failed
+2025-06-03 15:39:58,270 - __main__ - ERROR - ❌ Production system failed to start
+2025-06-03 15:39:58,270 - __main__ - INFO - 🛑 Initiating graceful shutdown...
+2025-06-03 15:39:58,270 - __main__ - INFO - ✅ Firebase connection closed
+2025-06-03 15:39:58,270 - __main__ - INFO - ✅ Graceful shutdown complete
+2025-06-03 15:54:45,181 - __main__ - INFO - 🚀 MODULAR TRADING SYSTEM - PRODUCTION STARTUP
+2025-06-03 15:54:45,181 - __main__ - INFO - 🔧 CRITICAL FIX: Order Executor Implementation - v1.5
+2025-06-03 15:54:45,181 - __main__ - INFO - 🎯 ORDER EXECUTION SHOULD NOW WORK
+2025-06-03 15:54:45,181 - __main__ - INFO - 🎯 SUCCESSFUL TRADES EXPECTED
+2025-06-03 15:54:45,181 - __main__ - INFO - ============================================================
+2025-06-03 15:54:45,181 - __main__ - INFO - ⏰ Start Time: 2025-06-03 15:54:45.181642
+2025-06-03 15:54:45,181 - __main__ - INFO - 🐍 Python Version: 3.13.3 (main, Apr  8 2025, 13:54:08) [Clang 17.0.0 (clang-1700.0.13.3)]
+2025-06-03 15:54:45,181 - __main__ - INFO - 📁 Working Directory: /Users/benjamin.pommeraud/Desktop/Alpaca
+2025-06-03 15:54:45,181 - __main__ - INFO - 🌍 Environment: local
+2025-06-03 15:54:45,181 - __main__ - INFO - 
+2025-06-03 15:54:45,181 - production_config - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 15:54:45,181 - production_config - INFO -    Subscription: free
+2025-06-03 15:54:45,181 - production_config - INFO -    Data Mode: delayed
+2025-06-03 15:54:45,181 - production_config - INFO -    Cycle Delay: 60s
+2025-06-03 15:54:45,181 - production_config - INFO - ✅ Configuration loaded from environment
+2025-06-03 15:54:45,181 - production_config - WARNING - ⚠️ ALPACA_PAPER_API_KEY not set - trading will be disabled
+2025-06-03 15:54:45,181 - production_config - WARNING - ⚠️ ALPACA_PAPER_SECRET_KEY not set - trading will be disabled
+2025-06-03 15:54:45,181 - production_config - WARNING - ⚠️ OPENAI_API_KEY not set - Market Intelligence will be disabled
+2025-06-03 15:54:45,181 - production_config - INFO - ⚡ Trading cycle configured: 60s intervals (optimized for Basic Plan)
+2025-06-03 15:54:45,181 - production_config - WARNING - ⚠️ Fast cycles with Basic Plan may waste API calls - consider upgrading to Algo Trader Plus
+2025-06-03 15:54:45,181 - production_config - WARNING - ⚠️ Firebase keys missing: ['FIREBASE_PRIVATE_KEY_ID', 'FIREBASE_PRIVATE_KEY', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_CLIENT_ID'] - Firebase will be disabled
+2025-06-03 15:54:45,182 - production_config - INFO - ✅ Configuration validation complete
+2025-06-03 15:54:45,182 - production_config - INFO - ✅ Configuration loaded from environment
+2025-06-03 15:54:45,182 - production_config - INFO - 📊 DATA MODE STATUS:
+   Subscription: FREE
+   Data Mode: DELAYED
+   Cycle Delay: 60s
+   Strategy Focus: intraday
+   Risk Level: aggressive
+   Max Daily Trades: 100
+   Min Hold Time: 0.1h
+   Quote Staleness OK: <1200s
+2025-06-03 15:54:45,182 - production_health_check - INFO - 🏥 Health monitor initialized
+2025-06-03 15:54:45,182 - __main__ - INFO - 🚀 Production Trading System initializing...
+2025-06-03 15:54:45,182 - __main__ - INFO - 🔧 Data Mode Manager initialized:
+2025-06-03 15:54:45,182 - __main__ - INFO -    Subscription: free
+2025-06-03 15:54:45,182 - __main__ - INFO -    Data Mode: delayed
+2025-06-03 15:54:45,182 - __main__ - INFO -    Cycle Delay: 60s
+2025-06-03 15:54:45,182 - __main__ - INFO - 🔧 DELAYED DATA OPTIMIZATION: System configured for your subscription level
+2025-06-03 15:54:45,182 - __main__ - INFO - 📊 DATA MODE STATUS:
+   Subscription: FREE
+   Data Mode: DELAYED
+   Cycle Delay: 60s
+   Strategy Focus: intraday
+   Risk Level: aggressive
+   Max Daily Trades: 100
+   Min Hold Time: 0.1h
+   Quote Staleness OK: <1200s
+2025-06-03 15:54:45,182 - __main__ - INFO - 🚀 Starting production trading system...
+2025-06-03 15:54:45,182 - __main__ - INFO - 🔧 Initializing system components...
+2025-06-03 15:54:45,182 - __main__ - INFO - 🔥 Initializing Firebase database...
+2025-06-03 15:54:45,182 - __main__ - WARNING - ⚠️ Firebase database not connected - using fallback mode
+2025-06-03 15:54:45,182 - __main__ - INFO - 📈 Initializing Alpaca trading API...
+2025-06-03 15:54:45,182 - __main__ - INFO - 🔍 ALPACA API CREDENTIAL DEBUGGING:
+2025-06-03 15:54:45,182 - __main__ - INFO -    API Key present: False
+2025-06-03 15:54:45,182 - __main__ - INFO -    Secret Key present: False
+2025-06-03 15:54:45,182 - __main__ - INFO -    Base URL: https://paper-api.alpaca.markets
+2025-06-03 15:54:45,182 - __main__ - ERROR - ❌ Alpaca API credentials not found
+2025-06-03 15:54:45,182 - __main__ - ERROR - 🔍 Available environment variables:
+2025-06-03 15:54:45,182 - __main__ - ERROR - ❌ System initialization failed
+2025-06-03 15:54:45,182 - __main__ - ERROR - ❌ Production system failed to start
+2025-06-03 15:54:45,182 - __main__ - INFO - 🛑 Initiating graceful shutdown...
+2025-06-03 15:54:45,182 - __main__ - INFO - ✅ Firebase connection closed
+2025-06-03 15:54:45,182 - __main__ - INFO - ✅ Graceful shutdown complete
